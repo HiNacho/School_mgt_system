@@ -1,0 +1,116 @@
+/* High-Fidelity A4 Report Card Print Rules */
+
+@media print {
+  body {
+    background: #ffffff !important;
+    color: #000000 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    font-size: 11pt !important;
+    line-height: 1.3 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Force A4 Size */
+  @page {
+    size: A4 portrait;
+    margin: 10mm 12mm 10mm 12mm;
+  }
+
+  /* Hide headers/footers and sidebars in the browser */
+  header, footer, aside, nav, .no-print {
+    display: none !important;
+  }
+
+  /* Reset outer dashboard layout wrappers for proper multi-page print flow */
+  div.min-h-screen, div.flex-1, main.flex-1 {
+    overflow: visible !important;
+    display: block !important;
+    position: static !important;
+    height: auto !important;
+    width: auto !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  /* Container for each student report card */
+  .report-card-container {
+    width: 100% !important;
+    max-width: 210mm !important;
+    height: auto !important;
+    min-height: 277mm !important; /* A4 height is 297mm, minus 20mm margins */
+    margin: 0 auto !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+    box-sizing: border-box !important;
+    page-break-after: always !important;
+    break-after: page !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: space-between !important;
+  }
+
+  /* Ensure last child does not print an empty page */
+  .report-card-container:last-child {
+    page-break-after: avoid !important;
+    break-after: avoid !important;
+  }
+
+  /* Form Tables and Grid structures */
+  table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+    page-break-inside: avoid !important;
+  }
+
+  th, td {
+    padding: 4px 6px !important;
+    font-size: 9.5pt !important;
+    border: 1px solid #1e293b !important; /* Slate-800 for high visibility print */
+  }
+
+  th {
+    background-color: #f1f5f9 !important; /* Slate-100 */
+    color: #000000 !important;
+    font-weight: bold !important;
+  }
+
+  /* Force background colors on badges */
+  .badge-excellent {
+    background-color: #dcfce7 !important; /* Green 100 */
+    color: #14532d !important;
+  }
+  
+  .badge-good {
+    background-color: #dbeafe !important; /* Blue 100 */
+    color: #1e3a8a !important;
+  }
+  
+  .badge-average {
+    background-color: #fef9c3 !important; /* Yellow 100 */
+    color: #713f12 !important;
+  }
+
+  .badge-fail {
+    background-color: #fee2e2 !important; /* Red 100 */
+    color: #7f1d1d !important;
+  }
+}
+
+/* Screen vs Print Utility Rules */
+@media screen {
+  .print-only {
+    display: none !important;
+  }
+}
+@media print {
+  .print-only {
+    display: block !important;
+  }
+  .no-print {
+    display: none !important;
+  }
+}

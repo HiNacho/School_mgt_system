@@ -1,0 +1,1116 @@
+'use client';
+
+import React, { useEffect, useState } from 'react';
+import { 
+  School, Plus, Shield, Users, FileSpreadsheet, CheckCircle, 
+  AlertCircle, RefreshCw, Mail, Phone, MapPin, Sparkles, X, Check,
+  Search, Lock, Calendar, DollarSign, LineChart, Activity, Eye, Settings, AlertTriangle, CreditCard, ArrowRightLeft
+} from 'lucide-react';
+
+interface SchoolTenant {
+  id: string;
+  name: string;
+  slug: string;
+  address: string;
+  phone: string;
+  email: string;
+  gradingType: 'PRIMARY' | 'SECONDARY';
+  createdAt: string;
+  studentCount: number;
+  staffCount: number;
+  scoresRecorded: number;
+  subscriptionPlan: 'Basic' | 'Standard' | 'Premium';
+  subscriptionStatus: 'active' | 'trial' | 'expired' | 'suspended' | 'archived';
+  subscriptionStart: string | null;
+  subscriptionEnd: string | null;
+  gracePeriodEnd: string | null;
+  totalRevenue: number;
+  lastActive: string | null;
+}
+
+interface PaymentRecord {
+  id: string;
+  schoolId: string;
+  schoolName: string;
+  amount: number;
+  paymentDate: string;
+  paymentMethod: string;
+  status: 'paid' | 'pending' | 'overdue' | 'failed';
+}
+
+interface UsageRecord {
+  id: string;
+  schoolId: string;
+  schoolName: string;
+  activityType: string;
+  createdAt: string;
+}
+
+export default function SchoolTenantsPage() {
+  const [tenants, setTenants] = useState<SchoolTenant[]>([]);
+  const [payments, setPayments] = useState<PaymentRecord[]>([]);
+  const [usageLogs, setUsageLogs] = useState<UsageRecord[]>([]);
+  
+  const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<'schools' | 'payments' | 'usage'>('schools');
+  
+  // Registration Form State
+  const [showRegModal, setShowRegModal] = useState(false);
+  const [schoolName, setSchoolName] = useState('');
+  const [schoolSlug, setSchoolSlug] = useState('');
+  const [address, setAddress] = useState('');
+  const [phone, setPhone] = useState('');
+  const [email, setEmail] = useState('');
+  const [gradingType, setGradingType] = useState<'PRIMARY' | 'SECONDARY'>('SECONDARY');
+  const [registering, setRegistering] = useState(false);
+
+  // Manual Subscription Billing Form State
+  const [showBillingModal, setShowBillingModal] = useState(false);
+  const [billingSchool, setBillingSchool] = useState<SchoolTenant | null>(null);
+  const [billingAmount, setBillingAmount] = useState('250000');
+  const [billingMethod, setBillingMethod] = useState('Bank Transfer');
+  const [billingPlan, setBillingPlan] = useState<'Basic' | 'Standard' | 'Premium'>('Standard');
+  const [billingStatus, setBillingStatus] = useState<'paid' | 'pending'>('paid');
+  const [submittingBilling, setSubmittingBilling] = useState(false);
+
+  // Detail Drawer State
+  const [viewingTenant, setViewingTenant] = useState<SchoolTenant | null>(null);
+
+  // Status feedback
+  const [successMsg, setSuccessMsg] = useState('');
+  const [errorMsg, setErrorMsg] = useState('');
+
+  useEffect(() => {
+    loadAllSaaSData();
+  }, []);
+
+  const loadAllSaaSData = async () => {
+    setLoading(true);
+    setErrorMsg('');
+    try {
+      const [schoolsRes, paymentsRes, usageRes] = await Promise.all([
+        fetch('/api/schools'),
+        fetch('/api/superadmin/payments'),
+        fetch('/api/superadmin/usage')
+      ]);
+
+      const schoolsJson = await schoolsRes.json();
+      const paymentsJson = await paymentsRes.json();
+      const usageJson = await usageRes.json();
+
+      if (!schoolsRes.ok) throw new Error(schoolsJson.error || 'Failed to load school tenants');
+      if (!paymentsRes.ok) throw new Error(paymentsJson.error || 'Failed to load payments logs');
+      if (!usageRes.ok) throw new Error(usageJson.error || 'Failed to load usage telemetry');
+
+      setTenants(schoolsJson.data || []);
+      setPayments(paymentsJson.data || []);
+      setUsageLogs(usageJson.data || []);
+    } catch (e: any) {
+      setErrorMsg(e.message || 'Error loading platform separation matrix databases');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Auto-generate URL slug from school name typing
+  const handleNameChange = (name: string) => {
+    setSchoolName(name);
+    const generatedSlug = name
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9\s-]/g, '') // remove special chars
+      .replace(/\s+/g, '-'); // replace spaces with hyphens
+    setSchoolSlug(generatedSlug);
+  };
+
+  const handleRegisterSchool = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!schoolName || !schoolSlug) {
+      setErrorMsg('School Name and URL Slug are required.');
+      return;
+    }
+
+    setRegistering(true);
+    setErrorMsg('');
+    setSuccessMsg('');
+
+    try {
+      const res = await fetch('/api/schools', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: schoolName,
+          slug: schoolSlug,
+          address,
+          phone,
+          email,
+          gradingType,
+        }),
+      });
+
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || 'Failed to register school');
+
+      // Write usage log trace
+      await fetch('/api/superadmin/usage', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          schoolId: json.data.id,
+          activityType: 'School Tenant Initialized'
+        })
+      });
+
+      setSuccessMsg(`School Tenant "${schoolName}" successfully initialized in SaaS registry! Default ${gradingType.toLowerCase()} grading rules and trial credentials provisioned.`);
+      
+      // Reset form & reload
+      setSchoolName('');
+      setSchoolSlug('');
+      setAddress('');
+      setPhone('');
+      setEmail('');
+      setGradingType('SECONDARY');
+      setShowRegModal(false);
+      
+      await loadAllSaaSData();
+    } catch (err: any) {
+      setErrorMsg(err.message || 'Error registering tenant');
+    } finally {
+      setRegistering(false);
+    }
+  };
+
+  const handleManualBillingSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!billingSchool) return;
+
+    setSubmittingBilling(true);
+    setErrorMsg('');
+    setSuccessMsg('');
+
+    try {
+      const res = await fetch('/api/superadmin/payments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          schoolId: billingSchool.id,
+          amount: billingAmount,
+          paymentMethod: billingMethod,
+          status: billingStatus,
+          planSelected: billingPlan
+        }),
+      });
+
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || 'Failed to submit billing log');
+
+      // Write usage log trace
+      await fetch('/api/superadmin/usage', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          schoolId: billingSchool.id,
+          activityType: `Manual Payment Logged: ₦${parseFloat(billingAmount).toLocaleString()} (${billingPlan})`
+        })
+      });
+
+      setSuccessMsg(`Manuel subscription payment logged successfully! school subscription updated to active standard.`);
+      setShowBillingModal(false);
+      setBillingSchool(null);
+      await loadAllSaaSData();
+    } catch (err: any) {
+      setErrorMsg(err.message || 'Error logging manual billing');
+    } finally {
+      setSubmittingBilling(false);
+    }
+  };
+
+  const handleResetAdminPassword = async (tenant: SchoolTenant) => {
+    if (!window.confirm(`Are you sure you want to reset the admin password for "${tenant.name}"? The password will be reset to "password".`)) {
+      return;
+    }
+
+    setErrorMsg('');
+    setSuccessMsg('');
+
+    try {
+      const res = await fetch('/api/superadmin/actions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'reset_admin_password',
+          schoolId: tenant.id
+        })
+      });
+
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || 'Failed to execute reset action');
+
+      setSuccessMsg(json.message || 'Admin password reset executed successfully!');
+    } catch (err: any) {
+      setErrorMsg(err.message || 'Error resetting password');
+    }
+  };
+
+  const handleToggleSuspension = async (tenant: SchoolTenant) => {
+    const isSuspended = tenant.subscriptionStatus === 'suspended';
+    const nextStatus = isSuspended ? 'active' : 'suspended';
+    
+    if (!window.confirm(`Are you sure you want to set subscription status to "${nextStatus}" for "${tenant.name}"?`)) {
+      return;
+    }
+
+    setErrorMsg('');
+    setSuccessMsg('');
+
+    try {
+      const res = await fetch('/api/schools', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          schoolId: tenant.id,
+          subscriptionStatus: nextStatus
+        })
+      });
+
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || 'Failed to update status');
+
+      // Log usage trace
+      await fetch('/api/superadmin/usage', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          schoolId: tenant.id,
+          activityType: `Subscription Status Updated: ${nextStatus.toUpperCase()}`
+        })
+      });
+
+      setSuccessMsg(`School tenant suspension toggle updated successfully!`);
+      await loadAllSaaSData();
+      if (viewingTenant && viewingTenant.id === tenant.id) {
+        setViewingTenant({ ...viewingTenant, subscriptionStatus: nextStatus });
+      }
+    } catch (err: any) {
+      setErrorMsg(err.message || 'Error toggling school status');
+    }
+  };
+
+  const handleArchiveSchool = async (tenant: SchoolTenant) => {
+    if (!window.confirm(`Are you sure you want to archive "${tenant.name}"? This restricts active write access to all features.`)) {
+      return;
+    }
+
+    setErrorMsg('');
+    setSuccessMsg('');
+
+    try {
+      const res = await fetch('/api/schools', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          schoolId: tenant.id,
+          subscriptionStatus: 'archived'
+        })
+      });
+
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || 'Failed to archive school');
+
+      setSuccessMsg(`School tenant successfully archived!`);
+      await loadAllSaaSData();
+      if (viewingTenant && viewingTenant.id === tenant.id) {
+        setViewingTenant({ ...viewingTenant, subscriptionStatus: 'archived' });
+      }
+    } catch (err: any) {
+      setErrorMsg(err.message || 'Error archiving school tenant');
+    }
+  };
+
+  const handleImpersonate = async (tenant: SchoolTenant) => {
+    try {
+      const res = await fetch('/api/superadmin/actions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'get_impersonation_session',
+          schoolId: tenant.id
+        })
+      });
+
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || 'Failed to fetch impersonation credentials');
+
+      // Backup current super admin session
+      const currentSession = localStorage.getItem('report_user_session');
+      if (currentSession) {
+        localStorage.setItem('report_super_session_backup', currentSession);
+      }
+
+      // Overwrite with school admin session
+      localStorage.setItem('report_user_session', JSON.stringify({
+        user: json.data.user,
+        school: json.data.school
+      }));
+
+      // Set mock token for that role
+      localStorage.setItem('report_auth_token', json.data.token);
+
+      // Log usage trace
+      await fetch('/api/superadmin/usage', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          schoolId: tenant.id,
+          activityType: 'Super Admin Impersonation Session Active'
+        })
+      });
+
+      // Redirect and reload to reflect new session boundary
+      window.location.href = '/dashboard';
+    } catch (err: any) {
+      alert(err.message || 'Error executing support impersonation');
+    }
+  };
+
+  // SaaS aggregated statistics
+  const totalStudents = tenants.reduce((acc, t) => acc + t.studentCount, 0);
+  const totalStaff = tenants.reduce((acc, t) => acc + t.staffCount, 0);
+  const totalScores = tenants.reduce((acc, t) => acc + t.scoresRecorded, 0);
+  const totalRevenueVal = tenants.reduce((acc, t) => acc + t.totalRevenue, 0);
+  const activeCount = tenants.filter(t => t.subscriptionStatus === 'active' || t.subscriptionStatus === 'trial').length;
+  const expiredCount = tenants.filter(t => t.subscriptionStatus === 'expired').length;
+
+  const getStatusStyle = (status: string) => {
+    switch (status) {
+      case 'active':
+        return 'bg-green-50 text-green-600 border-green-100';
+      case 'trial':
+        return 'bg-blue-50 text-blue-600 border-blue-100';
+      case 'expired':
+        return 'bg-red-50 text-red-500 border-red-100';
+      case 'suspended':
+        return 'bg-amber-50 text-amber-600 border-amber-100';
+      case 'archived':
+        return 'bg-slate-100 text-slate-500 border-slate-200';
+      default:
+        return 'bg-slate-50 text-slate-600 border-slate-100';
+    }
+  };
+
+  const getDaysRemaining = (expiryStr: string | null) => {
+    if (!expiryStr) return null;
+    const diff = new Date(expiryStr).getTime() - Date.now();
+    const days = Math.ceil(diff / (1000 * 60 * 60 * 24));
+    return days;
+  };
+
+  return (
+    <div className="space-y-6 max-w-7xl mx-auto pb-12 text-slate-800">
+      
+      {/* Page Header */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+          <h1 className="text-xl font-extrabold text-slate-800 flex items-center gap-2">
+            <School className="w-6 h-6 text-emerald-600" /> SaaS School Tenant Registry
+          </h1>
+          <p className="text-xs text-slate-450 mt-1 font-semibold">
+            Super Administrator console to deploy, isolate, monitor, and scale multi-tenant school academic engines.
+          </p>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => setShowRegModal(true)}
+          className="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black transition-all shadow-md shadow-emerald-600/10 cursor-pointer"
+        >
+          <Plus className="w-4 h-4" /> Register New Tenant
+        </button>
+      </div>
+
+      {/* Alert Notices */}
+      {successMsg && (
+        <div className="p-4 rounded-2xl bg-green-50 border border-green-150 text-green-600 text-xs flex items-center justify-between font-bold shadow-sm animate-fadeIn">
+          <div className="flex items-center gap-2">
+            <CheckCircle className="w-4 h-4" />
+            <span>{successMsg}</span>
+          </div>
+          <button type="button" onClick={() => setSuccessMsg('')} className="text-slate-400">✕</button>
+        </div>
+      )}
+
+      {errorMsg && (
+        <div className="p-4 rounded-2xl bg-red-50 border border-red-150 text-red-650 text-xs flex items-center justify-between font-bold shadow-sm animate-fadeIn">
+          <div className="flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 animate-bounce" />
+            <span>{errorMsg}</span>
+          </div>
+          <button type="button" onClick={() => setErrorMsg('')} className="text-slate-400">✕</button>
+        </div>
+      )}
+
+      {/* Business Stat Widgets */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="p-5 rounded-3xl bg-white border border-slate-200/60 shadow-sm flex items-center gap-4">
+          <div className="p-3 rounded-xl bg-emerald-50 text-emerald-600">
+            <School className="w-5 h-5" />
+          </div>
+          <div>
+            <span className="block text-[10px] text-slate-400 font-bold uppercase tracking-wider">Total / Active</span>
+            <span className="text-xl font-extrabold text-slate-800">{tenants.length} / <span className="text-emerald-650">{activeCount} Schools</span></span>
+          </div>
+        </div>
+
+        <div className="p-5 rounded-3xl bg-white border border-slate-200/60 shadow-sm flex items-center gap-4">
+          <div className="p-3 rounded-xl bg-sky-50 text-sky-600">
+            <DollarSign className="w-5 h-5" />
+          </div>
+          <div>
+            <span className="block text-[10px] text-slate-400 font-bold uppercase tracking-wider">Platform Revenue</span>
+            <span className="text-xl font-extrabold text-slate-850">₦{(totalRevenueVal / 1000000).toFixed(2)}M</span>
+          </div>
+        </div>
+
+        <div className="p-5 rounded-3xl bg-white border border-slate-200/60 shadow-sm flex items-center gap-4">
+          <div className="p-3 rounded-xl bg-indigo-50 text-indigo-600">
+            <Users className="w-5 h-5" />
+          </div>
+          <div>
+            <span className="block text-[10px] text-slate-400 font-bold uppercase tracking-wider">Wards Enrollment</span>
+            <span className="text-xl font-extrabold text-slate-800">{totalStudents} Pupils</span>
+          </div>
+        </div>
+
+        <div className="p-5 rounded-3xl bg-white border border-slate-200/60 shadow-sm flex items-center gap-4">
+          <div className="p-3 rounded-xl bg-amber-50 text-amber-600">
+            <AlertTriangle className="w-5 h-5" />
+          </div>
+          <div>
+            <span className="block text-[10px] text-slate-400 font-bold uppercase tracking-wider">Expired / Suspended</span>
+            <span className="text-xl font-extrabold text-slate-800">{expiredCount} / <span className="text-amber-650">{tenants.filter(t=>t.subscriptionStatus==='suspended').length} Closed</span></span>
+          </div>
+        </div>
+      </div>
+
+      {/* Tabs navigation block */}
+      <div className="flex border-b border-slate-200 bg-white p-1 rounded-2xl border border-slate-150 max-w-md">
+        <button
+          type="button"
+          onClick={() => setActiveTab('schools')}
+          className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer ${
+            activeTab === 'schools' 
+              ? 'bg-emerald-50 text-emerald-800 border border-emerald-100 shadow-sm font-black' 
+              : 'text-slate-400 hover:text-slate-650'
+          }`}
+        >
+          <School className="w-4 h-4" /> Schools Registry
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab('payments')}
+          className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer ${
+            activeTab === 'payments' 
+              ? 'bg-emerald-50 text-emerald-800 border border-emerald-100 shadow-sm font-black' 
+              : 'text-slate-400 hover:text-slate-650'
+          }`}
+        >
+          <CreditCard className="w-4 h-4" /> Payments Ledger
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab('usage')}
+          className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer ${
+            activeTab === 'usage' 
+              ? 'bg-emerald-50 text-emerald-800 border border-emerald-100 shadow-sm font-black' 
+              : 'text-slate-400 hover:text-slate-650'
+          }`}
+        >
+          <Activity className="w-4 h-4" /> Telemetry Logs
+        </button>
+      </div>
+
+      {/* Loading fallback */}
+      {loading ? (
+        <div className="h-80 flex items-center justify-center bg-white border border-slate-200/80 rounded-3xl shadow-sm">
+          <div className="text-center space-y-3">
+            <div className="w-6 h-6 border-2 border-t-emerald-600 border-r-transparent border-b-transparent border-l-transparent rounded-full animate-spin mx-auto" />
+            <p className="text-slate-450 text-xs font-semibold">Accessing central telemetry registry...</p>
+          </div>
+        </div>
+      ) : (
+        <>
+          {/* TAB 1: SCHOOLS REGISTRY COCKPIT */}
+          {activeTab === 'schools' && (
+            <div className="bg-white border border-slate-200/80 rounded-3xl shadow-sm p-6 space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-xs font-black uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+                  <Shield className="w-4 h-4 text-emerald-600" /> Active SaaS Tenant Isolations
+                </h3>
+                <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wide">Grace period: 14 days</span>
+              </div>
+
+              <div className="overflow-x-auto rounded-2xl border border-slate-200/60 shadow-sm">
+                <table className="w-full border-collapse text-left text-xs font-semibold text-slate-600">
+                  <thead>
+                    <tr className="bg-slate-50 border-b border-slate-200 text-[10px] font-black uppercase tracking-wider text-slate-400">
+                      <th className="p-4">School Details</th>
+                      <th className="p-4">Billing Plan</th>
+                      <th className="p-4 text-center">Enrollment</th>
+                      <th className="p-4">Access Status</th>
+                      <th className="p-4">Subscription End</th>
+                      <th className="p-4 text-center">Telemetry</th>
+                      <th className="p-4 text-center">Operations</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 font-semibold text-slate-600">
+                    {tenants.map((row) => {
+                      const daysLeft = getDaysRemaining(row.subscriptionEnd);
+                      return (
+                        <tr key={row.id} className="hover:bg-slate-50/40 transition-colors">
+                          {/* Name & Contact */}
+                          <td className="p-4 space-y-1">
+                            <span className="font-extrabold text-sm text-slate-850 block">
+                              {row.name}
+                            </span>
+                            <span className="font-mono text-[9px] bg-slate-50 text-slate-400 border border-slate-200 px-2 py-0.5 rounded-md w-fit block shadow-sm">
+                              /{row.slug}
+                            </span>
+                          </td>
+
+                          {/* Billing Plan */}
+                          <td className="p-4">
+                            <span className={`px-2.5 py-0.5 rounded-lg text-[9px] font-black border uppercase ${
+                              row.subscriptionPlan === 'Premium' 
+                                ? 'bg-indigo-50 text-indigo-600 border-indigo-100'
+                                : row.subscriptionPlan === 'Standard'
+                                ? 'bg-sky-50 text-sky-600 border-sky-100'
+                                : 'bg-slate-50 text-slate-600 border-slate-200'
+                            }`}>
+                              {row.subscriptionPlan} Plan
+                            </span>
+                          </td>
+
+                          {/* Enrollment counts */}
+                          <td className="p-4 text-center space-y-0.5">
+                            <span className="text-slate-800 font-extrabold text-xs block font-mono">{row.studentCount}</span>
+                            <span className="text-[9px] text-slate-400 block font-bold uppercase tracking-wider">{row.staffCount} staff</span>
+                          </td>
+
+                          {/* Access Status */}
+                          <td className="p-4">
+                            <span className={`px-2.5 py-0.5 rounded-lg text-[9px] font-black border uppercase tracking-wider ${getStatusStyle(row.subscriptionStatus)}`}>
+                              {row.subscriptionStatus}
+                            </span>
+                          </td>
+
+                          {/* Expiry end */}
+                          <td className="p-4 space-y-0.5 font-mono">
+                            <span className="text-xs text-slate-700 font-extrabold block">
+                              {row.subscriptionEnd ? new Date(row.subscriptionEnd).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'N/A'}
+                            </span>
+                            {row.subscriptionStatus === 'active' && daysLeft !== null && (
+                              <span className={`block text-[9px] font-black uppercase ${daysLeft <= 30 ? 'text-red-500 animate-pulse' : 'text-emerald-600'}`}>
+                                {daysLeft <= 0 ? 'Expired' : `${daysLeft} days remaining`}
+                              </span>
+                            )}
+                          </td>
+
+                          {/* Telemetry metrics */}
+                          <td className="p-4 text-center font-mono">
+                            <span className="text-[10px] text-slate-500 font-extrabold block">Recorded: <strong>{row.scoresRecorded}</strong></span>
+                            <span className="text-[8px] text-slate-400 font-bold block uppercase mt-0.5">
+                              {row.lastActive ? `Active: ${new Date(row.lastActive).toLocaleDateString()}` : 'No activity logged'}
+                            </span>
+                          </td>
+
+                          {/* Operations */}
+                          <td className="p-4 text-center">
+                            <div className="flex justify-center items-center gap-1.5">
+                              <button
+                                type="button"
+                                onClick={() => setViewingTenant(row)}
+                                title="View School Profile Card"
+                                className="p-1.5 rounded-xl hover:bg-slate-100 text-slate-400 hover:text-slate-800 cursor-pointer transition-colors"
+                              >
+                                <Eye className="w-4 h-4" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setBillingSchool(row);
+                                  setBillingPlan(row.subscriptionPlan);
+                                  setShowBillingModal(true);
+                                }}
+                                title="Activate/Renew subscription"
+                                className="p-1.5 rounded-xl hover:bg-slate-100 text-slate-400 hover:text-emerald-600 cursor-pointer transition-colors"
+                              >
+                                <CreditCard className="w-4 h-4" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleToggleSuspension(row)}
+                                title={row.subscriptionStatus === 'suspended' ? 'Reactivate Tenant' : 'Suspend Tenant'}
+                                className="p-1.5 rounded-xl hover:bg-slate-100 text-slate-400 hover:text-amber-500 cursor-pointer transition-colors"
+                              >
+                                <Lock className="w-4 h-4" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleResetAdminPassword(row)}
+                                title="Reset Admin Password"
+                                className="p-1.5 rounded-xl hover:bg-slate-100 text-slate-400 hover:text-slate-800 cursor-pointer transition-colors"
+                              >
+                                <RefreshCw className="w-4 h-4" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleImpersonate(row)}
+                                title="Impersonate School Administrator"
+                                className="p-1.5 rounded-xl hover:bg-slate-100 text-slate-400 hover:text-indigo-600 cursor-pointer transition-colors"
+                              >
+                                <ArrowRightLeft className="w-4 h-4 text-emerald-650" />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 2: PAYMENTS TELEMETRY */}
+          {activeTab === 'payments' && (
+            <div className="bg-white border border-slate-200/80 rounded-3xl shadow-sm p-6 space-y-4 animate-fadeIn">
+              <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                <div>
+                  <h3 className="text-xs font-black uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+                    <DollarSign className="w-4 h-4 text-emerald-600" /> platform manual billing database
+                  </h3>
+                  <span className="text-[10px] text-slate-400 font-medium font-sans">Track historical payments, cash deposits and manual bank transfers</span>
+                </div>
+              </div>
+
+              <div className="overflow-x-auto rounded-2xl border border-slate-200/60 shadow-sm">
+                <table className="w-full border-collapse text-left text-xs font-semibold text-slate-650">
+                  <thead>
+                    <tr className="bg-slate-50 border-b border-slate-200 text-[10px] font-black uppercase tracking-wider text-slate-400">
+                      <th className="p-4">Payment ID Reference</th>
+                      <th className="p-4">School Tenant</th>
+                      <th className="p-4">Manual Amount</th>
+                      <th className="p-4 text-center">Payment Method</th>
+                      <th className="p-4 text-center">Status</th>
+                      <th className="p-4">Transaction Date</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 font-semibold">
+                    {payments.length === 0 ? (
+                      <tr>
+                        <td colSpan={6} className="p-12 text-center text-slate-400 font-bold italic">No manual billing records logged in the central ledger.</td>
+                      </tr>
+                    ) : (
+                      payments.map((p) => (
+                        <tr key={p.id} className="hover:bg-slate-50/40">
+                          <td className="p-4 font-mono text-[9px] text-slate-400 uppercase">#{p.id.split('-')[0]}</td>
+                          <td className="p-4 text-slate-800 font-extrabold">{p.schoolName}</td>
+                          <td className="p-4 font-mono text-xs text-slate-800 font-black">₦{p.amount.toLocaleString()}</td>
+                          <td className="p-4 text-center text-slate-500 uppercase text-[10px]">{p.paymentMethod}</td>
+                          <td className="p-4 text-center">
+                            <span className={`px-2.5 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-wide border ${
+                              p.status === 'paid'
+                                ? 'bg-green-50 text-green-600 border-green-100'
+                                : 'bg-amber-50 text-amber-600 border-amber-100'
+                            }`}>
+                              {p.status}
+                            </span>
+                          </td>
+                          <td className="p-4 text-[10px] text-slate-400 font-mono">
+                            {new Date(p.paymentDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 3: TELEMETRY ENGAGEMENT LOGS */}
+          {activeTab === 'usage' && (
+            <div className="bg-white border border-slate-200/80 rounded-3xl shadow-sm p-6 space-y-4 animate-fadeIn">
+              <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                <div>
+                  <h3 className="text-xs font-black uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+                    <Activity className="w-4 h-4 text-emerald-600" /> platform activity & telemetry dashboard
+                  </h3>
+                  <span className="text-[10px] text-slate-400 font-medium font-sans">Monitor active school logins, grading reports generation and support traces</span>
+                </div>
+              </div>
+
+              <div className="overflow-x-auto rounded-2xl border border-slate-200/60 shadow-sm">
+                <table className="w-full border-collapse text-left text-xs font-semibold text-slate-650">
+                  <thead>
+                    <tr className="bg-slate-50 border-b border-slate-200 text-[10px] font-black uppercase tracking-wider text-slate-400">
+                      <th className="p-4">Telemetry Reference</th>
+                      <th className="p-4">School Tenant</th>
+                      <th className="p-4">Logged Operation / Activity</th>
+                      <th className="p-4">Trigger Timestamp</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 font-semibold">
+                    {usageLogs.length === 0 ? (
+                      <tr>
+                        <td colSpan={4} className="p-12 text-center text-slate-400 font-bold italic">No platform usage logs recorded.</td>
+                      </tr>
+                    ) : (
+                      usageLogs.map((l) => (
+                        <tr key={l.id} className="hover:bg-slate-50/40">
+                          <td className="p-4 font-mono text-[9px] text-slate-400 uppercase">#{l.id.split('-')[0]}</td>
+                          <td className="p-4 text-slate-800 font-extrabold">{l.schoolName}</td>
+                          <td className="p-4">
+                            <span className="text-slate-700 font-bold text-xs">{l.activityType}</span>
+                          </td>
+                          <td className="p-4 text-[10px] text-slate-400 font-mono">
+                            {new Date(l.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+        </>
+      )}
+
+      {/* DETAIL DRAWER / MODAL COCKPIT */}
+      {viewingTenant && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white border border-slate-150 rounded-3xl p-6 max-w-lg w-full shadow-2xl relative animate-fadeIn text-left">
+            <button
+              type="button"
+              onClick={() => setViewingTenant(null)}
+              className="absolute top-4 right-4 text-slate-400 hover:text-slate-700 transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="space-y-4">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-xl bg-slate-50 text-slate-700 flex items-center justify-center font-black text-sm border border-slate-200">
+                  {viewingTenant.name[0].toUpperCase()}
+                </div>
+                <div>
+                  <h3 className="text-base font-extrabold text-slate-850">{viewingTenant.name}</h3>
+                  <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">SaaS Isolation Profile Card</span>
+                </div>
+              </div>
+
+              <div className="border-t border-slate-100 pt-3 space-y-2.5 text-xs font-semibold text-slate-500">
+                <p className="flex justify-between"><span className="text-slate-400">Unique URL Prefix:</span> <strong className="text-emerald-650 font-mono bg-slate-50 px-2 py-0.5 rounded border">/{viewingTenant.slug}</strong></p>
+                <p className="flex justify-between"><span className="text-slate-400">Grading Section Scale:</span> <strong className="text-slate-700 uppercase">{viewingTenant.gradingType} Rules</strong></p>
+                <p className="flex justify-between"><span className="text-slate-400">Billing Plan:</span> <strong className="text-slate-700 uppercase font-mono">{viewingTenant.subscriptionPlan}</strong></p>
+                <p className="flex justify-between"><span className="text-slate-400">Access Status:</span> <strong className={`uppercase ${viewingTenant.subscriptionStatus === 'active' ? 'text-green-600' : 'text-red-500'}`}>{viewingTenant.subscriptionStatus}</strong></p>
+                <p className="flex justify-between"><span className="text-slate-400">Subscription End:</span> <strong className="text-slate-700">{viewingTenant.subscriptionEnd ? new Date(viewingTenant.subscriptionEnd).toLocaleDateString() : 'N/A'}</strong></p>
+                <p className="flex justify-between"><span className="text-slate-400">Grace Expiry:</span> <strong className="text-slate-700">{viewingTenant.gracePeriodEnd ? new Date(viewingTenant.gracePeriodEnd).toLocaleDateString() : 'N/A'}</strong></p>
+              </div>
+
+              <div className="border-t border-slate-100 pt-3 space-y-2">
+                <h4 className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Demographics Enrollment Summary</h4>
+                <div className="grid grid-cols-3 gap-2 text-center text-xs">
+                  <div className="p-3 bg-slate-50 border border-slate-100 rounded-2xl">
+                    <span className="block text-[9px] text-slate-400 font-bold uppercase">Wards</span>
+                    <strong className="text-sm font-extrabold text-slate-800 font-mono">{viewingTenant.studentCount}</strong>
+                  </div>
+                  <div className="p-3 bg-slate-50 border border-slate-100 rounded-2xl">
+                    <span className="block text-[9px] text-slate-400 font-bold uppercase">Staff</span>
+                    <strong className="text-sm font-extrabold text-slate-800 font-mono">{viewingTenant.staffCount}</strong>
+                  </div>
+                  <div className="p-3 bg-slate-50 border border-slate-100 rounded-2xl">
+                    <span className="block text-[9px] text-slate-400 font-bold uppercase">Scores</span>
+                    <strong className="text-sm font-extrabold text-slate-800 font-mono">{viewingTenant.scoresRecorded}</strong>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-2 border-t border-slate-100 pt-4 font-semibold">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setViewingTenant(null);
+                    setBillingSchool(viewingTenant);
+                    setBillingPlan(viewingTenant.subscriptionPlan);
+                    setShowBillingModal(true);
+                  }}
+                  className="py-2 px-4 rounded-xl text-xs font-black bg-slate-900 text-white hover:bg-slate-800 cursor-pointer shadow-sm"
+                >
+                  Log Sub Payment
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleToggleSuspension(viewingTenant)}
+                  className="py-2 px-4 rounded-xl text-xs font-black border border-slate-200 text-slate-700 hover:bg-slate-50 cursor-pointer"
+                >
+                  {viewingTenant.subscriptionStatus === 'suspended' ? 'Reactivate Subscription' : 'Suspend Account'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setViewingTenant(null)}
+                  className="py-2 px-4 rounded-xl text-xs font-bold text-slate-500 border border-slate-200 hover:bg-slate-50 cursor-pointer"
+                >
+                  Close Profile
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* REGISTER SCHOOL TENANT MODAL */}
+      {showRegModal && (
+        <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white border border-slate-200 rounded-3xl w-full max-w-lg shadow-2xl overflow-hidden animate-in zoom-in-95 duration-150 flex flex-col text-left">
+            <div className="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+              <h3 className="font-extrabold text-slate-850 text-sm flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-emerald-600 animate-pulse" /> Register New School Tenant
+              </h3>
+              <button 
+                type="button" 
+                onClick={() => setShowRegModal(false)}
+                className="p-1.5 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-400 hover:text-slate-650 border border-slate-200 cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleRegisterSchool} className="p-6 space-y-4 text-xs font-semibold">
+              <div>
+                <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">School Name</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Greenwood Academy, Lagos"
+                  value={schoolName}
+                  onChange={(e) => handleNameChange(e.target.value)}
+                  className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-xs text-slate-700 focus:outline-none focus:border-slate-350 transition-colors font-semibold hover:border-slate-250"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">Unique URL Prefix Slug (Auto-Generated)</label>
+                <div className="flex rounded-xl overflow-hidden border border-slate-200">
+                  <span className="bg-slate-50 px-3 py-2.5 text-slate-400 border-r border-slate-200 font-mono select-none font-bold">/</span>
+                  <input
+                    type="text"
+                    required
+                    placeholder="greenwood-academy"
+                    value={schoolSlug}
+                    onChange={(e) => setSchoolSlug(e.target.value.toLowerCase().replace(/\s+/g, '-'))}
+                    className="flex-1 bg-white text-emerald-600 font-mono focus:outline-none py-2.5 text-xs px-3 focus:border-slate-350 transition-colors font-bold"
+                  />
+                </div>
+                <span className="block text-[9px] text-slate-400 mt-1 font-mono font-medium">This URL slug dictates their separate SaaS context subdomain.</span>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">Phone Contact</label>
+                  <input
+                    type="text"
+                    placeholder="+234 803 000 0000"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-xs text-slate-700 focus:outline-none focus:border-slate-350 font-semibold hover:border-slate-250"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">Email Contact</label>
+                  <input
+                    type="email"
+                    placeholder="info@school.edu.ng"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-xs text-slate-700 focus:outline-none focus:border-slate-350 font-semibold hover:border-slate-250"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">School Physical Location</label>
+                <input
+                  type="text"
+                  placeholder="Lekki Phase 1, Lagos, Nigeria"
+                  value={address}
+                  onChange={(e) => setAddress(e.target.value)}
+                  className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-xs text-slate-700 focus:outline-none focus:border-slate-350 font-semibold hover:border-slate-250"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">Grading Scale Rules</label>
+                <select
+                  value={gradingType}
+                  onChange={(e) => setGradingType(e.target.value as 'PRIMARY' | 'SECONDARY')}
+                  className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2.5 text-xs focus:outline-none focus:border-slate-350 text-slate-700 font-bold hover:border-slate-250 transition-colors cursor-pointer"
+                >
+                  <option value="SECONDARY">SECONDARY (A1, B2, B3, C4, C5, C6, D7, E8, F9)</option>
+                  <option value="PRIMARY">PRIMARY (A, B, C, D)</option>
+                </select>
+              </div>
+
+              <div className="pt-4 border-t border-slate-150 flex justify-end gap-3 font-semibold">
+                <button
+                  type="button"
+                  onClick={() => setShowRegModal(false)}
+                  className="px-4 py-2.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-xs font-bold text-slate-500 transition-colors cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={registering}
+                  className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-all disabled:opacity-50 shadow-sm cursor-pointer"
+                >
+                  {registering ? (
+                    <>
+                      <RefreshCw className="w-4 h-4 animate-spin" />
+                      Registering...
+                    </>
+                  ) : (
+                    <>
+                      <Check className="w-4 h-4" />
+                      Initialize School
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MANUAL SUBSCRIPTION PAYMENT LOGGING MODAL */}
+      {showBillingModal && billingSchool && (
+        <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white border border-slate-200 rounded-3xl w-full max-w-md shadow-2xl overflow-hidden animate-in zoom-in-95 duration-150 flex flex-col text-left">
+            <div className="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+              <h3 className="font-extrabold text-slate-850 text-sm flex items-center gap-2">
+                <CreditCard className="w-4 h-4 text-emerald-600" /> Log School Manual Billing Payment
+              </h3>
+              <button 
+                type="button" 
+                onClick={() => {
+                  setShowBillingModal(false);
+                  setBillingSchool(null);
+                }}
+                className="p-1.5 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-400 hover:text-slate-600 border border-slate-200 cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleManualBillingSubmit} className="p-6 space-y-4 text-xs font-semibold">
+              <div>
+                <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">School Tenant</label>
+                <input
+                  type="text"
+                  disabled
+                  value={billingSchool.name}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs text-slate-500 font-semibold cursor-not-allowed"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">Billing Cycle Plan</label>
+                  <select
+                    value={billingPlan}
+                    onChange={(e) => setBillingPlan(e.target.value as 'Basic' | 'Standard' | 'Premium')}
+                    className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2.5 text-xs focus:outline-none focus:border-slate-350 text-slate-700 font-bold transition-colors cursor-pointer"
+                  >
+                    <option value="Basic">Basic (Results only)</option>
+                    <option value="Standard">Standard (Results + attendance)</option>
+                    <option value="Premium">Premium (Full system)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">Billing Amount (₦)</label>
+                  <input
+                    type="number"
+                    required
+                    value={billingAmount}
+                    onChange={(e) => setBillingAmount(e.target.value)}
+                    className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-xs text-slate-700 focus:outline-none focus:border-slate-350 font-bold hover:border-slate-250 font-mono"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">Payment Method</label>
+                  <select
+                    value={billingMethod}
+                    onChange={(e) => setBillingMethod(e.target.value)}
+                    className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2.5 text-xs focus:outline-none focus:border-slate-350 text-slate-700 font-bold transition-colors cursor-pointer"
+                  >
+                    <option value="Bank Transfer">Bank Transfer (Manual)</option>
+                    <option value="Cash Deposit">Cash Deposit (Manual)</option>
+                    <option value="Card Online">Card Online (Gateway)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">Log Status</label>
+                  <select
+                    value={billingStatus}
+                    onChange={(e) => setBillingStatus(e.target.value as 'paid' | 'pending')}
+                    className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2.5 text-xs focus:outline-none focus:border-slate-350 text-slate-700 font-bold transition-colors cursor-pointer"
+                  >
+                    <option value="paid">PAID (Instantly Activate)</option>
+                    <option value="pending">PENDING (Admin Review)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="p-3 bg-blue-50 border border-blue-100 text-blue-800 text-[10px] rounded-2xl flex items-start gap-2 leading-relaxed">
+                <AlertCircle className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
+                <span>
+                  <strong>Automated Action:</strong> Selecting "PAID" status transactionally activates standard yearly subscription (365 days) and sets school status to active.
+                </span>
+              </div>
+
+              <div className="pt-4 border-t border-slate-150 flex justify-end gap-3 font-semibold">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowBillingModal(false);
+                    setBillingSchool(null);
+                  }}
+                  className="px-4 py-2.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-xs font-bold text-slate-500 cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={submittingBilling}
+                  className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-all disabled:opacity-50 shadow-sm cursor-pointer"
+                >
+                  {submittingBilling && <RefreshCw className="w-4 h-4 animate-spin" />}
+                  {submittingBilling ? 'Logging...' : 'Confirm Manual Payment'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+    </div>
+  );
+}
+
+export const dynamic = 'force-dynamic';

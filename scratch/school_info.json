@@ -1,0 +1,270 @@
+{
+  "schoolName": "Greenwood Secondary Academy",
+  "classes": [
+    {
+      "id": "bbaa469e-bb20-417a-9f42-7e9607039108",
+      "name": "JSS 1",
+      "arms": [
+        {
+          "id": "26a19c78-5c4c-4e49-843a-3c9002e3b1b9",
+          "name": "A"
+        },
+        {
+          "id": "3a962ebb-2e1d-4d71-b040-82c2bfb53003",
+          "name": "B"
+        },
+        {
+          "id": "b51eddbc-795b-4fc7-8ba4-67655e413294",
+          "name": "C"
+        }
+      ]
+    },
+    {
+      "id": "b9b43ffa-44c3-4caf-be19-b979ba9a9ac6",
+      "name": "JSS 2",
+      "arms": [
+        {
+          "id": "3274cf0b-88bc-402d-840b-4a49f4f235fe",
+          "name": "A"
+        },
+        {
+          "id": "d78bed24-78a6-40cb-b1c9-34559257bc89",
+          "name": "B"
+        },
+        {
+          "id": "4e9d4dac-72e2-4767-8b7c-62736a0d776f",
+          "name": "C"
+        }
+      ]
+    },
+    {
+      "id": "3f36bc4b-d235-4ad3-9211-c2cce56efc86",
+      "name": "JSS 3",
+      "arms": [
+        {
+          "id": "f9945514-d08d-4a14-9ed6-7a0ac8c1d51e",
+          "name": "A"
+        },
+        {
+          "id": "43bbe2f3-8d7d-4aa4-9707-01103a4e2415",
+          "name": "B"
+        },
+        {
+          "id": "5a8b587e-f8da-4027-ad99-dcfe2ea449b9",
+          "name": "C"
+        }
+      ]
+    }
+  ],
+  "subjects": [
+    {
+      "id": "11ea781d-80c8-47ec-b81a-3b114a06737d",
+      "name": "Mathematics",
+      "code": "MTH",
+      "category": "COMPULSORY"
+    },
+    {
+      "id": "1ec6c4c4-861e-4150-8d01-33363acb4de1",
+      "name": "English Language",
+      "code": "ENG",
+      "category": "COMPULSORY"
+    },
+    {
+      "id": "a7fdd8dc-d314-4159-8d46-c3f7165664cb",
+      "name": "Basic Science",
+      "code": "SCI",
+      "category": "COMPULSORY"
+    },
+    {
+      "id": "fbcd93c5-5249-4a7c-9f1e-ab8d4f37e55e",
+      "name": "Civic Education",
+      "code": "CIV",
+      "category": "COMPULSORY"
+    },
+    {
+      "id": "bc30c68d-6ec6-4429-a274-5799c0b5726e",
+      "name": "Social Studies",
+      "code": "SOS",
+      "category": "COMPULSORY"
+    },
+    {
+      "id": "877b8724-8db7-40f4-968c-ec933a7bd496",
+      "name": "Business Studies",
+      "code": "BUS",
+      "category": "COMPULSORY"
+    },
+    {
+      "id": "5bc5b7b6-addb-436e-b463-143d9e2dff8f",
+      "name": "Agricultural Science",
+      "code": "AGR",
+      "category": "COMPULSORY"
+    },
+    {
+      "id": "5cea5974-f5be-415c-bf99-99b7610db4c2",
+      "name": "Information Technology",
+      "code": "ICT",
+      "category": "COMPULSORY"
+    },
+    {
+      "id": "0ca83447-37a0-4d34-a42d-99b73df749ab",
+      "name": "Visual Arts",
+      "code": "ART",
+      "category": "COMPULSORY"
+    },
+    {
+      "id": "380ab04c-b5d6-4c2c-8a8e-3275824cd636",
+      "name": "French",
+      "code": "FRN",
+      "category": "COMPULSORY"
+    }
+  ],
+  "teachers": [
+    {
+      "id": "f4c3e79f-2de5-43c0-a132-3551d4dd8e2b",
+      "email": "teacher1@greenwood.com",
+      "role": "CLASS_TEACHER",
+      "firstName": "Solomon",
+      "lastName": "Apeh"
+    },
+    {
+      "id": "e2b1ec1c-3d07-4aef-8226-7d63e22b2151",
+      "email": "teacher2@greenwood.com",
+      "role": "CLASS_TEACHER",
+      "firstName": "Ayo",
+      "lastName": "Fashola"
+    },
+    {
+      "id": "9c853d17-7e38-41ce-9ccb-4f7624c94e58",
+      "email": "teacher3@greenwood.com",
+      "role": "CLASS_TEACHER",
+      "firstName": "Aisha",
+      "lastName": "Nwachukwu"
+    },
+    {
+      "id": "2bd8dfbd-1f67-46bf-b3ef-f5b37a52c25f",
+      "email": "teacher4@greenwood.com",
+      "role": "CLASS_TEACHER",
+      "firstName": "Musa",
+      "lastName": "Opara"
+    },
+    {
+      "id": "54e5663d-b161-4da8-9ab4-f462d05bd5cb",
+      "email": "teacher5@greenwood.com",
+      "role": "CLASS_TEACHER",
+      "firstName": "Funmi",
+      "lastName": "Kalu"
+    },
+    {
+      "id": "32c3090d-6f7c-4e2d-9730-d1e7e6de6909",
+      "email": "teacher6@greenwood.com",
+      "role": "CLASS_TEACHER",
+      "firstName": "Musa",
+      "lastName": "Fashola"
+    },
+    {
+      "id": "e6595190-fa49-4fd1-869e-3453a42cd1d5",
+      "email": "teacher7@greenwood.com",
+      "role": "CLASS_TEACHER",
+      "firstName": "Fadekemi",
+      "lastName": "Nduka"
+    },
+    {
+      "id": "a85378b2-a36e-4a8a-8946-ab1a1615a5de",
+      "email": "teacher8@greenwood.com",
+      "role": "CLASS_TEACHER",
+      "firstName": "Efe",
+      "lastName": "Usman"
+    },
+    {
+      "id": "ceb0e93c-7d19-4379-8bda-79672291dc3e",
+      "email": "teacher9@greenwood.com",
+      "role": "CLASS_TEACHER",
+      "firstName": "Tunde",
+      "lastName": "Danjuma"
+    },
+    {
+      "id": "57329089-8526-4110-ac88-3332c8944a2e",
+      "email": "teacher10@greenwood.com",
+      "role": "SUBJECT_TEACHER",
+      "firstName": "Tunde",
+      "lastName": "Obi"
+    },
+    {
+      "id": "4ac7bf4c-a30f-432d-84d8-a248ce0467cb",
+      "email": "teacher11@greenwood.com",
+      "role": "SUBJECT_TEACHER",
+      "firstName": "Mary",
+      "lastName": "Anyanwu"
+    },
+    {
+      "id": "8a19384d-1870-4204-a79b-04b95ee4b838",
+      "email": "teacher12@greenwood.com",
+      "role": "SUBJECT_TEACHER",
+      "firstName": "Gbenga",
+      "lastName": "Bello"
+    },
+    {
+      "id": "45525388-54cc-4067-bfe9-572244fab097",
+      "email": "teacher13@greenwood.com",
+      "role": "SUBJECT_TEACHER",
+      "firstName": "Chidi",
+      "lastName": "Onuoha"
+    },
+    {
+      "id": "c3b36fa2-5e79-4086-8701-b23236d87d8c",
+      "email": "teacher14@greenwood.com",
+      "role": "SUBJECT_TEACHER",
+      "firstName": "Amina",
+      "lastName": "Diala"
+    },
+    {
+      "id": "5d5d186c-1059-4b8b-b4b3-3f7c2cf5ef73",
+      "email": "teacher15@greenwood.com",
+      "role": "SUBJECT_TEACHER",
+      "firstName": "Kelechi",
+      "lastName": "Uba"
+    },
+    {
+      "id": "7d410a77-5b70-4de3-9511-b8eef6d3c0ab",
+      "email": "teacher16@greenwood.com",
+      "role": "SUBJECT_TEACHER",
+      "firstName": "Yusuf",
+      "lastName": "Ojo"
+    },
+    {
+      "id": "6de4a0ea-5648-4f47-adac-98335c6016fe",
+      "email": "teacher17@greenwood.com",
+      "role": "SUBJECT_TEACHER",
+      "firstName": "John",
+      "lastName": "Gbadamosi"
+    },
+    {
+      "id": "21925231-0d83-4d13-b60c-4fd33d9b9d2b",
+      "email": "teacher18@greenwood.com",
+      "role": "SUBJECT_TEACHER",
+      "firstName": "Aisha",
+      "lastName": "Adedoyin"
+    },
+    {
+      "id": "9caa0ff4-d7c5-4a8b-93c6-df5d672dfae2",
+      "email": "teacher19@greenwood.com",
+      "role": "SUBJECT_TEACHER",
+      "firstName": "Bola",
+      "lastName": "Dangote"
+    },
+    {
+      "id": "e21e5cc8-9517-46fc-8e3e-de3d696b61fa",
+      "email": "teacher20@greenwood.com",
+      "role": "SUBJECT_TEACHER",
+      "firstName": "Abubakar",
+      "lastName": "Musa"
+    },
+    {
+      "id": "f997b3d0-10e6-4979-8c7a-2010fb070d1b",
+      "email": "kenifenayi@gmail.com",
+      "role": "SUBJECT_TEACHER",
+      "firstName": "Kenneth",
+      "lastName": "Ifeanyi"
+    }
+  ]
+}
