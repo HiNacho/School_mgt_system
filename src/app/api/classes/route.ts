@@ -26,7 +26,10 @@ export async function GET(req: NextRequest) {
     // Fetch arms for this school
     const arms = await prisma.arm.findMany({
       where: { schoolId },
-      orderBy: { name: 'asc' },
+      orderBy: [
+        { class: { name: 'asc' } },
+        { name: 'asc' }
+      ],
       include: {
         class: true,
         classTeacher: {
