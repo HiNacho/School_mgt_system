@@ -4,7 +4,8 @@ import React, { useEffect, useState } from 'react';
 import { 
   Layers, Plus, Shield, Users, CheckCircle, AlertCircle, 
   RefreshCw, Sparkles, X, UserCheck, GraduationCap, ChevronRight,
-  FileSpreadsheet, UploadCloud, FileUp, AlertTriangle, Search, Info, HelpCircle
+  FileSpreadsheet, UploadCloud, FileUp, AlertTriangle, Search, Info, HelpCircle,
+  Trash2
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 
@@ -117,6 +118,55 @@ export default function ClassesAndArmsPage() {
       setErrorMsg(e.message || 'Error communicating with database ledger.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDeleteArm = async (armId: string) => {
+    if (!confirm('Are you sure you want to delete this class division (Arm)? All grading sheets, assignments, and records for this division will be permanently lost.')) {
+      return;
+    }
+
+    setErrorMsg('');
+    setSuccessMsg('');
+    
+    try {
+      const res = await fetch(`/api/classes?schoolId=${school.id}&armId=${armId}`, {
+        method: 'DELETE'
+      });
+
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || 'Failed to delete class division.');
+
+      setSuccessMsg(json.message);
+      if (selectedArm && selectedArm.id === armId) {
+        setSelectedArm(null);
+      }
+      await loadClassesData(school.id);
+    } catch (err: any) {
+      setErrorMsg(err.message || 'Error processing delete request.');
+    }
+  };
+
+  const handleDeleteClass = async (classId: string) => {
+    if (!confirm('Are you sure you want to delete this class cohort level? All arms and rosters inside it must be deleted first.')) {
+      return;
+    }
+
+    setErrorMsg('');
+    setSuccessMsg('');
+    
+    try {
+      const res = await fetch(`/api/classes?schoolId=${school.id}&classId=${classId}`, {
+        method: 'DELETE'
+      });
+
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || 'Failed to delete class level.');
+
+      setSuccessMsg(json.message);
+      await loadClassesData(school.id);
+    } catch (err: any) {
+      setErrorMsg(err.message || 'Error processing delete request.');
     }
   };
 
@@ -523,13 +573,23 @@ export default function ClassesAndArmsPage() {
                 {classes.map((cls) => (
                   <div 
                     key={cls.id}
-                    className="p-3 rounded-2xl bg-slate-50/50 border border-slate-100 flex items-center justify-between hover:border-slate-300 transition-all font-semibold text-xs text-slate-700"
+                    className="p-3 rounded-2xl bg-slate-50/50 border border-slate-100 flex items-center justify-between hover:border-slate-350 transition-all font-semibold text-xs text-slate-700 group"
                   >
                     <span className="text-slate-800 text-xs font-extrabold">{cls.name}</span>
-                    <span className="text-[10px] text-slate-500 font-mono flex items-center gap-1">
-                      <Users className="w-3.5 h-3.5" /> 
-                      {cls._count?.students || 0} enrolled
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] text-slate-500 font-mono flex items-center gap-1">
+                        <Users className="w-3.5 h-3.5" /> 
+                        {cls._count?.students || 0}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteClass(cls.id)}
+                        className="p-1 rounded hover:bg-red-50 text-slate-400 hover:text-red-500 transition-colors lg:opacity-0 lg:group-hover:opacity-100 focus:opacity-100 cursor-pointer"
+                        title="Delete class level"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -600,15 +660,25 @@ export default function ClassesAndArmsPage() {
                           </select>
                         </td>
 
-                        {/* Roster & Import triggers */}
+                        {/* Roster & Import triggers & Delete */}
                         <td className="p-4 text-right">
-                          <button
-                            type="button"
-                            onClick={() => setSelectedArm(arm)}
-                            className="px-3.5 py-1.5 rounded-xl border border-slate-200 hover:border-slate-350 bg-white hover:bg-slate-50 text-[10px] font-bold text-slate-600 transition-colors shadow-sm"
-                          >
-                            Roster & Import
-                          </button>
+                          <div className="flex items-center justify-end gap-2">
+                            <button
+                              type="button"
+                              onClick={() => setSelectedArm(arm)}
+                              className="px-3.5 py-1.5 rounded-xl border border-slate-200 hover:border-slate-350 bg-white hover:bg-slate-50 text-[10px] font-bold text-slate-600 transition-colors shadow-sm"
+                            >
+                              Roster & Import
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteArm(arm.id)}
+                              className="p-2 rounded-xl border border-transparent hover:border-red-100 bg-transparent hover:bg-red-50/40 text-slate-400 hover:text-red-500 transition-all cursor-pointer"
+                              title="Delete division"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))}
