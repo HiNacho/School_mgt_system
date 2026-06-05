@@ -373,8 +373,7 @@ export default function DashboardHome() {
     { day: 'Fri', Present: Math.round(activeStudents.length * 0.88) || 45, Absent: Math.round(activeStudents.length * 0.12) || 5 },
   ];
 
-  // Counts for KPIs
-  const kpiCountAdmins = staff.filter(s => s.role === 'SCHOOL_ADMIN').length + 1; // including self/seed
+  const kpiCountAdmins = staff.filter(s => s.role === 'SCHOOL_ADMIN').length;
   const kpiCountTeachers = staff.filter(s => ['CLASS_TEACHER', 'SUBJECT_TEACHER', 'HEAD_TEACHER'].includes(s.role)).length;
   const kpiCountStudents = students.length;
   const kpiCountParents = parents.length;
