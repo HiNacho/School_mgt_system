@@ -3,7 +3,8 @@
 import React, { useEffect, useState } from 'react';
 import { 
   Settings, Building, FileText, CheckCircle, AlertCircle, Save,
-  RefreshCw, Volume2, Moon, Sun, Bell, Shield, Info, Image, MapPin
+  RefreshCw, Volume2, Moon, Sun, Bell, Shield, Info, Image, MapPin,
+  UploadCloud, Link as LinkIcon
 } from 'lucide-react';
 
 export default function SettingsPage() {
@@ -28,6 +29,28 @@ export default function SettingsPage() {
   const [saving, setSaving] = useState(false);
   const [successMsg, setSuccessMsg] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 1 * 1024 * 1024) { // 1MB size limit
+      setErrorMsg('School crest logo file must be less than 1MB.');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setLogoUrl(reader.result as string);
+      setErrorMsg('');
+    };
+    reader.onerror = () => {
+      setErrorMsg('Failed to process school logo image file.');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+    reader.readAsDataURL(file);
+  };
 
   useEffect(() => {
     const sessionStr = localStorage.getItem('report_user_session');
@@ -131,6 +154,13 @@ export default function SettingsPage() {
       localStorage.setItem('pref_theme', themeMode);
       localStorage.setItem('pref_sound', enableSound ? 'true' : 'false');
       localStorage.setItem('pref_email', emailAlerts ? 'true' : 'false');
+      
+      // Apply theme class instantly
+      if (themeMode === 'dark') {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
       
       setSuccessMsg('Personal preferences updated successfully.');
       window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -334,18 +364,68 @@ export default function SettingsPage() {
                   </select>
                 </div>
 
-                {/* Logo URL */}
+                {/* Logo URL & File Upload */}
                 <div className="sm:col-span-2">
-                  <label className="block text-[10px] font-extrabold uppercase tracking-wider text-slate-400 mb-1.5">Crest Shield Logo URL</label>
-                  <div className="relative">
-                    <input
-                      type="text"
-                      value={logoUrl}
-                      onChange={(e) => setLogoUrl(e.target.value)}
-                      placeholder="E.g., https://example.com/logo.png or Base64 shield..."
-                      className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-3 py-2.5 text-slate-800 font-bold focus:outline-none focus:border-slate-300"
-                    />
-                    <Image className="absolute left-3 top-3 w-4 h-4 text-slate-400" />
+                  <label className="block text-[10px] font-extrabold uppercase tracking-wider text-slate-400 mb-1.5">Crest Shield Logo</label>
+                  <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center bg-slate-50/50 p-4 rounded-2xl border border-slate-200">
+                    {/* Visual Preview */}
+                    <div className="w-16 h-16 rounded-2xl border border-slate-200 bg-white flex items-center justify-center overflow-hidden shrink-0 shadow-sm">
+                      {logoUrl ? (
+                        <img src={logoUrl} alt="School Crest Logo" className="w-full h-full object-cover" />
+                      ) : (
+                        <Image className="w-6 h-6 text-slate-400" />
+                      )}
+                    </div>
+                    
+                    {/* Input Controls */}
+                    <div className="flex-1 w-full space-y-2.5">
+                      <div className="flex flex-wrap items-center gap-2">
+                        {/* Hidden File Input */}
+                        <input
+                          type="file"
+                          id="school-logo-file"
+                          accept="image/*"
+                          onChange={handleFileChange}
+                          className="hidden"
+                        />
+                        <label
+                          htmlFor="school-logo-file"
+                          className="flex items-center gap-1.5 px-4 py-2 bg-white border border-slate-200 hover:border-slate-300 text-slate-700 hover:bg-slate-50 rounded-xl text-xs font-black transition-all cursor-pointer shadow-sm"
+                        >
+                          <UploadCloud className="w-4 h-4 text-emerald-600 animate-pulse" />
+                          Upload Local Image
+                        </label>
+
+                        {logoUrl && (
+                          <button
+                            type="button"
+                            onClick={() => setLogoUrl('')}
+                            className="px-3 py-2 text-xs font-bold text-slate-500 hover:text-red-500 hover:bg-red-50/40 rounded-xl transition-all border border-transparent hover:border-red-100"
+                          >
+                            Remove Logo
+                          </button>
+                        )}
+                      </div>
+
+                      {/* URL Field as fallback */}
+                      {logoUrl.startsWith('data:image/') ? (
+                        <div className="flex items-center gap-2 bg-emerald-50/50 border border-emerald-100 rounded-xl px-3 py-2 text-xs font-bold text-emerald-700 w-full animate-fadeIn">
+                          <CheckCircle className="w-3.5 h-3.5 text-emerald-600" />
+                          <span>Local image file loaded successfully (Base64 encoded)</span>
+                        </div>
+                      ) : (
+                        <div className="relative w-full">
+                          <input
+                            type="text"
+                            value={logoUrl}
+                            onChange={(e) => setLogoUrl(e.target.value)}
+                            placeholder="Or paste external image URL here..."
+                            className="w-full bg-white border border-slate-200 rounded-xl pl-9 pr-3 py-2.5 text-slate-800 font-bold focus:outline-none focus:border-slate-300 text-xs h-[38px]"
+                          />
+                          <LinkIcon className="absolute left-3 top-3 w-3.5 h-3.5 text-slate-400" />
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
 

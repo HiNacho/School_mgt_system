@@ -40,6 +40,7 @@ export default function StudentsManagerPage() {
   const [uploadResult, setUploadResult] = useState<any>(null);
   const [clearModalOpen, setClearModalOpen] = useState(false);
   const [clearing, setClearing] = useState(false);
+  const [confirmWipeText, setConfirmWipeText] = useState('');
 
   // Form states
   const [firstName, setFirstName] = useState('');
@@ -528,11 +529,12 @@ export default function StudentsManagerPage() {
               onClick={() => {
                 setErrorMsg('');
                 setSuccessMsg('');
+                setConfirmWipeText('');
                 setClearModalOpen(true);
               }}
-              className="flex items-center gap-1.5 px-4 py-2.5 rounded-2xl bg-red-50 border border-red-200 text-red-650 hover:bg-red-100/50 text-xs font-black transition-all cursor-pointer"
+              className="flex items-center gap-1.5 px-4 py-2.5 rounded-2xl bg-red-50 border border-red-200 hover:border-red-300 text-red-700 hover:text-red-800 hover:bg-red-100/80 text-xs font-black transition-all cursor-pointer shadow-sm hover:shadow-red-100/50"
             >
-              <Trash2 className="w-4 h-4" /> Wipe Academic Data
+              <Trash2 className="w-4 h-4 text-red-600 animate-pulse" /> Wipe Academic Data
             </button>
 
             <button
@@ -1784,44 +1786,82 @@ export default function StudentsManagerPage() {
       {/* Clear Database Confirmation Modal */}
       {clearModalOpen && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white border border-red-100 rounded-3xl w-full max-w-md shadow-2xl relative animate-fadeIn">
+          <div className="bg-white border border-red-200 rounded-3xl w-full max-w-md shadow-2xl relative overflow-hidden animate-fadeIn">
             <button
               type="button"
               onClick={() => setClearModalOpen(false)}
-              className="absolute right-4 top-4 text-slate-400 hover:text-slate-700"
+              className="absolute right-4 top-4 text-slate-400 hover:text-slate-700 transition-colors z-10"
             >
               <X className="w-5 h-5" />
             </button>
 
-            <div className="p-6 border-b border-slate-100 bg-slate-50">
-              <h3 className="font-extrabold text-sm text-red-650 uppercase tracking-wider flex items-center gap-2">
-                <AlertTriangle className="w-5 h-5 animate-pulse text-red-550" /> WIPE ALL ACADEMIC DATA
-              </h3>
+            <div className="p-6 border-b border-red-100 bg-red-50/30 flex items-center gap-3">
+              <div className="p-2 rounded-xl bg-red-100 text-red-600">
+                <AlertTriangle className="w-5 h-5 animate-bounce" />
+              </div>
+              <div>
+                <h3 className="font-extrabold text-sm text-red-700 uppercase tracking-wider">
+                  Wipe Academic Data
+                </h3>
+                <p className="text-[10px] text-red-500 font-semibold mt-0.5">This action is permanent and irreversible</p>
+              </div>
             </div>
 
             <div className="p-6 space-y-4 text-xs font-semibold text-slate-500">
-              <div className="p-4 rounded-2xl bg-red-50 border border-red-150 text-red-650 leading-relaxed font-bold">
-                <span className="font-black text-red-700 block mb-1 text-[10px] uppercase tracking-wider">DANGER ACTION ZONE WARNING</span>
-                This will delete **all classes, class streams/arms, subjects, teaching assignments, student registries, attendance logs, scoresheets, grades, and comments** registered for Greenwood Secondary.
-                <br /><br />
-                Your tenant structural configurations and **staff logins (Mr. Apeh Solomon, Mr. Tunde Bello, Admins)** will remain fully functional so you can test manual initialization from a blank slate.
+              <div className="p-4 rounded-2xl bg-red-50/50 border border-red-100 text-red-650 leading-relaxed font-bold space-y-2">
+                <span className="font-black text-red-700 block text-[10px] uppercase tracking-wider">Scope of Deletion</span>
+                <div className="grid grid-cols-2 gap-2 text-[11px] font-bold text-slate-600">
+                  <div className="flex items-center gap-1.5 text-red-700">
+                    <span className="text-red-500">✕</span> Classes & Arms
+                  </div>
+                  <div className="flex items-center gap-1.5 text-red-700">
+                    <span className="text-red-500">✕</span> Student Profiles
+                  </div>
+                  <div className="flex items-center gap-1.5 text-red-700">
+                    <span className="text-red-500">✕</span> Grades & Comments
+                  </div>
+                  <div className="flex items-center gap-1.5 text-red-700">
+                    <span className="text-red-500">✕</span> Attendance Logs
+                  </div>
+                  <div className="flex items-center gap-1.5 text-red-700 col-span-2">
+                    <span className="text-red-500">✕</span> Teacher Subject Assignments
+                  </div>
+                </div>
+                
+                <div className="pt-2 border-t border-red-100/50 mt-2 text-[10px] text-emerald-700 flex items-start gap-1">
+                  <span className="text-emerald-500 font-extrabold">✓</span>
+                  <span>School logins (Administrators, Head Teacher, Mr. Apeh Solomon, Mr. Tunde Bello) remain preserved.</span>
+                </div>
+              </div>
+
+              <div className="space-y-2 pt-2 border-t border-slate-100">
+                <label className="block text-[10px] font-black uppercase tracking-wider text-slate-400">
+                  To confirm database wipe, type <span className="text-red-600 font-extrabold">WIPE</span> below:
+                </label>
+                <input
+                  type="text"
+                  value={confirmWipeText}
+                  onChange={(e) => setConfirmWipeText(e.target.value)}
+                  placeholder="Type WIPE in uppercase"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-center font-black uppercase text-xs tracking-widest text-slate-800 focus:outline-none focus:border-red-300 focus:ring-1 focus:ring-red-200 transition-all placeholder:normal-case placeholder:tracking-normal placeholder:font-semibold"
+                />
               </div>
 
               <div className="flex gap-3 mt-6">
                 <button
                   type="button"
                   onClick={() => setClearModalOpen(false)}
-                  className="flex-1 py-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-500 text-xs font-bold cursor-pointer"
+                  className="flex-1 py-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-500 text-xs font-bold cursor-pointer transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   type="button"
                   onClick={triggerClearDatabase}
-                  disabled={clearing}
-                  className="flex-1 py-2.5 rounded-xl bg-red-600 hover:bg-red-550 text-white text-xs font-black uppercase tracking-wider cursor-pointer shadow-md shadow-red-600/10"
+                  disabled={clearing || confirmWipeText !== 'WIPE'}
+                  className="flex-1 py-2.5 rounded-xl bg-red-600 hover:bg-red-550 text-white text-xs font-black uppercase tracking-wider cursor-pointer shadow-md shadow-red-600/10 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
                 >
-                  {clearing ? 'Wiping Database...' : 'Yes, Wipe Everything'}
+                  {clearing ? 'Wiping...' : 'Wipe Everything'}
                 </button>
               </div>
             </div>

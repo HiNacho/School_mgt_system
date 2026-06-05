@@ -44,34 +44,7 @@ interface TeacherProfile {
   subjectAssignments?: SubjectAssignment[];
 }
 
-const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
 
-// Hourly blocks matching the reference image
-const HOURS = [
-  '8:00 AM',
-  '9:00 AM',
-  '10:00 AM',
-  '11:00 AM',
-  '12:00 PM',
-  '1:00 PM',
-  '2:00 PM',
-  '3:00 PM',
-  '4:00 PM'
-];
-
-// Color definitions helper for timetable chips matching the reference image's pastel look
-function getTimetableSlotStyle(styleIdx: number): string {
-  const index = styleIdx % 6;
-  switch (index) {
-    case 0: return 'bg-sky-50 border border-sky-100 text-sky-700'; // Light Blue
-    case 1: return 'bg-purple-50 border border-purple-100 text-purple-700'; // Light Purple
-    case 2: return 'bg-amber-50 border border-amber-100 text-amber-700'; // Light Yellow
-    case 3: return 'bg-orange-50 border border-orange-100 text-orange-700'; // Light Orange
-    case 4: return 'bg-pink-50 border border-pink-100 text-pink-700'; // Light Pink
-    case 5: return 'bg-emerald-50 border border-emerald-100 text-emerald-700'; // Light Emerald
-    default: return 'bg-sky-50 border border-sky-100 text-sky-700';
-  }
-}
 
 export default function TeacherDetailPage() {
   const params = useParams();
@@ -81,7 +54,7 @@ export default function TeacherDetailPage() {
   const [teacher, setTeacher] = useState<TeacherProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [viewMode, setViewMode] = useState<'work-week' | 'day'>('work-week');
+
 
   // Admin Profile Update Form States
   const [session, setSession] = useState<any>(null);
@@ -276,75 +249,7 @@ export default function TeacherDetailPage() {
     }
   };
 
-  // Helper to map dynamic/static slots exactly as shown in the screenshot
-  const getTimetableSlot = (day: string, hour: string) => {
-    // Exact slot coordinates from screenshot:
-    const scheduleData: { [key: string]: { [key: string]: { class: string, subject: string, styleIdx: number, duration: string } } } = {
-      'Monday': {
-        '8:00 AM': { class: '4A', subject: 'Physics', styleIdx: 0, duration: '8:00 AM - 8:45 AM' },
-        '10:00 AM': { class: '2B', subject: 'Physics', styleIdx: 1, duration: '10:00 AM - 10:45 AM' },
-        '11:00 AM': { class: '5A', subject: 'Physics', styleIdx: 4, duration: '11:00 AM - 11:45 AM' },
-        '1:00 PM': { class: '6C', subject: 'Physics', styleIdx: 0, duration: '1:00 PM - 1:45 PM' },
-        '2:00 PM': { class: '2B', subject: 'Physics', styleIdx: 2, duration: '2:00 PM - 2:45 PM' },
-      },
-      'Tuesday': {
-        '9:00 AM': { class: '2B', subject: 'Physics', styleIdx: 0, duration: '9:00 AM - 9:45 AM' },
-        '10:00 AM': { class: '3A', subject: 'Physics', styleIdx: 2, duration: '10:00 AM - 10:45 AM' },
-        '11:00 AM': { class: '5B', subject: 'Physics', styleIdx: 4, duration: '11:00 AM - 11:45 AM' },
-        '2:00 PM': { class: '1A', subject: 'Physics', styleIdx: 4, duration: '2:00 PM - 2:45 PM' },
-      },
-      'Wednesday': {
-        '8:00 AM': { class: '1A', subject: 'Chemistry', styleIdx: 0, duration: '8:00 AM - 8:45 AM' },
-        '10:00 AM': { class: '2B', subject: 'Physics', styleIdx: 2, duration: '10:00 AM - 10:45 AM' },
-        '1:00 PM': { class: '3C', subject: 'Chemistry', styleIdx: 1, duration: '1:00 PM - 1:45 PM' },
-      },
-      'Thursday': {
-        '9:00 AM': { class: '6A', subject: 'Physics', styleIdx: 2, duration: '9:00 AM - 9:45 AM' },
-        '10:00 AM': { class: '6B', subject: 'Chemistry', styleIdx: 2, duration: '10:00 AM - 10:45 AM' },
-        '11:00 AM': { class: '5C', subject: 'Physics', styleIdx: 1, duration: '11:00 AM - 11:45 AM' },
-        '2:00 PM': { class: '4A', subject: 'Physics', styleIdx: 4, duration: '2:00 PM - 2:45 PM' },
-      },
-      'Friday': {
-        '8:00 AM': { class: '4A', subject: 'Chemistry', styleIdx: 0, duration: '8:00 AM - 8:45 AM' },
-        '9:00 AM': { class: '3B', subject: 'Physics', styleIdx: 2, duration: '9:00 AM - 9:45 AM' },
-        '11:00 AM': { class: '6A', subject: 'Physics', styleIdx: 1, duration: '11:00 AM - 11:45 AM' },
-        '1:00 PM': { class: '6A', subject: 'Chemistry', styleIdx: 4, duration: '1:00 PM - 1:45 PM' },
-        '2:00 PM': { class: '6B', subject: 'Chemistry', styleIdx: 0, duration: '2:00 PM - 2:45 PM' },
-      }
-    };
 
-    const daySlot = scheduleData[day];
-    if (!daySlot) return null;
-    const slot = daySlot[hour];
-    if (!slot) return null;
-
-    // Map dynamic database values to replace mock ones if assignments exist
-    const assignments = teacher?.subjectAssignments || [];
-    if (assignments.length > 0) {
-      const isChem = slot.subject === 'Chemistry';
-      let matchedAssignment = assignments[0];
-      
-      if (isChem && assignments.length > 1) {
-        matchedAssignment = assignments[1];
-      } else if (assignments.length > 2) {
-        matchedAssignment = assignments[slot.styleIdx % assignments.length];
-      }
-      
-      return {
-        className: `${matchedAssignment.class.name}${matchedAssignment.arm.name}`,
-        subjectName: matchedAssignment.subject.name,
-        duration: slot.duration,
-        style: getTimetableSlotStyle(slot.styleIdx)
-      };
-    }
-
-    return {
-      className: slot.class,
-      subjectName: slot.subject,
-      duration: slot.duration,
-      style: getTimetableSlotStyle(slot.styleIdx)
-    };
-  };
 
   // Helper to determine photo matching gender/roles
   const getTeacherPhoto = () => {
@@ -544,104 +449,51 @@ export default function TeacherDetailPage() {
 
           </div>
 
-          {/* Teacher's Schedule Calendar Grid */}
+          {/* Class & Subject Allocations Card */}
           <div className="bg-white border border-slate-100 rounded-3xl shadow-sm p-6 space-y-6">
-            
-            {/* Header with Date and View Tabs */}
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-slate-100/60 pb-4 gap-4">
-              <div>
-                <h3 className="text-base font-extrabold text-slate-800">
-                  Teacher's Schedule
-                </h3>
-              </div>
-
-              <div className="flex items-center gap-4">
-                <span className="text-xs font-bold text-slate-400">
-                  September 16 – 20
-                </span>
-                
-                <div className="flex bg-slate-50 border border-slate-100 p-1 rounded-2xl">
-                  <button
-                    onClick={() => setViewMode('work-week')}
-                    className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all ${
-                      viewMode === 'work-week' 
-                        ? 'bg-white text-slate-800 shadow-sm border border-slate-100' 
-                        : 'text-slate-400 hover:text-slate-600'
-                    }`}
-                  >
-                    Work Week
-                  </button>
-                  <button
-                    onClick={() => setViewMode('day')}
-                    className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all ${
-                      viewMode === 'day' 
-                        ? 'bg-white text-slate-800 shadow-sm border border-slate-100' 
-                        : 'text-slate-400 hover:text-slate-600'
-                    }`}
-                  >
-                    Day
-                  </button>
-                </div>
-              </div>
+            <div className="flex justify-between items-center border-b border-slate-100/60 pb-4">
+              <h3 className="text-base font-extrabold text-slate-800 flex items-center gap-2">
+                <BookOpen className="w-5 h-5 text-indigo-500" /> Class & Subject Allocations
+              </h3>
+              <span className="px-2.5 py-1 rounded-full bg-slate-50 border border-slate-200 text-[10px] font-bold text-slate-500 font-mono">
+                {totalAssignments} active {totalAssignments === 1 ? 'allocation' : 'allocations'}
+              </span>
             </div>
 
-            {/* Weekly Schedule Grid */}
-            <div className="overflow-x-auto rounded-2xl border border-slate-100">
-              <table className="w-full border-collapse text-left text-xs font-semibold text-slate-600 min-w-[700px]">
-                <thead>
-                  <tr className="bg-slate-50 border-b border-slate-100 text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                    <th className="p-3 w-20 text-center">Time</th>
-                    {DAYS.map(day => (
-                      <th key={day} className="p-3 w-1/5 text-center font-bold text-slate-400">{day}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100/60">
-                  {HOURS.map((hour) => {
-                    const isLunch = hour === '12:00 PM';
-                    return (
-                      <tr key={hour} className="hover:bg-slate-50/10">
-                        {/* Time Row Label */}
-                        <td className="p-3 text-slate-400 text-center font-bold align-middle border-r border-slate-100/40 w-20 bg-slate-50/20">
-                          {hour}
+            {totalAssignments === 0 ? (
+              <div className="py-12 text-center text-slate-500 space-y-2">
+                <Layers className="w-10 h-10 text-slate-350 mx-auto" />
+                <p className="text-xs font-bold text-slate-400">No active subject assignments found.</p>
+                <p className="text-[10px] text-slate-400">Use the Edit Profile panel to assign subjects and classes to this teacher.</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto rounded-2xl border border-slate-100">
+                <table className="w-full border-collapse text-left text-xs font-semibold text-slate-600 min-w-[500px]">
+                  <thead>
+                    <tr className="bg-slate-50 border-b border-slate-100 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                      <th className="p-4 w-1/4">Class / Grade</th>
+                      <th className="p-4 w-1/4">Arm / Stream</th>
+                      <th className="p-4 w-1/4">Subject Name</th>
+                      <th className="p-4 w-1/4">Subject Code</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {teacher.subjectAssignments?.map((asg, idx) => (
+                      <tr key={asg.id || idx} className="hover:bg-slate-50/50 transition-colors">
+                        <td className="p-4 text-slate-800 font-extrabold">{asg.class.name}</td>
+                        <td className="p-4 text-slate-700 font-bold">Arm {asg.arm.name}</td>
+                        <td className="p-4 text-slate-800 font-extrabold">{asg.subject.name}</td>
+                        <td className="p-4 text-slate-500">
+                          <span className="px-2 py-0.5 rounded-md text-[10px] font-bold border bg-slate-50 border-slate-200 text-slate-600 font-mono">
+                            {asg.subject.code}
+                          </span>
                         </td>
-
-                        {/* Daily Columns */}
-                        {DAYS.map((day) => {
-                          if (isLunch) {
-                            return (
-                              <td key={day} className="p-3 text-center text-[10px] font-black uppercase tracking-wider text-slate-350 bg-slate-50/20">
-                                — Lunch / Recess —
-                              </td>
-                            );
-                          }
-
-                          const slot = getTimetableSlot(day, hour);
-
-                          return (
-                            <td key={day} className="p-2 border-r border-slate-100/30 align-middle">
-                              {slot ? (
-                                <div className={`p-2.5 rounded-[15px] ${slot.style} space-y-1 text-left hover:shadow-sm transition-all`}>
-                                  <span className="block text-[8px] font-bold opacity-80 leading-none">
-                                    {slot.duration}
-                                  </span>
-                                  <span className="block text-[10.5px] font-extrabold leading-tight">
-                                    {slot.className} - {slot.subjectName}
-                                  </span>
-                                </div>
-                              ) : (
-                                <div className="h-10 rounded-xl hover:bg-slate-50/20 transition-all" />
-                              )}
-                            </td>
-                          );
-                        })}
                       </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
 
         </div>

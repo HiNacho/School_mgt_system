@@ -385,7 +385,7 @@ export default function DashboardHome() {
       {/* 1. TOP ANCHOR: Profile welcome block */}
       <div className="bg-white border border-slate-100 rounded-3xl p-6 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <span className="text-[10px] font-bold tracking-widest text-slate-400 uppercase">NachoEd Operating Hub</span>
+          <span className="text-[10px] font-bold tracking-widest text-slate-400 uppercase">{school?.name || 'NachoEd'} Operating Hub</span>
           <h1 className="text-xl font-extrabold text-slate-800 tracking-tight mt-1">
             Hello, {user.firstName} {user.lastName}!
           </h1>

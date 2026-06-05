@@ -138,12 +138,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       { name: 'Teachers', href: '/dashboard/teachers', icon: Users },
       { name: 'Students', href: '/dashboard/students', icon: GraduationCap },
       { name: 'Parents', href: '/dashboard/parents', icon: User },
-      { name: 'Admissions', href: '/dashboard/admissions', icon: Award },
       { name: 'Subjects', href: '/dashboard/subjects', icon: BookOpen },
       { name: 'Classes', href: '/dashboard/classes', icon: Layers },
       { name: 'Attendance', href: '/dashboard/attendance', icon: ClipboardList },
       { name: 'Messages', href: '/dashboard/messages', icon: MessageSquare },
-      { name: 'Timetable', href: '/dashboard/timetable', icon: Calendar },
     ];
   } else {
     // Teachers, Parents, Students default links
@@ -176,7 +174,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   ];
 
   return (
-    <div className="min-h-screen flex flex-col font-sans overflow-hidden bg-[#f7f8fa]">
+    <div className="min-h-screen flex flex-col font-sans overflow-hidden bg-slate-50">
       {/* Impersonation Banner */}
       {isImpersonating && (
         <div className="bg-yellow-500 text-slate-900 px-6 py-2.5 flex items-center justify-between z-[9999] text-xs font-black shadow-md shrink-0 border-b border-yellow-600 animate-fadeIn">
@@ -204,10 +202,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <div className="overflow-y-auto flex-1">
           {/* Logo Header */}
           <div className="p-5 flex items-center gap-3">
-            <div className="p-2 rounded-xl bg-indigo-50 text-indigo-600 border border-indigo-100 shadow-sm">
-              <Sparkles className="w-5 h-5 text-indigo-600" />
-            </div>
-            <span className="font-bold text-lg text-slate-900 tracking-tight">NachoEd</span>
+            {school?.logoUrl ? (
+              <img src={school.logoUrl} alt="School Crest" className="w-8 h-8 rounded-xl object-cover border border-slate-200 bg-white" />
+            ) : (
+              <div className="p-2 rounded-xl bg-indigo-50 text-indigo-600 border border-indigo-100 shadow-sm">
+                <Sparkles className="w-5 h-5 text-indigo-600" />
+              </div>
+            )}
+            <span className="font-bold text-lg text-slate-900 tracking-tight truncate max-w-[150px]" title={school?.name || 'NachoEd'}>
+              {school?.name || 'NachoEd'}
+            </span>
           </div>
 
           {/* MENU SECTION */}
@@ -286,10 +290,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <div>
               <div className="flex items-center justify-between pb-5 border-b border-slate-100 mb-4">
                 <div className="flex items-center gap-2">
-                  <div className="p-1.5 rounded-lg bg-indigo-50 text-indigo-600 border border-indigo-100 shadow-sm">
-                    <Sparkles className="w-4 h-4 text-indigo-600" />
-                  </div>
-                  <span className="font-bold text-sm text-slate-900">NachoEd</span>
+                  {school?.logoUrl ? (
+                    <img src={school.logoUrl} alt="School Crest" className="w-6 h-6 rounded-lg object-cover border border-slate-200 bg-white" />
+                  ) : (
+                    <div className="p-1.5 rounded-lg bg-indigo-50 text-indigo-600 border border-indigo-100 shadow-sm">
+                      <Sparkles className="w-4 h-4 text-indigo-600" />
+                    </div>
+                  )}
+                  <span className="font-bold text-sm text-slate-900 truncate max-w-[130px]" title={school?.name || 'NachoEd'}>
+                    {school?.name || 'NachoEd'}
+                  </span>
                 </div>
                 <button type="button" onClick={() => setMobileMenuOpen(false)} className="p-1 rounded-md bg-slate-50 text-slate-400 hover:text-slate-600">
                   <X className="w-4 h-4" />
@@ -503,7 +513,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </header>
 
         {/* Content Scrolling Area */}
-        <main className="flex-1 overflow-y-auto p-5 md:p-6 bg-[#f7f8fa] relative">
+        <main className="flex-1 overflow-y-auto p-5 md:p-6 bg-slate-50 relative">
           {children}
         </main>
       </div>

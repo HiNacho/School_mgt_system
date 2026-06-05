@@ -518,18 +518,18 @@ export default function ScoresManagerPage() {
   }, [selectedClass, selectedArm, availableSubjects, isTeacher, selectedSubject]);
 
   const isGreenwood = session?.school?.slug === 'greenwood-secondary';
-  const themeAccentColor = isGreenwood ? 'text-emerald-400' : 'text-indigo-400';
-  const themeBgAccent = isGreenwood ? 'bg-emerald-500 text-slate-950 hover:bg-emerald-400' : 'bg-indigo-500 text-white hover:bg-indigo-400';
+  const themeAccentColor = isGreenwood ? 'text-emerald-600' : 'text-indigo-600';
+  const themeBgAccent = isGreenwood ? 'bg-emerald-600 text-white hover:bg-emerald-700 active:bg-emerald-800' : 'bg-indigo-600 text-white hover:bg-indigo-700 active:bg-indigo-800';
 
   const submissionStatus = submissionState?.status || 'DRAFT';
   const isReadOnly = submissionStatus === 'PENDING' || submissionStatus === 'APPROVED';
 
   if (!loading && isTeacher && availableClasses.length === 0) {
     return (
-      <div className="p-8 rounded-3xl bg-slate-900/40 border border-slate-800 backdrop-blur-sm text-center max-w-md mx-auto space-y-4 my-12">
-        <AlertCircle className="w-12 h-12 text-amber-400 mx-auto animate-bounce" />
-        <h2 className="text-base font-extrabold text-white uppercase tracking-wider">No Subject Assignments found</h2>
-        <p className="text-xs text-slate-400 leading-relaxed">
+      <div className="p-8 rounded-3xl bg-white border border-slate-200 shadow-sm text-center max-w-md mx-auto space-y-4 my-12 animate-fadeIn">
+        <AlertCircle className={`w-12 h-12 ${isGreenwood ? 'text-emerald-500' : 'text-indigo-500'} mx-auto animate-bounce`} />
+        <h2 className="text-base font-extrabold text-slate-800 uppercase tracking-wider">No Subject Assignments found</h2>
+        <p className="text-xs text-slate-500 leading-relaxed">
           You are not currently assigned to teach any subjects for the active term. Please contact your school administrator or Principal to register your subject allocations.
         </p>
       </div>
@@ -542,10 +542,10 @@ export default function ScoresManagerPage() {
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-xl font-extrabold text-white flex items-center gap-2">
+          <h1 className="text-xl font-extrabold text-slate-900 flex items-center gap-2">
             <FileSpreadsheet className={`w-6 h-6 ${themeAccentColor}`} /> Scoresheet Entry Panel
           </h1>
-          <p className="text-xs text-slate-400 mt-1">Input scores via desktop keyboard spreadsheet, or bulk import via pre-populated Excel files.</p>
+          <p className="text-xs text-slate-500 mt-1">Input scores via desktop keyboard spreadsheet, or bulk import via pre-populated Excel files.</p>
         </div>
 
         {/* Sync, Autosave and Gateway status banners */}
@@ -554,31 +554,31 @@ export default function ScoresManagerPage() {
           {submissionState && (
             <div className={`px-3 py-1.5 rounded-xl border text-[10px] font-bold uppercase tracking-wider flex items-center gap-1.5 ${
               submissionStatus === 'APPROVED' 
-                ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
+                ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
                 : submissionStatus === 'PENDING'
-                  ? 'bg-amber-500/10 border-amber-500/20 text-amber-400 animate-pulse'
+                  ? 'bg-amber-50 border-amber-250 text-amber-700 animate-pulse'
                   : submissionStatus === 'REJECTED'
-                    ? 'bg-red-500/10 border-red-500/20 text-red-400'
-                    : 'bg-slate-900 border-slate-800 text-slate-400'
+                    ? 'bg-red-50 border-red-200 text-red-700'
+                    : 'bg-slate-100 border-slate-200 text-slate-600'
             }`}>
               <span className={`w-1.5 h-1.5 rounded-full ${
-                submissionStatus === 'APPROVED' ? 'bg-emerald-400' :
-                submissionStatus === 'PENDING' ? 'bg-amber-400 animate-ping' :
-                submissionStatus === 'REJECTED' ? 'bg-red-400' : 'bg-slate-400'
+                submissionStatus === 'APPROVED' ? 'bg-emerald-500' :
+                submissionStatus === 'PENDING' ? 'bg-amber-500 animate-ping' :
+                submissionStatus === 'REJECTED' ? 'bg-red-500' : 'bg-slate-400'
               }`} />
               <span>Status: {submissionStatus}</span>
             </div>
           )}
 
-          <div className="flex items-center gap-2 bg-slate-900 border border-slate-800 px-4 py-2 rounded-xl text-xs font-semibold">
+          <div className="flex items-center gap-2 bg-white border border-slate-200 px-4 py-2 rounded-xl text-xs font-semibold shadow-sm text-slate-700">
             {savingStatus === 'saved' && (
-              <span className="text-emerald-400 flex items-center gap-1.5"><CheckCircle className="w-4 h-4" /> All changes autosaved</span>
+              <span className="text-emerald-600 flex items-center gap-1.5"><CheckCircle className="w-4 h-4" /> All changes autosaved</span>
             )}
             {savingStatus === 'saving' && (
-              <span className="text-amber-400 flex items-center gap-1.5"><RefreshCw className="w-4 h-4 animate-spin" /> Saving cells...</span>
+              <span className="text-amber-600 flex items-center gap-1.5"><RefreshCw className="w-4 h-4 animate-spin" /> Saving cells...</span>
             )}
             {savingStatus === 'offline-queued' && (
-              <span className="text-sky-400 flex items-center gap-1.5"><WifiOff className="w-4 h-4 animate-pulse" /> Offline saving queued</span>
+              <span className="text-sky-600 flex items-center gap-1.5"><WifiOff className="w-4 h-4 animate-pulse" /> Offline saving queued</span>
             )}
           </div>
         </div>
@@ -586,42 +586,42 @@ export default function ScoresManagerPage() {
 
       {/* Alert boxes */}
       {successMsg && (
-        <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs flex items-center justify-between">
+        <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs flex items-center justify-between shadow-sm animate-fadeIn">
           <div className="flex items-center gap-2">
-            <CheckCircle className="w-4 h-4" />
+            <CheckCircle className="w-4 h-4 text-emerald-600" />
             <span>{successMsg}</span>
           </div>
-          <button type="button" onClick={() => setSuccessMsg('')} className="text-slate-400">✕</button>
+          <button type="button" onClick={() => setSuccessMsg('')} className="text-slate-400 hover:text-slate-600">✕</button>
         </div>
       )}
 
       {errorMsg && (
-        <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs flex items-center justify-between">
+        <div className="p-4 rounded-xl bg-red-50 border border-red-200 text-red-850 text-xs flex items-center justify-between shadow-sm animate-fadeIn">
           <div className="flex items-center gap-2">
-            <AlertCircle className="w-4 h-4" />
+            <AlertCircle className="w-4 h-4 text-red-500" />
             <span>{errorMsg}</span>
           </div>
-          <button type="button" onClick={() => setErrorMsg('')} className="text-slate-400">✕</button>
+          <button type="button" onClick={() => setErrorMsg('')} className="text-slate-400 hover:text-slate-600">✕</button>
         </div>
       )}
 
       {/* Correction / Rejection feedback warning banner */}
       {submissionStatus === 'REJECTED' && (
-        <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs flex flex-col gap-1.5 animate-fadeIn">
+        <div className="p-4 rounded-xl bg-red-50 border border-red-200 text-red-800 text-xs flex flex-col gap-2 animate-fadeIn shadow-sm">
           <div className="flex items-center gap-2 font-bold uppercase tracking-wider text-[10px]">
-            <AlertCircle className="w-4 h-4" />
+            <AlertCircle className="w-4 h-4 text-red-500" />
             <span>Scoresheet Returned for Correction</span>
           </div>
           {submissionState?.feedback && (
-            <p className="text-[11px] text-slate-300 leading-relaxed font-semibold bg-slate-950/50 p-3 rounded-lg border border-red-500/10 mt-1">
-              Feedback from Class Teacher: <strong className="text-white">"{submissionState.feedback}"</strong>
+            <p className="text-[11px] text-slate-700 leading-relaxed font-semibold bg-red-100/50 p-3 rounded-lg border border-red-200/40 mt-1">
+              Feedback from Class Teacher: <strong className="text-red-950">"{submissionState.feedback}"</strong>
             </p>
           )}
         </div>
       )}
 
       {/* Setup configuration selectors */}
-      <div className="p-5 rounded-2xl bg-slate-900/40 border border-slate-850/80 backdrop-blur-sm grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="p-6 rounded-2xl bg-white border border-slate-200/80 shadow-sm grid grid-cols-1 md:grid-cols-4 gap-4">
         <div>
           <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1.5">Class</label>
           <select
@@ -636,7 +636,7 @@ export default function ScoresManagerPage() {
                 setSelectedArm(availableRelatedArms[0].id);
               }
             }}
-            className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-slate-700 text-white"
+            className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 text-slate-800 font-medium transition-all shadow-inner hover:border-slate-350"
           >
             {availableClasses.map((c: any) => (
               <option key={c.id} value={c.id}>{c.name}</option>
@@ -649,7 +649,7 @@ export default function ScoresManagerPage() {
           <select
             value={selectedArm}
             onChange={(e) => setSelectedArm(e.target.value)}
-            className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-slate-700 text-white"
+            className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 text-slate-800 font-medium transition-all shadow-inner hover:border-slate-350"
           >
             {availableArms.map((arm: any) => (
               <option key={arm.id} value={arm.id}>Arm {arm.name}</option>
@@ -662,7 +662,7 @@ export default function ScoresManagerPage() {
           <select
             value={selectedSubject}
             onChange={(e) => setSelectedSubject(e.target.value)}
-            className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-slate-700 text-white"
+            className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 text-slate-800 font-medium transition-all shadow-inner hover:border-slate-350"
           >
             {availableSubjects.map((s: any) => (
               <option key={s.id} value={s.id}>{s.name} ({s.code})</option>
@@ -675,7 +675,7 @@ export default function ScoresManagerPage() {
           <select
             value={selectedTerm}
             onChange={(e) => setSelectedTerm(e.target.value)}
-            className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-slate-700 text-white"
+            className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 text-slate-800 font-medium transition-all shadow-inner hover:border-slate-350"
           >
             {setup?.terms?.map((t: any) => (
               <option key={t.id} value={t.id}>{t.name} ({t.session.name})</option>
@@ -688,39 +688,39 @@ export default function ScoresManagerPage() {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         
         {/* Left: Drag & Drop Excel Panel & Submission Gateway */}
-        <div className="lg:col-span-4 p-5 rounded-2xl bg-slate-900/40 border border-slate-850/80 backdrop-blur-sm space-y-4">
-          <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
-            <Upload className="w-4 h-4 text-sky-400" /> Excel Scoresheet Loader
+        <div className="lg:col-span-4 p-6 rounded-2xl bg-white border border-slate-200 shadow-sm space-y-5">
+          <h3 className="text-xs font-extrabold uppercase tracking-wider text-slate-700 flex items-center gap-2">
+            <Upload className={`w-4 h-4 ${themeAccentColor}`} /> Excel Scoresheet Loader
           </h3>
           
           <div className="flex flex-col gap-2">
             <button
               type="button"
               onClick={downloadExcelTemplate}
-              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-slate-800 bg-slate-950 hover:bg-slate-900 text-xs font-bold text-slate-300 transition-colors"
+              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-emerald-200 bg-emerald-50 hover:bg-emerald-100/80 text-xs font-bold text-emerald-700 transition-colors shadow-sm"
             >
-              <Download className="w-4 h-4 text-emerald-400" /> Download Pre-filled Template
+              <Download className="w-4 h-4 text-emerald-600" /> Download Pre-filled Template
             </button>
             <span className="text-[10px] text-slate-500 text-center">Downloads roster pre-mapped for the selected configuration.</span>
           </div>
 
           {isReadOnly ? (
-            <div className="border-t border-slate-850 pt-4 text-center space-y-2">
-              <AlertCircle className="w-8 h-8 text-amber-500/80 mx-auto" />
-              <p className="text-xs font-semibold text-slate-300">Scoresheet locked for review</p>
-              <p className="text-[10px] text-slate-500">This scoresheet has been submitted or approved. Manual editing and spreadsheet uploads are disabled.</p>
+            <div className="border-t border-slate-100 pt-5 text-center space-y-2">
+              <AlertCircle className="w-8 h-8 text-amber-500 mx-auto" />
+              <p className="text-xs font-bold text-slate-800">Scoresheet locked for review</p>
+              <p className="text-[10px] text-slate-500 leading-relaxed">This scoresheet has been submitted or approved. Manual editing and spreadsheet uploads are disabled.</p>
             </div>
           ) : (
-            <form onSubmit={handleExcelUpload} className="border-t border-slate-850 pt-4 space-y-3">
-              <label className="block text-[9px] font-bold uppercase tracking-wider text-slate-500">Drag scoresheet spreadsheet file here</label>
+            <form onSubmit={handleExcelUpload} className="border-t border-slate-100 pt-5 space-y-3">
+              <label className="block text-[9px] font-extrabold uppercase tracking-wider text-slate-500">Drag scoresheet spreadsheet file here</label>
               <div className="flex items-center justify-center w-full">
-                <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-slate-800 border-dashed rounded-xl cursor-pointer bg-slate-950 hover:bg-slate-900/60 transition-colors">
-                  <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                    <FileUp className="w-8 h-8 text-slate-500 mb-2 animate-bounce" />
-                    <p className="text-xs text-slate-400 font-semibold">
+                <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-slate-200 border-dashed rounded-xl cursor-pointer bg-slate-50 hover:bg-slate-100/50 hover:border-slate-350 transition-colors">
+                  <div className="flex flex-col items-center justify-center pt-5 pb-6 px-4 text-center">
+                    <FileUp className="w-8 h-8 text-slate-400 mb-2 animate-bounce" />
+                    <p className="text-xs text-slate-700 font-bold max-w-full truncate">
                       {excelFile ? excelFile.name : 'Select scoresheet file'}
                     </p>
-                    <p className="text-[9px] text-slate-600 mt-1">XLSX, XLS files up to 5MB</p>
+                    <p className="text-[9px] text-slate-400 mt-1">XLSX, XLS files up to 5MB</p>
                   </div>
                   <input
                     type="file"
@@ -734,7 +734,11 @@ export default function ScoresManagerPage() {
               <button
                 type="submit"
                 disabled={!excelFile || uploadLoading}
-                className={`w-full py-2.5 px-4 rounded-xl font-bold text-xs transition-all flex justify-center items-center gap-2 ${themeBgAccent}`}
+                className={`w-full py-2.5 px-4 rounded-xl font-bold text-xs transition-all flex justify-center items-center gap-2 ${
+                  !excelFile || uploadLoading
+                    ? 'bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed'
+                    : themeBgAccent + ' shadow-md shadow-emerald-600/10'
+                }`}
               >
                 {uploadLoading ? 'Compiling scores sheet...' : 'Parse & Upload Scores'}
               </button>
@@ -743,15 +747,15 @@ export default function ScoresManagerPage() {
 
           {/* Submit for Final Review Card */}
           {(submissionStatus === 'DRAFT' || submissionStatus === 'REJECTED') && scores.length > 0 && (
-            <div className="border-t border-slate-850 pt-4 space-y-3 animate-fadeIn">
-              <h4 className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Submit Scoresheet</h4>
+            <div className="border-t border-slate-100 pt-5 space-y-3 animate-fadeIn">
+              <h4 className="text-[10px] font-extrabold uppercase tracking-wider text-slate-700">Submit Scoresheet</h4>
               <p className="text-[10px] text-slate-500 leading-relaxed">
                 Finished entering scores? Submit this sheet to the Class Teacher. This will lock manual edits and notify the class teacher for final report card compilation.
               </p>
               <button
                 type="button"
                 onClick={() => setIsSubmitModalOpen(true)}
-                className="w-full py-2.5 px-4 rounded-xl font-bold text-xs bg-amber-500 text-slate-950 hover:bg-amber-400 transition-all flex justify-center items-center gap-2 shadow-lg shadow-amber-500/10"
+                className="w-full py-2.5 px-4 rounded-xl font-bold text-xs bg-amber-500 text-white hover:bg-amber-600 transition-all flex justify-center items-center gap-2 shadow-lg shadow-amber-500/10"
               >
                 <CheckCircle className="w-4 h-4" /> Submit for Final Review
               </button>
@@ -759,20 +763,20 @@ export default function ScoresManagerPage() {
           )}
 
           {submissionStatus === 'PENDING' && (
-            <div className="border-t border-slate-850 pt-4 space-y-2 text-center bg-amber-500/5 p-3 rounded-xl border border-amber-500/10">
-              <RefreshCw className="w-6 h-6 text-amber-400 mx-auto animate-spin" />
-              <p className="text-xs font-bold text-amber-400">Pending Review</p>
-              <p className="text-[10px] text-slate-400 leading-relaxed">
+            <div className="border-t border-slate-100 pt-5 space-y-2 text-center bg-amber-50 p-4 rounded-xl border border-amber-200 shadow-sm">
+              <RefreshCw className="w-6 h-6 text-amber-500 mx-auto animate-spin" />
+              <p className="text-xs font-bold text-amber-700">Pending Review</p>
+              <p className="text-[10px] text-amber-600/90 leading-relaxed font-semibold">
                 This scoresheet is currently locked and awaiting review by the Class Teacher.
               </p>
             </div>
           )}
 
           {submissionStatus === 'APPROVED' && (
-            <div className="border-t border-slate-850 pt-4 space-y-2 text-center bg-emerald-500/5 p-3 rounded-xl border border-emerald-500/10">
-              <CheckCircle className="w-6 h-6 text-emerald-400 mx-auto" />
-              <p className="text-xs font-bold text-emerald-400">Published to Reports</p>
-              <p className="text-[10px] text-slate-400 leading-relaxed">
+            <div className="border-t border-slate-100 pt-5 space-y-2 text-center bg-emerald-50 p-4 rounded-xl border border-emerald-250 shadow-sm">
+              <CheckCircle className="w-6 h-6 text-emerald-600 mx-auto" />
+              <p className="text-xs font-bold text-emerald-700">Published to Reports</p>
+              <p className="text-[10px] text-emerald-600/90 leading-relaxed font-semibold">
                 Approved and locked. These scores have been successfully compiled into the official student report cards.
               </p>
             </div>
@@ -780,28 +784,28 @@ export default function ScoresManagerPage() {
         </div>
 
         {/* Right: Spreadsheet grid list */}
-        <div className="lg:col-span-8 p-6 rounded-2xl bg-slate-900/20 border border-slate-850/80 backdrop-blur-sm overflow-hidden space-y-4">
+        <div className="lg:col-span-8 p-6 rounded-2xl bg-white border border-slate-200 shadow-sm overflow-hidden space-y-4">
           <div className="flex items-center justify-between">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
-              <FileSpreadsheet className="w-4 h-4 text-emerald-400" /> Keyboard-Navigable Manual score matrix
+            <h3 className="text-xs font-extrabold uppercase tracking-wider text-slate-700 flex items-center gap-2">
+              <FileSpreadsheet className={`w-4 h-4 ${themeAccentColor}`} /> Keyboard-Navigable Manual score matrix
             </h3>
-            <span className="text-[9px] text-slate-500 hidden sm:inline-block font-mono">Use arrow keys or Enter to navigate cell focus</span>
+            <span className="text-[9px] text-slate-500 hidden sm:inline-block font-mono font-bold">Use arrow keys or Enter to navigate cell focus</span>
           </div>
 
           {loading ? (
             <div className="h-60 flex items-center justify-center">
-              <div className="w-6 h-6 border-2 border-t-slate-500 border-r-transparent border-b-transparent border-l-transparent rounded-full animate-spin" />
+              <div className={`w-6 h-6 border-2 border-t-emerald-600 border-r-transparent border-b-transparent border-l-transparent rounded-full animate-spin`} />
             </div>
           ) : scores.length === 0 ? (
-            <div className="h-60 flex flex-col justify-center items-center text-slate-500 space-y-2 p-6">
-              <FileSpreadsheet className="w-10 h-10 text-slate-700" />
-              <p className="text-xs font-semibold">No students active in selected arm.</p>
+            <div className="h-60 flex flex-col justify-center items-center text-slate-500 space-y-2 p-6 bg-slate-50 rounded-xl border border-slate-200">
+              <FileSpreadsheet className="w-10 h-10 text-slate-300" />
+              <p className="text-xs font-bold text-slate-400">No students active in selected arm.</p>
             </div>
           ) : (
-            <div className="overflow-x-auto rounded-xl border border-slate-855">
+            <div className="overflow-x-auto rounded-xl border border-slate-200">
               <table className="w-full border-collapse text-left">
                 <thead>
-                  <tr className="bg-slate-950 border-b border-slate-850 text-[10px] font-extrabold uppercase tracking-wider text-slate-500">
+                  <tr className="bg-slate-50 border-b border-slate-200 text-[10px] font-extrabold uppercase tracking-wider text-slate-550">
                     <th className="p-3 w-16">Adm ID</th>
                     <th className="p-3">Student Name</th>
                     <th className="p-3 w-16 text-center">CA1 (15)</th>
@@ -812,11 +816,11 @@ export default function ScoresManagerPage() {
                     <th className="p-3 w-16 text-center">Grade</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-850/60 text-xs">
+                <tbody className="divide-y divide-slate-100 text-xs">
                   {scores.map((row, rowIdx) => (
-                    <tr key={row.studentId} className="hover:bg-slate-900/10 transition-colors">
-                      <td className="p-3 font-mono font-bold text-slate-400">{row.admissionNumber}</td>
-                      <td className="p-3 font-semibold text-slate-200">{row.lastName}, {row.firstName}</td>
+                    <tr key={row.studentId} className="hover:bg-slate-50/50 transition-colors">
+                      <td className="p-3 font-mono font-bold text-slate-500">{row.admissionNumber}</td>
+                      <td className="p-3 font-bold text-slate-800">{row.lastName}, {row.firstName}</td>
                       
                       {/* CA1 */}
                       <td className="p-1 text-center">
@@ -829,7 +833,7 @@ export default function ScoresManagerPage() {
                           onFocus={() => setEditingCell({ rowIdx, col: 'ca1' })}
                           onBlur={() => setEditingCell(null)}
                           disabled={isReadOnly}
-                          className="w-12 bg-slate-950 border border-slate-800 hover:border-slate-700 rounded px-1.5 py-1 text-xs text-center focus:outline-none focus:border-emerald-500 font-mono font-bold text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="w-12 bg-slate-50 border border-slate-200 hover:bg-white hover:border-slate-350 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/15 rounded px-1.5 py-1 text-xs text-center focus:outline-none font-mono font-bold text-slate-800 transition-all disabled:bg-slate-100 disabled:text-slate-400 disabled:border-slate-200 disabled:cursor-not-allowed shadow-inner"
                         />
                       </td>
 
@@ -844,7 +848,7 @@ export default function ScoresManagerPage() {
                           onFocus={() => setEditingCell({ rowIdx, col: 'ca2' })}
                           onBlur={() => setEditingCell(null)}
                           disabled={isReadOnly}
-                          className="w-12 bg-slate-950 border border-slate-800 hover:border-slate-700 rounded px-1.5 py-1 text-xs text-center focus:outline-none focus:border-emerald-500 font-mono font-bold text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="w-12 bg-slate-50 border border-slate-200 hover:bg-white hover:border-slate-350 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/15 rounded px-1.5 py-1 text-xs text-center focus:outline-none font-mono font-bold text-slate-800 transition-all disabled:bg-slate-100 disabled:text-slate-400 disabled:border-slate-200 disabled:cursor-not-allowed shadow-inner"
                         />
                       </td>
 
@@ -859,7 +863,7 @@ export default function ScoresManagerPage() {
                           onFocus={() => setEditingCell({ rowIdx, col: 'assignment' })}
                           onBlur={() => setEditingCell(null)}
                           disabled={isReadOnly}
-                          className="w-12 bg-slate-950 border border-slate-800 hover:border-slate-700 rounded px-1.5 py-1 text-xs text-center focus:outline-none focus:border-emerald-500 font-mono font-bold text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="w-12 bg-slate-50 border border-slate-200 hover:bg-white hover:border-slate-350 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/15 rounded px-1.5 py-1 text-xs text-center focus:outline-none font-mono font-bold text-slate-800 transition-all disabled:bg-slate-100 disabled:text-slate-400 disabled:border-slate-200 disabled:cursor-not-allowed shadow-inner"
                         />
                       </td>
 
@@ -874,24 +878,24 @@ export default function ScoresManagerPage() {
                           onFocus={() => setEditingCell({ rowIdx, col: 'exam' })}
                           onBlur={() => setEditingCell(null)}
                           disabled={isReadOnly}
-                          className="w-12 bg-slate-950 border border-slate-800 hover:border-slate-700 rounded px-1.5 py-1 text-xs text-center focus:outline-none focus:border-emerald-500 font-mono font-bold text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="w-12 bg-slate-50 border border-slate-200 hover:bg-white hover:border-slate-350 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/15 rounded px-1.5 py-1 text-xs text-center focus:outline-none font-mono font-bold text-slate-800 transition-all disabled:bg-slate-100 disabled:text-slate-400 disabled:border-slate-200 disabled:cursor-not-allowed shadow-inner"
                         />
                       </td>
 
                       {/* Total */}
-                      <td className="p-3 text-center font-mono font-extrabold text-slate-300 bg-slate-950/20">{row.total ?? '-'}</td>
+                      <td className="p-3 text-center font-mono font-extrabold text-slate-805 bg-slate-50/60 border-l border-r border-slate-100">{row.total ?? '-'}</td>
 
                       {/* Grade Badge */}
                       <td className="p-3 text-center">
                         {row.grade ? (
-                          <span className={`px-2 py-0.5 rounded text-[10px] font-bold tracking-wider ${
+                          <span className={`px-2 py-0.5 rounded text-[10px] font-extrabold tracking-wider border ${
                             row.grade.startsWith('A') 
-                              ? 'bg-emerald-500/10 text-emerald-400' 
+                              ? 'bg-emerald-50 border-emerald-250/65 text-emerald-700' 
                               : row.grade.startsWith('B') || row.grade.startsWith('C') 
-                                ? 'bg-sky-500/10 text-sky-400' 
+                                ? 'bg-sky-50 border-sky-200/65 text-sky-700' 
                                 : row.grade.startsWith('D') || row.grade.startsWith('E')
-                                  ? 'bg-amber-500/10 text-amber-400'
-                                  : 'bg-red-500/10 text-red-400 font-extrabold'
+                                  ? 'bg-amber-50 border-amber-250/65 text-amber-700'
+                                  : 'bg-red-50 border-red-200/65 text-red-700 font-black'
                           }`}>
                             {row.grade}
                           </span>
@@ -909,20 +913,20 @@ export default function ScoresManagerPage() {
 
       {/* Row 3: Upload warnings diagnostic reporter */}
       {uploadDiagnostics && (
-        <div className="p-5 rounded-2xl bg-amber-500/5 border border-amber-500/15 text-slate-300 space-y-3 z-10 relative">
-          <div className="flex items-center gap-2 text-amber-400">
-            <AlertCircle className="w-5 h-5" />
+        <div className="p-6 rounded-2xl bg-amber-50/50 border border-amber-250 text-slate-700 space-y-3 z-10 relative shadow-sm">
+          <div className="flex items-center gap-2 text-amber-700">
+            <AlertCircle className="w-5 h-5 text-amber-600" />
             <h4 className="font-extrabold text-xs uppercase tracking-wider">Excel upload diagnostic warnings ({uploadDiagnostics.warningsCount})</h4>
           </div>
           <p className="text-[10px] text-slate-500 leading-relaxed">
             The database successfully synchronized all valid columns. However, some rows in the Excel file could not be mapped automatically or contained invalid boundaries and were ignored:
           </p>
-          <div className="max-h-40 overflow-y-auto divide-y divide-slate-850/60 text-xs">
+          <div className="max-h-40 overflow-y-auto divide-y divide-slate-150 text-xs">
             {uploadDiagnostics.warnings?.map((warn: any, idx: number) => (
-              <div key={idx} className="py-2 flex items-start gap-4">
-                <span className="font-mono font-bold text-slate-500">Row {warn.row}</span>
-                <span className="font-semibold text-slate-400 w-24">[{warn.column}]</span>
-                <span className="text-slate-200">{warn.message}</span>
+              <div key={idx} className="py-2.5 flex items-start gap-4">
+                <span className="font-mono font-bold text-slate-550">Row {warn.row}</span>
+                <span className="font-bold text-amber-750 w-24">[{warn.column}]</span>
+                <span className="text-slate-800 font-medium">{warn.message}</span>
               </div>
             ))}
           </div>
@@ -931,42 +935,42 @@ export default function ScoresManagerPage() {
 
       {/* Submit Confirmation Modal */}
       {isSubmitModalOpen && (
-        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fadeIn">
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 max-w-md w-full space-y-6 shadow-2xl relative">
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fadeIn">
+          <div className="bg-white border border-slate-200 rounded-3xl p-6 max-w-md w-full space-y-6 shadow-2xl relative">
             <button 
               type="button" 
               onClick={() => setIsSubmitModalOpen(false)}
-              className="absolute top-4 right-4 text-slate-400 hover:text-white transition-colors"
+              className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 transition-colors"
             >
               <X className="w-5 h-5" />
             </button>
 
             <div className="space-y-2">
               <div className="w-12 h-12 bg-amber-500/10 rounded-full flex items-center justify-center border border-amber-500/20 mb-2">
-                <AlertCircle className="w-6 h-6 text-amber-400" />
+                <AlertCircle className="w-6 h-6 text-amber-500" />
               </div>
-              <h3 className="text-lg font-extrabold text-white">Submit Scoresheet for Review?</h3>
-              <p className="text-xs text-slate-400 leading-relaxed">
-                You are about to submit the scoresheet for <strong className="text-slate-200">
+              <h3 className="text-lg font-extrabold text-slate-900">Submit Scoresheet for Review?</h3>
+              <p className="text-xs text-slate-500 leading-relaxed">
+                You are about to submit the scoresheet for <strong className="text-slate-800">
                   {setup?.classes?.find((c: any) => c.id === selectedClass)?.name} - {setup?.arms?.find((a: any) => a.id === selectedArm)?.name}
-                </strong> in <strong className="text-slate-200">
+                </strong> in <strong className="text-slate-800">
                   {setup?.subjects?.find((s: any) => s.id === selectedSubject)?.name}
                 </strong>.
               </p>
             </div>
 
-            <div className="bg-slate-950/60 p-4 rounded-2xl border border-slate-850 space-y-3.5 text-xs">
+            <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-3.5 text-xs text-slate-700 shadow-inner">
               <div className="flex justify-between">
                 <span className="text-slate-500 font-semibold">Total Students:</span>
-                <span className="font-bold text-white font-mono">{scores.length}</span>
+                <span className="font-bold text-slate-950 font-mono">{scores.length}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-slate-500 font-semibold">Graded Students:</span>
-                <span className="font-bold text-white font-mono">{scores.filter(s => s.ca1 !== null || s.ca2 !== null || s.assignment !== null || s.exam !== null).length}</span>
+                <span className="font-bold text-slate-950 font-mono">{scores.filter(s => s.ca1 !== null || s.ca2 !== null || s.assignment !== null || s.exam !== null).length}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-slate-500 font-semibold">Ungraded Students:</span>
-                <span className="font-bold text-amber-400 font-mono">
+                <span className="font-bold text-amber-600 font-mono">
                   {scores.length - scores.filter(s => s.ca1 !== null || s.ca2 !== null || s.assignment !== null || s.exam !== null).length}
                 </span>
               </div>
@@ -976,7 +980,7 @@ export default function ScoresManagerPage() {
               <button
                 type="button"
                 onClick={() => setIsSubmitModalOpen(false)}
-                className="flex-1 py-2.5 rounded-xl border border-slate-800 text-xs font-bold text-slate-400 hover:text-white transition-colors"
+                className="flex-1 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-500 hover:bg-slate-50 hover:text-slate-700 transition-colors"
               >
                 Cancel
               </button>
@@ -986,7 +990,7 @@ export default function ScoresManagerPage() {
                   setIsSubmitModalOpen(false);
                   submitToClassTeacher();
                 }}
-                className="flex-1 py-2.5 rounded-xl bg-amber-500 text-slate-950 font-bold text-xs hover:bg-amber-400 transition-colors"
+                className="flex-1 py-2.5 rounded-xl bg-amber-500 text-white font-bold text-xs hover:bg-amber-600 transition-colors"
               >
                 Yes, Submit Scores
               </button>

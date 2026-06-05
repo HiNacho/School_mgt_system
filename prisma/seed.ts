@@ -12,7 +12,6 @@ async function main() {
   // --- 1. CLEAN EXISTING DATABASE ---
   await prisma.announcement.deleteMany();
   await prisma.event.deleteMany();
-  await prisma.admissionApplication.deleteMany();
   await prisma.parent.deleteMany();
   await prisma.reportCardComment.deleteMany();
   await prisma.attendance.deleteMany();

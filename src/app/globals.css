@@ -3,6 +3,31 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+  
+  --bg-page: #f8fafc;
+  --bg-card: #ffffff;
+  --bg-card-subtle: #f1f5f9;
+  --border-main: #e2e8f0;
+  --border-subtle: #f1f5f9;
+  
+  --text-primary: #0f172a;
+  --text-secondary: #334155;
+  --text-muted: #64748b;
+}
+
+.dark {
+  --background: #090d16;
+  --foreground: #f8fafc;
+  
+  --bg-page: #090d16;
+  --bg-card: #111827;
+  --bg-card-subtle: #1f2937;
+  --border-main: #374151;
+  --border-subtle: #1f2937;
+  
+  --text-primary: #f8fafc;
+  --text-secondary: #cbd5e1;
+  --text-muted: #94a3b8;
 }
 
 @theme inline {
@@ -10,19 +35,86 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  
+  /* Custom colors to preserve legacy style class resolution */
+  --color-red-150: #fee2e2;
+  --color-red-550: #ef4444;
+  --color-red-650: #dc2626;
+  --color-green-150: #d1fae5;
+  --color-slate-150: #e2e8f0;
+  --color-slate-550: #64748b;
+  --color-amber-150: #fef3c7;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+}
+
+/* Dark Mode Component Overrides */
+.dark body {
+  background-color: var(--background) !important;
+  color: var(--foreground) !important;
+}
+
+.dark .bg-white {
+  background-color: var(--bg-card) !important;
+}
+
+.dark .bg-slate-50 {
+  background-color: var(--bg-page) !important;
+}
+
+.dark .bg-slate-100 {
+  background-color: var(--bg-card-subtle) !important;
+}
+
+.dark .border-slate-100,
+.dark .border-slate-150 {
+  border-color: var(--border-subtle) !important;
+}
+
+.dark .border-slate-200,
+.dark .border-slate-250 {
+  border-color: var(--border-main) !important;
+}
+
+.dark .text-slate-800,
+.dark .text-slate-900,
+.dark .text-slate-950,
+.dark .text-slate-850 {
+  color: var(--text-primary) !important;
+}
+
+.dark .text-slate-700 {
+  color: var(--text-secondary) !important;
+}
+
+.dark .text-slate-500,
+.dark .text-slate-600,
+.dark .text-slate-550 {
+  color: var(--text-muted) !important;
+}
+
+.dark .text-slate-400 {
+  color: #64748b !important;
+}
+
+/* Forms & inputs contrast */
+.dark input[type="text"],
+.dark input[type="email"],
+.dark input[type="password"],
+.dark input[type="number"],
+.dark select,
+.dark textarea {
+  background-color: var(--bg-card-subtle) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--border-main) !important;
+}
+
+.dark input::placeholder {
+  color: #64748b !important;
 }
 
 @keyframes fadeIn {
