@@ -6,13 +6,14 @@ import { Shield, School, Key, ArrowRight, UserCheck, CheckCircle2, AlertCircle, 
 
 export default function LoginPage() {
   const router = useRouter();
-  const [selectedSchool, setSelectedSchool] = useState<'greenwood-secondary' | 'lagos-excel-primary'>('greenwood-secondary');
+  const [selectedSchool, setSelectedSchool] = useState<string>('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
   const [demoTeachers, setDemoTeachers] = useState<any[]>([]);
+  const [schools, setSchools] = useState<any[]>([]);
 
   // Clear session storage on mount
   useEffect(() => {
@@ -21,22 +22,38 @@ export default function LoginPage() {
   }, []);
 
   useEffect(() => {
-    const fetchDemoTeachers = async () => {
+    const fetchSchools = async () => {
       try {
-        const schoolRes = await fetch('/api/schools');
-        const schoolJson = await schoolRes.json();
-        if (schoolRes.ok && schoolJson.data) {
-          const school = schoolJson.data.find((s: any) => s.slug === selectedSchool);
-          if (school) {
-            const staffRes = await fetch(`/api/staff?schoolId=${school.id}`);
-            const staffJson = await staffRes.json();
-            if (staffRes.ok && staffJson.data) {
-              const teachers = staffJson.data.filter((s: any) => 
-                ['CLASS_TEACHER', 'SUBJECT_TEACHER', 'HEAD_TEACHER'].includes(s.role) && s.status === 'ACTIVE'
-              );
-              setDemoTeachers(teachers);
-              return;
-            }
+        const res = await fetch('/api/schools');
+        const json = await res.json();
+        if (res.ok && json.data) {
+          setSchools(json.data);
+          if (json.data.length > 0) {
+            const hasGreenwood = json.data.some((s: any) => s.slug === 'greenwood-secondary');
+            setSelectedSchool(hasGreenwood ? 'greenwood-secondary' : json.data[0].slug);
+          }
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    };
+    fetchSchools();
+  }, []);
+
+  useEffect(() => {
+    const fetchDemoTeachers = async () => {
+      if (!selectedSchool || schools.length === 0) return;
+      try {
+        const school = schools.find((s: any) => s.slug === selectedSchool);
+        if (school) {
+          const staffRes = await fetch(`/api/staff?schoolId=${school.id}`);
+          const staffJson = await staffRes.json();
+          if (staffRes.ok && staffJson.data) {
+            const teachers = staffJson.data.filter((s: any) => 
+              ['CLASS_TEACHER', 'SUBJECT_TEACHER', 'HEAD_TEACHER'].includes(s.role) && s.status === 'ACTIVE'
+            );
+            setDemoTeachers(teachers);
+            return;
           }
         }
         setDemoTeachers([]);
@@ -46,7 +63,7 @@ export default function LoginPage() {
       }
     };
     fetchDemoTeachers();
-  }, [selectedSchool]);
+  }, [selectedSchool, schools]);
 
   const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -167,42 +184,47 @@ export default function LoginPage() {
               <School className="w-3.5 h-3.5" /> 1. Select School Tenant (School-id boundary)
             </label>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <button
-                type="button"
-                onClick={() => setSelectedSchool('greenwood-secondary')}
-                className={`flex items-center gap-3 p-3.5 rounded-xl border text-left transition-all ${
-                  selectedSchool === 'greenwood-secondary'
-                    ? 'bg-emerald-500/10 border-emerald-500 text-white shadow-lg shadow-emerald-500/5'
-                    : 'bg-slate-900/30 border-slate-800 text-slate-400 hover:border-slate-700'
-                }`}
-              >
-                <div className={`p-2 rounded-lg ${selectedSchool === 'greenwood-secondary' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-slate-800 text-slate-400'}`}>
-                  <School className="w-5 h-5" />
-                </div>
-                <div>
-                  <h4 className="text-sm font-semibold">Greenwood Academy</h4>
-                  <span className="text-[10px] uppercase font-bold text-emerald-500/80">Secondary Scale (A1-F9)</span>
-                </div>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setSelectedSchool('lagos-excel-primary')}
-                className={`flex items-center gap-3 p-3.5 rounded-xl border text-left transition-all ${
-                  selectedSchool === 'lagos-excel-primary'
-                    ? 'bg-indigo-500/10 border-indigo-500 text-white shadow-lg shadow-indigo-500/5'
-                    : 'bg-slate-900/30 border-slate-800 text-slate-400 hover:border-slate-700'
-                }`}
-              >
-                <div className={`p-2 rounded-lg ${selectedSchool === 'lagos-excel-primary' ? 'bg-indigo-500/20 text-indigo-400' : 'bg-slate-800 text-slate-400'}`}>
-                  <School className="w-5 h-5" />
-                </div>
-                <div>
-                  <h4 className="text-sm font-semibold">Lagos Excel Primary</h4>
-                  <span className="text-[10px] uppercase font-bold text-indigo-400/80">Primary Scale (A-D)</span>
-                </div>
-              </button>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-48 overflow-y-auto pr-1">
+              {schools.map((school) => {
+                const isSelected = selectedSchool === school.slug;
+                const isSchoolGreenwood = school.slug === 'greenwood-secondary';
+                return (
+                  <button
+                    key={school.id}
+                    type="button"
+                    onClick={() => setSelectedSchool(school.slug)}
+                    className={`flex items-center gap-3 p-3.5 rounded-xl border text-left transition-all ${
+                      isSelected
+                        ? isSchoolGreenwood
+                          ? 'bg-emerald-500/10 border-emerald-500 text-white shadow-lg shadow-emerald-500/5'
+                          : 'bg-indigo-500/10 border-indigo-500 text-white shadow-lg shadow-indigo-500/5'
+                        : 'bg-slate-900/30 border-slate-800 text-slate-400 hover:border-slate-700'
+                    }`}
+                  >
+                    <div className={`p-2 rounded-lg flex-shrink-0 ${
+                      isSelected
+                        ? isSchoolGreenwood
+                          ? 'bg-emerald-500/20 text-emerald-400'
+                          : 'bg-indigo-500/20 text-indigo-400'
+                        : 'bg-slate-800 text-slate-400'
+                    }`}>
+                      {school.logoUrl ? (
+                        <img src={school.logoUrl} alt="School Crest" className="w-5 h-5 rounded object-cover bg-white" />
+                      ) : (
+                        <School className="w-5 h-5" />
+                      )}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <h4 className="text-sm font-semibold truncate" title={school.name}>{school.name}</h4>
+                      <span className={`text-[10px] uppercase font-bold block ${
+                        isSchoolGreenwood ? 'text-emerald-500/80' : 'text-indigo-500/80'
+                      }`}>
+                        {school.gradingType === 'SECONDARY' ? 'Secondary (A1-F9)' : 'Primary (A-D)'}
+                      </span>
+                    </div>
+                  </button>
+                );
+              })}
             </div>
           </div>
 
