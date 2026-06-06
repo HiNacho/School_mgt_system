@@ -4,9 +4,9 @@ import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { 
-  ArrowLeft, Mail, Phone, Calendar, BookOpen, 
+  ArrowLeft, Mail, Phone, BookOpen, 
   Layers, Clock, ShieldCheck, User, Sparkles, AlertCircle,
-  Target, GraduationCap, ClipboardCheck, Network, ChevronRight,
+  Target, GraduationCap, ChevronRight,
   Plus, Trash2, RefreshCw
 } from 'lucide-react';
 
@@ -54,6 +54,7 @@ export default function TeacherDetailPage() {
   const [teacher, setTeacher] = useState<TeacherProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [announcements, setAnnouncements] = useState<any[]>([]);
 
 
   // Admin Profile Update Form States
@@ -107,6 +108,18 @@ export default function TeacherDetailPage() {
     }
   };
 
+  const loadAnnouncements = async (schoolId: string) => {
+    try {
+      const res = await fetch(`/api/announcements?schoolId=${schoolId}`);
+      const json = await res.json();
+      if (res.ok && json.data) {
+        setAnnouncements(json.data || []);
+      }
+    } catch (err) {
+      console.error('Error loading school announcements:', err);
+    }
+  };
+
   const addEditSubjectAssignmentRow = () => {
     setEditSubjectAssignments([...editSubjectAssignments, { subjectId: '', armId: '' }]);
   };
@@ -129,6 +142,7 @@ export default function TeacherDetailPage() {
         setSession(sessionObj);
         loadTeacherProfile(sessionObj.school.id);
         loadSetupData(sessionObj.school.id);
+        loadAnnouncements(sessionObj.school.id);
       } catch (e) {
         setError('Invalid session credentials.');
         setLoading(false);
@@ -367,21 +381,9 @@ export default function TeacherDetailPage() {
                     <Target className="w-3 h-3" />
                   </button>
                 </div>
-                
-                <p className="text-[10px] text-slate-600 leading-relaxed max-w-xs font-medium">
-                  Lorem ipsum, dolor sit amet consectetur adipisicing elit.
-                </p>
 
                 {/* 2x2 Metadata Grid */}
                 <div className="grid grid-cols-2 gap-x-2 gap-y-1.5 pt-1">
-                  <div className="flex items-center gap-1 text-[9px] font-bold text-slate-800">
-                    <span className="text-red-500 font-extrabold">🩸</span>
-                    <span>A+</span>
-                  </div>
-                  <div className="flex items-center gap-1 text-[9px] font-bold text-slate-800">
-                    <Calendar className="w-3 h-3 text-slate-600 flex-shrink-0" />
-                    <span>14/09/1994</span>
-                  </div>
                   <div className="flex items-center gap-1 text-[9px] font-bold text-slate-800 min-w-0">
                     <Mail className="w-3 h-3 text-slate-600 flex-shrink-0" />
                     <span className="truncate">{teacher.email}</span>
@@ -394,32 +396,10 @@ export default function TeacherDetailPage() {
               </div>
             </div>
 
-            {/* 2x2 Stats Cards Grid */}
+            {/* Stats Cards Grid */}
             <div className="md:col-span-1 grid grid-cols-2 gap-4">
               
-              {/* Stat 1: Attendance */}
-              <div className="bg-white rounded-3xl p-4 flex items-center gap-3 shadow-sm hover:shadow-md transition-shadow border-none">
-                <div className="w-9 h-9 rounded-2xl bg-sky-50 flex items-center justify-center text-sky-500 flex-shrink-0">
-                  <ClipboardCheck className="w-4.5 h-4.5" />
-                </div>
-                <div>
-                  <span className="block text-base font-black text-slate-800 leading-none">98%</span>
-                  <span className="block text-[9px] text-slate-400 font-bold uppercase tracking-wider mt-1">Attendance</span>
-                </div>
-              </div>
-
-              {/* Stat 2: Branches */}
-              <div className="bg-white rounded-3xl p-4 flex items-center gap-3 shadow-sm hover:shadow-md transition-shadow border-none">
-                <div className="w-9 h-9 rounded-2xl bg-purple-50 flex items-center justify-center text-purple-500 flex-shrink-0">
-                  <Network className="w-4.5 h-4.5" />
-                </div>
-                <div>
-                  <span className="block text-base font-black text-slate-800 leading-none">2</span>
-                  <span className="block text-[9px] text-slate-400 font-bold uppercase tracking-wider mt-1">Branches</span>
-                </div>
-              </div>
-
-              {/* Stat 3: Lessons */}
+              {/* Stat 1: Lessons */}
               <div className="bg-white rounded-3xl p-4 flex items-center gap-3 shadow-sm hover:shadow-md transition-shadow border-none">
                 <div className="w-9 h-9 rounded-2xl bg-amber-50 flex items-center justify-center text-amber-500 flex-shrink-0">
                   <BookOpen className="w-4.5 h-4.5" />
@@ -432,7 +412,7 @@ export default function TeacherDetailPage() {
                 </div>
               </div>
 
-              {/* Stat 4: Classes */}
+              {/* Stat 2: Classes */}
               <div className="bg-white rounded-3xl p-4 flex items-center gap-3 shadow-sm hover:shadow-md transition-shadow border-none">
                 <div className="w-9 h-9 rounded-2xl bg-blue-50 flex items-center justify-center text-blue-600 flex-shrink-0">
                   <Layers className="w-4.5 h-4.5" />
@@ -539,55 +519,6 @@ export default function TeacherDetailPage() {
             </div>
           </div>
 
-          {/* Performance Circle Gauge */}
-          <div className="bg-white border border-slate-100 rounded-3xl shadow-sm p-6 flex flex-col justify-between h-[230px] relative overflow-hidden">
-            <div className="flex justify-between items-center">
-              <h4 className="text-sm font-extrabold text-slate-800">Performance</h4>
-              <span className="text-slate-400 font-bold hover:text-slate-600 cursor-pointer">...</span>
-            </div>
-            
-            <div className="relative flex items-center justify-center flex-1 mt-4">
-              {/* Custom SVG Semi-Circle Gauge */}
-              <svg viewBox="0 0 100 50" className="w-full max-w-[150px]">
-                {/* Gray Background Circle Track (Full Arc) */}
-                <path
-                  d="M 10 50 A 40 40 0 0 1 90 50"
-                  fill="none"
-                  stroke="#f1f5f9"
-                  strokeWidth="8"
-                  strokeLinecap="round"
-                />
-                
-                {/* Light Blue Main Sector (0% to 80%) */}
-                <path
-                  d="M 10 50 A 40 40 0 0 1 82.36 26.49"
-                  fill="none"
-                  stroke="#c3ebfa"
-                  strokeWidth="8"
-                  strokeLinecap="round"
-                />
-                
-                {/* Golden sector highlighting (starts at 80% and covers up to 92%) */}
-                <path
-                  d="M 82.36 26.49 A 40 40 0 0 1 88.74 40.05"
-                  fill="none"
-                  stroke="#fde047"
-                  strokeWidth="8"
-                  strokeLinecap="round"
-                />
-              </svg>
-              
-              {/* Inner details text */}
-              <div className="absolute bottom-2 text-center space-y-0.5">
-                <span className="block text-2xl font-black text-slate-800 leading-none">9.2</span>
-                <span className="block text-[8px] font-bold text-slate-400 uppercase tracking-wider">of 10 max LTS</span>
-              </div>
-            </div>
-            
-            <div className="text-center text-[10px] font-black text-slate-500 uppercase tracking-wider pt-2">
-              1st Semester - 2nd Semester
-            </div>
-          </div>
 
           {/* Announcements Card */}
           <div className="bg-white border border-slate-100 rounded-3xl shadow-sm p-6 space-y-5">
@@ -602,40 +533,27 @@ export default function TeacherDetailPage() {
             </div>
 
             <div className="space-y-3">
-              
-              {/* Announcement 1: Picture Day */}
-              <div className="p-4 rounded-2xl bg-sky-50/70 space-y-1 text-left border-0">
-                <div className="flex items-center justify-between">
-                  <h5 className="text-[11px] font-extrabold text-slate-800">Picture Day Reminder</h5>
-                  <span className="text-[8px] font-bold text-slate-400">16/09/2024</span>
+              {announcements.length === 0 ? (
+                <div className="py-8 text-center text-slate-400">
+                  <p className="text-xs font-bold">No announcements posted yet.</p>
                 </div>
-                <p className="text-[10px] text-slate-500 leading-normal font-medium">
-                  School Picture Day is tomorrow! Don't forget to wear your full uniform and bring your best smile.
-                </p>
-              </div>
-
-              {/* Announcement 2: Book Fair */}
-              <div className="p-4 rounded-2xl bg-purple-50/70 space-y-1 text-left border-0">
-                <div className="flex items-center justify-between">
-                  <h5 className="text-[11px] font-extrabold text-slate-800">Book Fair Opening</h5>
-                  <span className="text-[8px] font-bold text-slate-400">16/09/2024</span>
-                </div>
-                <p className="text-[10px] text-slate-500 leading-normal font-medium">
-                  The annual Book Fair will open this Thursday. Stop by the library to browse the newest books.
-                </p>
-              </div>
-
-              {/* Announcement 3: Sports Day */}
-              <div className="p-4 rounded-2xl bg-amber-50/70 space-y-1 text-left border-0">
-                <div className="flex items-center justify-between">
-                  <h5 className="text-[11px] font-extrabold text-slate-800">Sports Day Postponed</h5>
-                  <span className="text-[8px] font-bold text-slate-400">16/09/2024</span>
-                </div>
-                <p className="text-[10px] text-slate-500 leading-normal font-medium">
-                  Due to weather, Sports Day has been postponed. A new date will be announced soon.
-                </p>
-              </div>
-
+              ) : (
+                announcements.slice(0, 3).map((ann: any, idx: number) => {
+                  const bgColors = ['bg-sky-50/70', 'bg-purple-50/70', 'bg-amber-50/70'];
+                  const bgClass = bgColors[idx % bgColors.length];
+                  return (
+                    <div key={ann.id} className={`p-4 rounded-2xl ${bgClass} space-y-1 text-left border-0`}>
+                      <div className="flex items-center justify-between">
+                        <h5 className="text-[11px] font-extrabold text-slate-800">{ann.title}</h5>
+                        <span className="text-[8px] font-bold text-slate-400">{ann.date}</span>
+                      </div>
+                      <p className="text-[10px] text-slate-500 leading-normal font-medium">
+                        {ann.content}
+                      </p>
+                    </div>
+                  );
+                })
+              )}
             </div>
           </div>
 

@@ -87,4 +87,34 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json({ error: 'Failed to update notification state' }, { status: 500 });
   }
 }
+
+// 3. DELETE: Clear/Delete notifications
+export async function DELETE(req: NextRequest) {
+  try {
+    const { searchParams } = new URL(req.url);
+    const schoolId = searchParams.get('schoolId');
+    const userId = searchParams.get('userId');
+    const id = searchParams.get('id');
+
+    if (!schoolId || !userId) {
+      return NextResponse.json({ error: 'Missing required parameters' }, { status: 400 });
+    }
+
+    if (id) {
+      await prisma.notification.deleteMany({
+        where: { id, schoolId, userId }
+      });
+    } else {
+      await prisma.notification.deleteMany({
+        where: { schoolId, userId }
+      });
+    }
+
+    return NextResponse.json({ success: true, message: 'Notification(s) cleared successfully.' });
+  } catch (error: any) {
+    console.error('Notifications DELETE Error:', error);
+    return NextResponse.json({ error: 'Failed to delete notification record' }, { status: 500 });
+  }
+}
+
 export const dynamic = 'force-dynamic';

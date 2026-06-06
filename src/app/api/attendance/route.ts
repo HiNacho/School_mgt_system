@@ -9,14 +9,73 @@ export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const schoolId = searchParams.get('schoolId');
+    
+    if (!schoolId) {
+      return NextResponse.json({ error: 'School ID is required' }, { status: 400 });
+    }
+
+    if (searchParams.get('weekly') === 'true') {
+      const dateParam = searchParams.get('date') || new Date().toISOString().split('T')[0];
+      const parts = dateParam.split('-');
+      const baseDate = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+      
+      const currentDay = baseDate.getDay(); 
+      const monday = new Date(baseDate);
+      const distanceToMonday = currentDay === 0 ? -6 : 1 - currentDay;
+      monday.setDate(baseDate.getDate() + distanceToMonday);
+      
+      const datesOfWeek: string[] = [];
+      const daysOfWeek = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'];
+      for (let i = 0; i < 5; i++) {
+        const day = new Date(monday);
+        day.setDate(monday.getDate() + i);
+        const yyyy = day.getFullYear();
+        const mm = String(day.getMonth() + 1).padStart(2, '0');
+        const dd = String(day.getDate()).padStart(2, '0');
+        datesOfWeek.push(`${yyyy}-${mm}-${dd}`);
+      }
+      
+      const logs = await prisma.dailyAttendance.findMany({
+        where: {
+          schoolId,
+          attendanceDate: {
+            in: datesOfWeek
+          }
+        },
+        select: {
+          attendanceDate: true,
+          status: true
+        }
+      });
+      
+      const weeklyData = daysOfWeek.map((day, index) => {
+        const targetDate = datesOfWeek[index];
+        const dayLogs = logs.filter(l => l.attendanceDate === targetDate);
+        const presentCount = dayLogs.filter(l => l.status === 'PRESENT').length;
+        const absentCount = dayLogs.filter(l => l.status === 'ABSENT').length;
+        
+        return {
+          day,
+          date: targetDate,
+          Present: presentCount,
+          Absent: absentCount
+        };
+      });
+      
+      return NextResponse.json({
+        success: true,
+        data: weeklyData
+      });
+    }
+
     const classId = searchParams.get('classId');
     const armId = searchParams.get('armId');
     const termId = searchParams.get('termId');
-    const teacherId = searchParams.get('teacherId'); // Optional, to verify class teacher authority
+    const teacherId = searchParams.get('teacherId'); 
     const date = searchParams.get('date') || new Date().toISOString().split('T')[0];
 
-    if (!schoolId || !termId) {
-      return NextResponse.json({ error: 'School ID and Term ID are required' }, { status: 400 });
+    if (!termId) {
+      return NextResponse.json({ error: 'Term ID is required' }, { status: 400 });
     }
 
     let targetClassId = classId;

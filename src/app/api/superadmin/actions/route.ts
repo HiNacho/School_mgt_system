@@ -65,6 +65,7 @@ export async function POST(req: NextRequest) {
             slug: admin.school.slug,
             gradingType: admin.school.gradingType,
             address: admin.school.address,
+            logoUrl: admin.school.logoUrl,
           },
           token: `mock-impersonate-token-for-${admin.id}`
         }

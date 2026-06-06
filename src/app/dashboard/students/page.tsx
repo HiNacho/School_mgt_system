@@ -708,11 +708,9 @@ export default function StudentsManagerPage() {
       <div className="bg-white border border-slate-100 rounded-3xl shadow-sm p-6 space-y-4">
         <div className="text-[11px] text-slate-400 font-bold flex justify-between items-center px-1">
           <span>Showing {totalItems > 0 ? startIndex + 1 : 0}-{endIndex} of {totalItems} students</span>
-          {isGreenwood ? (
-            <span className="text-emerald-600 font-bold uppercase tracking-wider text-[10px]">Greenwood Academy</span>
-          ) : (
-            <span className="text-indigo-600 font-bold uppercase tracking-wider text-[10px]">Lagos Excel</span>
-          )}
+          <span className={`${isGreenwood ? 'text-emerald-600' : 'text-indigo-600'} font-bold uppercase tracking-wider text-[10px]`}>
+            {session?.school?.name || (isGreenwood ? 'Greenwood Academy' : 'Lagos Excel')}
+          </span>
         </div>
 
         {loading ? (

@@ -46,9 +46,9 @@ export default function ParentsRegistryPage() {
 
   const downloadTemplate = () => {
     const wsData = [
-      { 'First Name': 'Babatunde', 'Last Name': 'Ojo', 'Email': 'babatunde.ojo@gmail.com', 'Phone': '+234 803 111 2222', 'Address': '12 Toyin Street, Ikeja, Lagos' },
-      { 'First Name': 'Amara', 'Last Name': 'Chukwuma', 'Email': 'amara.chukwuma@yahoo.com', 'Phone': '+234 803 333 4444', 'Address': '45 Lekki Phase 1, Lagos' },
-      { 'First Name': 'Fatima', 'Last Name': 'Yusuf', 'Email': 'fatima.yusuf@outlook.com', 'Phone': '+234 803 555 6666', 'Address': '78 Wuse 2, Abuja' }
+      { 'First Name': 'Babatunde', 'Last Name': 'Ojo', 'Email': 'babatunde.ojo@gmail.com', 'Phone': '+234 803 111 2222', 'Address': '12 Toyin Street, Ikeja, Lagos', 'Wards': 'ADM-001, ADM-002' },
+      { 'First Name': 'Amara', 'Last Name': 'Chukwuma', 'Email': 'amara.chukwuma@yahoo.com', 'Phone': '+234 803 333 4444', 'Address': '45 Lekki Phase 1, Lagos', 'Wards': 'Sarah Chukwuma' },
+      { 'First Name': 'Fatima', 'Last Name': 'Yusuf', 'Email': 'fatima.yusuf@outlook.com', 'Phone': '+234 803 555 6666', 'Address': '78 Wuse 2, Abuja', 'Wards': 'Fatima Yusuf' }
     ];
     const wb = XLSX.utils.book_new();
     const ws = XLSX.utils.json_to_sheet(wsData);
@@ -76,6 +76,7 @@ export default function ParentsRegistryPage() {
           const email = String(r['Email'] || r['Email Address'] || r['email'] || '').trim();
           const phone = String(r['Phone'] || r['Phone Number'] || r['phone'] || '').trim();
           const address = String(r['Address'] || r['address'] || '').trim();
+          const wards = String(r['Wards'] || r['Ward'] || r['Wards (Admission Numbers or Names)'] || r['Ward Admission Numbers'] || r['Ward Names'] || '').trim();
 
           if (!firstName || !lastName || !email) continue;
 
@@ -84,7 +85,8 @@ export default function ParentsRegistryPage() {
             lastName,
             email,
             phone: phone || null,
-            address: address || null
+            address: address || null,
+            wards: wards || null
           });
         }
 

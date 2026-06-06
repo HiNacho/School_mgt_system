@@ -17,9 +17,14 @@ export async function POST(req: NextRequest) {
       createdParents: [] as any[]
     };
 
+    // Fetch all active students in the school once for fast in-memory matching
+    const schoolStudents = await prisma.student.findMany({
+      where: { schoolId, status: 'ACTIVE' }
+    });
+
     // Process parent records one by one
     for (const member of parents) {
-      const { firstName, lastName, email, phone, address } = member;
+      const { firstName, lastName, email, phone, address, wards } = member;
 
       const cleanFirstName = String(firstName || '').trim();
       const cleanLastName = String(lastName || '').trim();
@@ -96,6 +101,36 @@ export async function POST(req: NextRequest) {
               status: 'ACTIVE'
             }
           });
+
+          // Link wards if specified
+          if (wards) {
+            const wardList = String(wards).split(',').map(w => w.trim()).filter(Boolean);
+            for (const identifier of wardList) {
+              const identifierLower = identifier.toLowerCase();
+
+              // Match by admission number (case-insensitive)
+              let match = schoolStudents.find(
+                s => s.admissionNumber.toLowerCase() === identifierLower
+              );
+
+              // Or match by name (first name + last name, case-insensitive)
+              if (!match) {
+                match = schoolStudents.find(s => {
+                  const firstLast = `${s.firstName} ${s.lastName}`.toLowerCase();
+                  const lastFirst = `${s.lastName} ${s.firstName}`.toLowerCase();
+                  const full = `${s.firstName} ${s.middleName ? s.middleName + ' ' : ''}${s.lastName}`.toLowerCase();
+                  return firstLast === identifierLower || lastFirst === identifierLower || full === identifierLower;
+                });
+              }
+
+              if (match) {
+                await tx.student.update({
+                  where: { id: match.id },
+                  data: { parentId: parent.id }
+                });
+              }
+            }
+          }
 
           return parent;
         });

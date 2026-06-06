@@ -619,9 +619,13 @@ export default function ReportCardCompilerPage() {
                   <div className="flex items-start justify-between border-b-2 border-slate-900 pb-4">
                     <div className="flex items-center gap-4">
                       {/* Logo shield */}
-                      <div className="text-slate-800 border-2 border-slate-800 p-1 rounded-full w-14 h-14 flex items-center justify-center bg-slate-100 font-extrabold">
-                        {isGreenwood ? 'G.S' : 'L.E.P'}
-                      </div>
+                      {compiledSchool?.logo ? (
+                        <img src={compiledSchool.logo} alt="School Logo" className="w-14 h-14 rounded-full object-cover border-2 border-slate-800 bg-white" />
+                      ) : (
+                        <div className="text-slate-800 border-2 border-slate-800 p-1 rounded-full w-14 h-14 flex items-center justify-center bg-slate-100 font-extrabold">
+                          {isGreenwood ? 'G.S' : 'L.E.P'}
+                        </div>
+                      )}
                       <div>
                         <h1 className="font-extrabold text-lg uppercase tracking-tight text-slate-900">{compiledSchool?.name}</h1>
                         <p className="text-[10px] text-slate-600 font-sans italic">{compiledSchool?.address || 'Lagos, Nigeria'}</p>
@@ -776,7 +780,9 @@ export default function ReportCardCompilerPage() {
                     <div className="relative flex justify-center items-center">
                       <div className="w-12 h-12 rounded-full border-2 border-dashed border-red-500/40 text-red-500/40 text-[7px] font-bold flex flex-col items-center justify-center transform -rotate-12 scale-90">
                         <span>APPROVED</span>
-                        <span className="text-[5px]">GREENWOOD ACAD.</span>
+                        <span className="text-[5px] uppercase truncate max-w-[42px]" title={compiledSchool?.name || 'GREENWOOD ACAD.'}>
+                          {compiledSchool?.name || 'GREENWOOD ACAD.'}
+                        </span>
                         <span className="text-[5px]">LAGOS</span>
                       </div>
                     </div>
@@ -810,9 +816,13 @@ export default function ReportCardCompilerPage() {
               <div className="flex items-start justify-between border-b-2 border-slate-900 pb-3" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
                   {/* Crest emblem in black & white high contrast */}
-                  <div style={{ border: '2px solid #000000', borderRadius: '50%', width: '56px', height: '56px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '14px', backgroundColor: '#f8fafc', padding: '10px' }}>
-                    {isGreenwood ? 'G.S' : 'L.E.P'}
-                  </div>
+                  {compiledSchool?.logo ? (
+                    <img src={compiledSchool.logo} alt="School Logo" style={{ borderRadius: '50%', width: '56px', height: '56px', objectFit: 'cover', border: '2px solid #000000', backgroundColor: '#ffffff' }} />
+                  ) : (
+                    <div style={{ border: '2px solid #000000', borderRadius: '50%', width: '56px', height: '56px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '14px', backgroundColor: '#f8fafc', padding: '10px' }}>
+                      {isGreenwood ? 'G.S' : 'L.E.P'}
+                    </div>
+                  )}
                   <div>
                     <h1 style={{ fontWeight: 800, fontSize: '18px', margin: 0, textTransform: 'uppercase', color: '#000' }}>{compiledSchool?.name}</h1>
                     <p style={{ fontSize: '9px', color: '#334155', margin: '2px 0 0 0', fontFamily: 'sans-serif' }}>{compiledSchool?.address || 'Lagos, Nigeria'}</p>
@@ -960,7 +970,9 @@ export default function ReportCardCompilerPage() {
                 <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
                   <div style={{ width: '40px', height: '40px', borderRadius: '50%', border: '2px dashed rgba(239, 68, 68, 0.4)', color: 'rgba(239, 68, 68, 0.4)', fontSize: '6px', fontWeight: 'bold', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', transform: 'rotate(-12deg)' }}>
                     <span>APPROVED</span>
-                    <span style={{ fontSize: '4px' }}>GREENWOOD ACAD.</span>
+                    <span style={{ fontSize: '4px', textTransform: 'uppercase', display: 'inline-block', maxWidth: '34px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={compiledSchool?.name || 'GREENWOOD ACAD.'}>
+                      {compiledSchool?.name || 'GREENWOOD ACAD.'}
+                    </span>
                   </div>
                 </div>
 

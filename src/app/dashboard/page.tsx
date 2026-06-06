@@ -20,6 +20,7 @@ export default function DashboardHome() {
   // Dashboard Aggregated States
   const [setupData, setSetupData] = useState<any>(null);
   const [students, setStudents] = useState<any[]>([]);
+  const [weeklyAttendance, setWeeklyAttendance] = useState<any[]>([]);
   const [parents, setParents] = useState<any[]>([]);
   const [staff, setStaff] = useState<any[]>([]);
   const [events, setEvents] = useState<any[]>([]);
@@ -69,14 +70,15 @@ export default function DashboardHome() {
       const role = sess.user.role;
 
       // 1. Parallel loading of primary configurations
-      const [setupRes, studentsRes, parentsRes, staffRes, eventsRes, announcementsRes, subjectsRes] = await Promise.all([
+      const [setupRes, studentsRes, parentsRes, staffRes, eventsRes, announcementsRes, subjectsRes, weeklyAttendanceRes] = await Promise.all([
         fetch(`/api/setup?schoolId=${schoolId}`),
         fetch(`/api/students?schoolId=${schoolId}&status=ALL`),
         fetch(`/api/parents?schoolId=${schoolId}`),
         fetch(`/api/staff?schoolId=${schoolId}`),
         fetch(`/api/events?schoolId=${schoolId}`),
         fetch(`/api/announcements?schoolId=${schoolId}`),
-        fetch(`/api/subjects?schoolId=${schoolId}`)
+        fetch(`/api/subjects?schoolId=${schoolId}`),
+        fetch(`/api/attendance?schoolId=${schoolId}&weekly=true`)
       ]);
 
       if (setupRes.ok) {
@@ -106,6 +108,10 @@ export default function DashboardHome() {
       if (subjectsRes.ok) {
         const json = await subjectsRes.json();
         setSubjectsData(json.data || []);
+      }
+      if (weeklyAttendanceRes.ok) {
+        const json = await weeklyAttendanceRes.json();
+        setWeeklyAttendance(json.data || []);
       }
 
       // 2. Fetch notifications and submissions for teachers
@@ -166,6 +172,48 @@ export default function DashboardHome() {
       }
     } catch (e) {
       console.error(e);
+    }
+  };
+
+  // Clear/delete all notifications for the teacher
+  const handleClearNotifications = async () => {
+    if (notifications.length === 0 || !session) return;
+    if (!confirm('Are you sure you want to clear all alerts?')) return;
+    try {
+      const res = await fetch(`/api/notifications?schoolId=${session.school.id}&userId=${session.user.id}`, {
+        method: 'DELETE'
+      });
+      if (res.ok) {
+        setNotifications([]);
+        setUnreadNotificationsCount(0);
+      } else {
+        const json = await res.json();
+        alert(json.error || 'Failed to clear alerts');
+      }
+    } catch (err: any) {
+      alert(err.message || 'Error clearing alerts');
+    }
+  };
+
+  // Dismiss a single notification
+  const handleDismissNotification = async (id: string) => {
+    if (!session) return;
+    try {
+      const res = await fetch(`/api/notifications?schoolId=${session.school.id}&userId=${session.user.id}&id=${id}`, {
+        method: 'DELETE'
+      });
+      if (res.ok) {
+        setNotifications(prev => prev.filter(n => n.id !== id));
+        const matched = notifications.find(n => n.id === id);
+        if (matched && !matched.isRead) {
+          setUnreadNotificationsCount(prev => Math.max(0, prev - 1));
+        }
+      } else {
+        const json = await res.json();
+        alert(json.error || 'Failed to dismiss alert');
+      }
+    } catch (err: any) {
+      alert(err.message || 'Error dismissing alert');
     }
   };
 
@@ -365,7 +413,7 @@ export default function DashboardHome() {
   ];
 
   // Grouped Weekly Attendance (Mon-Fri)
-  const attendanceBarData = [
+  const attendanceBarData = weeklyAttendance.length > 0 ? weeklyAttendance : [
     { day: 'Mon', Present: Math.round(activeStudents.length * 0.95) || 48, Absent: Math.round(activeStudents.length * 0.05) || 2 },
     { day: 'Tue', Present: Math.round(activeStudents.length * 0.96) || 49, Absent: Math.round(activeStudents.length * 0.04) || 1 },
     { day: 'Wed', Present: Math.round(activeStudents.length * 0.92) || 47, Absent: Math.round(activeStudents.length * 0.08) || 3 },
@@ -511,7 +559,7 @@ export default function DashboardHome() {
               <div className="md:col-span-7 bg-white border border-slate-100 p-5 rounded-3xl shadow-sm flex flex-col justify-between h-80">
                 <div className="flex justify-between items-center">
                   <h3 className="text-xs font-black uppercase text-slate-600 tracking-wider">Student Weekly Attendance</h3>
-                  <span className="px-2 py-0.5 rounded bg-green-50 text-green-600 text-[8px] font-extrabold">MON-FRI</span>
+                  <span className="px-2 py-0.5 rounded bg-green-50 text-green-600 text-[8px] font-extrabold animate-pulse">LIVE • MON-FRI</span>
                 </div>
 
                 <div className="h-48 w-full">
@@ -877,14 +925,34 @@ export default function DashboardHome() {
 
               {/* Right Notifications Feed (Col Span 4) */}
               <div className="lg:col-span-4 bg-white border border-slate-100 p-6 rounded-3xl shadow-sm space-y-4">
-                <h3 className="text-sm font-black text-slate-700 uppercase tracking-wider">Teacher Alerts</h3>
+                <div className="flex justify-between items-center border-b border-slate-100 pb-3">
+                  <h3 className="text-sm font-black text-slate-700 uppercase tracking-wider">Teacher Alerts</h3>
+                  {notifications.length > 0 && (
+                    <button
+                      onClick={handleClearNotifications}
+                      className="text-[9px] font-black bg-red-50 text-red-600 hover:bg-red-100/70 px-2 py-1 rounded transition-colors"
+                    >
+                      Clear All
+                    </button>
+                  )}
+                </div>
                 <div className="max-h-72 overflow-y-auto space-y-3 pr-1">
                   {notifications.length === 0 ? (
                     <p className="text-[11px] text-slate-400 font-bold text-center py-8">No alerts received.</p>
                   ) : (
                     notifications.map((n: any) => (
-                      <div key={n.id} className={`p-3 rounded-2xl border text-[11px] leading-relaxed relative ${n.isRead ? 'bg-slate-50 border-slate-100 text-slate-400' : 'bg-blue-50/30 border-blue-100 text-slate-700'}`}>
+                      <div key={n.id} className={`p-3 rounded-2xl border text-[11px] leading-relaxed relative pr-8 ${n.isRead ? 'bg-slate-50 border-slate-100 text-slate-400' : 'bg-blue-50/30 border-blue-100 text-slate-700'}`}>
                         {!n.isRead && <span className="absolute top-3 right-3 w-1.5 h-1.5 rounded-full bg-blue-500" />}
+                        
+                        {/* Individual Dismiss Button */}
+                        <button
+                          onClick={() => handleDismissNotification(n.id)}
+                          className="absolute bottom-3 right-3 text-slate-455 hover:text-red-500 transition-colors font-extrabold text-[10px]"
+                          title="Dismiss alert"
+                        >
+                          ✕
+                        </button>
+                        
                         <p>{n.message}</p>
                         <span className="block text-[8px] text-slate-400 font-extrabold mt-1">{new Date(n.createdAt).toLocaleDateString()}</span>
                       </div>

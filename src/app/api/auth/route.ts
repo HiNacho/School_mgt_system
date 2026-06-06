@@ -79,6 +79,7 @@ export async function POST(req: NextRequest) {
           slug: user.school.slug,
           gradingType: user.school.gradingType,
           address: user.school.address,
+          logoUrl: user.school.logoUrl,
         },
         token: `mock-jwt-token-for-${user.role}`,
       });
@@ -128,6 +129,7 @@ export async function POST(req: NextRequest) {
         slug: user.school.slug,
         gradingType: user.school.gradingType,
         address: user.school.address,
+        logoUrl: user.school.logoUrl,
       },
       token: `jwt-token-for-${user.id}`,
     });
