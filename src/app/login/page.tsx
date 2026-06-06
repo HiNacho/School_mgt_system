@@ -223,6 +223,10 @@ export default function LoginPage() {
               </div>
             )}
 
+            <div className="p-3.5 mb-5 rounded-xl bg-slate-950 border border-slate-800/80 text-[11px] text-slate-400 leading-relaxed">
+              💡 <strong>Tip:</strong> Any newly registered or imported staff/teacher can log in using their email address and the default password: <code className="bg-slate-900 text-slate-200 px-1.5 py-0.5 rounded font-mono font-bold">password</code>
+            </div>
+
             <form onSubmit={handleLoginSubmit} className="space-y-4 mb-6">
               <div>
                 <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">

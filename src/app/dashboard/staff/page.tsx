@@ -234,7 +234,7 @@ export default function StaffAccountsPage() {
       if (!res.ok) throw new Error(json.error || 'Failed to upload staff list');
 
       setUploadResult(json.data);
-      setSuccessMsg(`Bulk staff registration complete: successfully imported ${json.data.successCount} accounts!`);
+      setSuccessMsg(`Bulk staff registration complete: successfully imported ${json.data.successCount} accounts! Default login password for all new accounts is set to "password".`);
       setParsedStaff([]);
       setShowUploadModal(false);
       
