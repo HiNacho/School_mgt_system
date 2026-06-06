@@ -12,12 +12,41 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
+  const [demoTeachers, setDemoTeachers] = useState<any[]>([]);
 
   // Clear session storage on mount
   useEffect(() => {
     localStorage.removeItem('report_auth_token');
     localStorage.removeItem('report_user_session');
   }, []);
+
+  useEffect(() => {
+    const fetchDemoTeachers = async () => {
+      try {
+        const schoolRes = await fetch('/api/schools');
+        const schoolJson = await schoolRes.json();
+        if (schoolRes.ok && schoolJson.data) {
+          const school = schoolJson.data.find((s: any) => s.slug === selectedSchool);
+          if (school) {
+            const staffRes = await fetch(`/api/staff?schoolId=${school.id}`);
+            const staffJson = await staffRes.json();
+            if (staffRes.ok && staffJson.data) {
+              const teachers = staffJson.data.filter((s: any) => 
+                ['CLASS_TEACHER', 'SUBJECT_TEACHER', 'HEAD_TEACHER'].includes(s.role) && s.status === 'ACTIVE'
+              );
+              setDemoTeachers(teachers);
+              return;
+            }
+          }
+        }
+        setDemoTeachers([]);
+      } catch (e) {
+        console.error(e);
+        setDemoTeachers([]);
+      }
+    };
+    fetchDemoTeachers();
+  }, [selectedSchool]);
 
   const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -309,6 +338,32 @@ export default function LoginPage() {
                   <span className="block text-[8px] text-slate-500 uppercase font-semibold">My Grades</span>
                 </button>
               </div>
+
+              {demoTeachers.length > 0 && (
+                <div className="mt-4 space-y-1.5 text-left">
+                  <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                    ⚡ Quick-Access Specific Registered Teacher
+                  </label>
+                  <select
+                    onChange={async (e) => {
+                      const val = e.target.value;
+                      if (!val) return;
+                      setEmail(val);
+                      setPassword('password');
+                      await loginRequest({ email: val, password: 'password' });
+                    }}
+                    value=""
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-3 text-slate-250 text-xs font-bold focus:outline-none focus:border-slate-700 cursor-pointer"
+                  >
+                    <option value="" disabled>-- Select a registered teacher to login --</option>
+                    {demoTeachers.map((t) => (
+                      <option key={t.id} value={t.email}>
+                        {t.lastName} {t.firstName} ({t.role.replace('_', ' ')}) — {t.email}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
             </div>
 
           </div>
