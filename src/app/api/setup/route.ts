@@ -11,6 +11,32 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'School ID is required' }, { status: 400 });
     }
 
+    // Auto-initialize AcademicSession and Terms if they don't exist (Self-healing step)
+    const sessionCount = await prisma.academicSession.count({ where: { schoolId } });
+    if (sessionCount === 0) {
+      await prisma.$transaction(async (tx) => {
+        const session = await tx.academicSession.create({
+          data: {
+            schoolId,
+            name: '2025/2026',
+            isCurrent: true,
+          }
+        });
+
+        const termsList = ['First Term', 'Second Term', 'Third Term'];
+        for (let i = 0; i < termsList.length; i++) {
+          await tx.term.create({
+            data: {
+              schoolId,
+              sessionId: session.id,
+              name: termsList[i],
+              isCurrent: i === 0, // First Term is current
+            }
+          });
+        }
+      });
+    }
+
     // 1. Fetch Sessions
     const sessions = await prisma.academicSession.findMany({
       where: { schoolId },

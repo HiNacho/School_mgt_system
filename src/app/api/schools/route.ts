@@ -2,10 +2,56 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/db';
 
+async function ensureSuperAdminExists() {
+  const superAdmin = await prisma.user.findFirst({
+    where: { role: 'SUPER_ADMIN' }
+  });
+
+  if (!superAdmin) {
+    console.log('🛡️ Auto-initializing system-portal and Super Admin user...');
+    let systemSchool = await prisma.school.findUnique({
+      where: { slug: 'system-portal' }
+    });
+
+    if (!systemSchool) {
+      systemSchool = await prisma.school.create({
+        data: {
+          name: 'System Administration Portal',
+          slug: 'system-portal',
+          address: 'System-wide Operations Boundary',
+          phone: 'N/A',
+          email: 'support@system.com',
+          gradingType: 'SECONDARY',
+          subscriptionPlan: 'Premium',
+          subscriptionStatus: 'active'
+        }
+      });
+    }
+
+    await prisma.user.create({
+      data: {
+        schoolId: systemSchool.id,
+        email: 'superadmin@system.com',
+        passwordHash: 'password',
+        firstName: 'System',
+        lastName: 'Administrator',
+        role: 'SUPER_ADMIN',
+        status: 'ACTIVE'
+      }
+    });
+    console.log('🛡️ Super Admin initialized successfully.');
+  }
+}
+
 // 1. GET: Fetch all schools/tenants with aggregated counts and subscription status
 export async function GET(req: NextRequest) {
   try {
+    await ensureSuperAdminExists();
+
     const schools = await prisma.school.findMany({
+      where: {
+        NOT: { slug: 'system-portal' }
+      },
       orderBy: { createdAt: 'desc' },
       include: {
         _count: {
@@ -51,7 +97,16 @@ export async function GET(req: NextRequest) {
       };
     });
 
-    return NextResponse.json({ success: true, data: formatted });
+    return NextResponse.json(
+      { success: true, data: formatted },
+      {
+        headers: {
+          'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0',
+        }
+      }
+    );
   } catch (error: any) {
     console.error('Schools GET Error:', error);
     return NextResponse.json({ error: 'Failed to fetch school tenants' }, { status: 500 });
@@ -132,7 +187,28 @@ export async function POST(req: NextRequest) {
         }
       });
 
-      // 2. Create the default school administrator user
+      // 2. Create default Academic Session & Terms
+      const session = await tx.academicSession.create({
+        data: {
+          schoolId: school.id,
+          name: '2025/2026',
+          isCurrent: true,
+        }
+      });
+
+      const termsList = ['First Term', 'Second Term', 'Third Term'];
+      for (let i = 0; i < termsList.length; i++) {
+        await tx.term.create({
+          data: {
+            schoolId: school.id,
+            sessionId: session.id,
+            name: termsList[i],
+            isCurrent: i === 0, // First Term is current
+          }
+        });
+      }
+
+      // 3. Create the default school administrator user
       await tx.user.create({
         data: {
           schoolId: school.id,
@@ -189,6 +265,39 @@ export async function PATCH(req: NextRequest) {
   } catch (error: any) {
     console.error('School PATCH Error:', error);
     return NextResponse.json({ error: 'Failed to update school configurations' }, { status: 500 });
+  }
+}
+
+// 4. DELETE: Delete a school tenant completely (cascading all associated tables)
+export async function DELETE(req: NextRequest) {
+  try {
+    const { searchParams } = new URL(req.url);
+    const schoolId = searchParams.get('schoolId');
+
+    if (!schoolId) {
+      return NextResponse.json({ error: 'School ID is required' }, { status: 400 });
+    }
+
+    const schoolToDelete = await prisma.school.findUnique({
+      where: { id: schoolId }
+    });
+
+    if (schoolToDelete?.slug === 'system-portal') {
+      return NextResponse.json({ error: 'The System Administration Portal tenant cannot be deleted.' }, { status: 403 });
+    }
+
+    // Delete the school tenant (Prisma cascade rules handle student/staff/score cleanups)
+    await prisma.school.delete({
+      where: { id: schoolId }
+    });
+
+    return NextResponse.json({ 
+      success: true, 
+      message: 'School tenant and all associated academic records successfully deleted from platform isolation boundary.'
+    });
+  } catch (error: any) {
+    console.error('School DELETE Error:', error);
+    return NextResponse.json({ error: error.message || 'Failed to delete school tenant' }, { status: 500 });
   }
 }
 

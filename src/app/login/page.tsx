@@ -24,7 +24,7 @@ export default function LoginPage() {
   useEffect(() => {
     const fetchSchools = async () => {
       try {
-        const res = await fetch('/api/schools');
+        const res = await fetch('/api/schools', { cache: 'no-store' });
         const json = await res.json();
         if (res.ok && json.data) {
           setSchools(json.data);
@@ -46,7 +46,7 @@ export default function LoginPage() {
       try {
         const school = schools.find((s: any) => s.slug === selectedSchool);
         if (school) {
-          const staffRes = await fetch(`/api/staff?schoolId=${school.id}`);
+          const staffRes = await fetch(`/api/staff?schoolId=${school.id}`, { cache: 'no-store' });
           const staffJson = await staffRes.json();
           if (staffRes.ok && staffJson.data) {
             const teachers = staffJson.data.filter((s: any) => 

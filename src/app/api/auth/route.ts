@@ -2,8 +2,50 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/db';
 
+async function ensureSuperAdminExists() {
+  const superAdmin = await prisma.user.findFirst({
+    where: { role: 'SUPER_ADMIN' }
+  });
+
+  if (!superAdmin) {
+    console.log('🛡️ Auto-initializing system-portal and Super Admin user...');
+    let systemSchool = await prisma.school.findUnique({
+      where: { slug: 'system-portal' }
+    });
+
+    if (!systemSchool) {
+      systemSchool = await prisma.school.create({
+        data: {
+          name: 'System Administration Portal',
+          slug: 'system-portal',
+          address: 'System-wide Operations Boundary',
+          phone: 'N/A',
+          email: 'support@system.com',
+          gradingType: 'SECONDARY',
+          subscriptionPlan: 'Premium',
+          subscriptionStatus: 'active'
+        }
+      });
+    }
+
+    await prisma.user.create({
+      data: {
+        schoolId: systemSchool.id,
+        email: 'superadmin@system.com',
+        passwordHash: 'password',
+        firstName: 'System',
+        lastName: 'Administrator',
+        role: 'SUPER_ADMIN',
+        status: 'ACTIVE'
+      }
+    });
+    console.log('🛡️ Super Admin initialized successfully.');
+  }
+}
+
 export async function POST(req: NextRequest) {
   try {
+    await ensureSuperAdminExists();
     const { email, password, bypassRole, schoolSlug } = await req.json();
 
     let user;
@@ -28,30 +70,28 @@ export async function POST(req: NextRequest) {
       }
     };
 
-    // 1. Handle One-Click Demo Bypass Login
     if (bypassRole) {
-      const school = await prisma.school.findFirst({
-        where: { slug: schoolSlug || 'greenwood-secondary' },
-      });
-
-      if (!school) {
-        return NextResponse.json({ error: 'Selected school tenant not found' }, { status: 404 });
-      }
-
-      // Find user with matching role in that school
-      user = await prisma.user.findFirst({
-        where: {
-          schoolId: school.id,
-          role: bypassRole,
-          status: 'ACTIVE',
-        },
-        include: includeRelations,
-      });
-
-      // Special case: SUPER_ADMIN can belong to any school but oversees all
-      if (!user && bypassRole === 'SUPER_ADMIN') {
+      if (bypassRole === 'SUPER_ADMIN') {
         user = await prisma.user.findFirst({
           where: { role: 'SUPER_ADMIN', status: 'ACTIVE' },
+          include: includeRelations,
+        });
+      } else {
+        const school = await prisma.school.findFirst({
+          where: { slug: schoolSlug || 'greenwood-secondary' },
+        });
+
+        if (!school) {
+          return NextResponse.json({ error: 'Selected school tenant not found' }, { status: 404 });
+        }
+
+        // Find user with matching role in that school
+        user = await prisma.user.findFirst({
+          where: {
+            schoolId: school.id,
+            role: bypassRole,
+            status: 'ACTIVE',
+          },
           include: includeRelations,
         });
       }

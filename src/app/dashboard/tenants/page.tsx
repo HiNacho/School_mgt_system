@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { 
   School, Plus, Shield, Users, FileSpreadsheet, CheckCircle, 
   AlertCircle, RefreshCw, Mail, Phone, MapPin, Sparkles, X, Check,
-  Search, Lock, Calendar, DollarSign, LineChart, Activity, Eye, Settings, AlertTriangle, CreditCard, ArrowRightLeft
+  Search, Lock, Calendar, DollarSign, LineChart, Activity, Eye, Settings, AlertTriangle, CreditCard, ArrowRightLeft, Trash2
 } from 'lucide-react';
 
 interface SchoolTenant {
@@ -89,9 +89,9 @@ export default function SchoolTenantsPage() {
     setErrorMsg('');
     try {
       const [schoolsRes, paymentsRes, usageRes] = await Promise.all([
-        fetch('/api/schools'),
-        fetch('/api/superadmin/payments'),
-        fetch('/api/superadmin/usage')
+        fetch('/api/schools', { cache: 'no-store' }),
+        fetch('/api/superadmin/payments', { cache: 'no-store' }),
+        fetch('/api/superadmin/usage', { cache: 'no-store' })
       ]);
 
       const schoolsJson = await schoolsRes.json();
@@ -324,6 +324,32 @@ export default function SchoolTenantsPage() {
       }
     } catch (err: any) {
       setErrorMsg(err.message || 'Error archiving school tenant');
+    }
+  };
+
+  const handleDeleteSchool = async (tenant: SchoolTenant) => {
+    if (!window.confirm(`WARNING: Are you sure you want to permanently delete school "${tenant.name}"? This will erase all student data, grades, staff accounts, term setups, and scores. This operation is irreversible!`)) {
+      return;
+    }
+
+    setErrorMsg('');
+    setSuccessMsg('');
+
+    try {
+      const res = await fetch(`/api/schools?schoolId=${tenant.id}`, {
+        method: 'DELETE',
+      });
+
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || 'Failed to delete school tenant');
+
+      setSuccessMsg(`School tenant "${tenant.name}" and all associated data have been permanently deleted.`);
+      await loadAllSaaSData();
+      if (viewingTenant && viewingTenant.id === tenant.id) {
+        setViewingTenant(null);
+      }
+    } catch (err: any) {
+      setErrorMsg(err.message || 'Error deleting school tenant');
     }
   };
 
@@ -670,6 +696,14 @@ export default function SchoolTenantsPage() {
                               >
                                 <ArrowRightLeft className="w-4 h-4 text-emerald-650" />
                               </button>
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteSchool(row)}
+                                title="Permanently Delete School Tenant"
+                                className="p-1.5 rounded-xl hover:bg-slate-100 text-slate-400 hover:text-red-500 cursor-pointer transition-colors"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
                             </div>
                           </td>
                         </tr>
@@ -856,6 +890,13 @@ export default function SchoolTenantsPage() {
                   className="py-2 px-4 rounded-xl text-xs font-black border border-slate-200 text-slate-700 hover:bg-slate-50 cursor-pointer"
                 >
                   {viewingTenant.subscriptionStatus === 'suspended' ? 'Reactivate Subscription' : 'Suspend Account'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleDeleteSchool(viewingTenant)}
+                  className="py-2 px-4 rounded-xl text-xs font-black bg-red-50 border border-red-200 text-red-500 hover:bg-red-100 cursor-pointer"
+                >
+                  Delete Tenant
                 </button>
                 <button
                   type="button"
