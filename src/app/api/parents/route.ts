@@ -20,7 +20,8 @@ export async function GET(req: NextRequest) {
             class: true,
             arm: true
           }
-        }
+        },
+        user: true
       },
       orderBy: [
         { lastName: 'asc' },

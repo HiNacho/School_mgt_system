@@ -69,6 +69,7 @@ export async function GET(req: NextRequest) {
         class: true,
         arm: true,
         parent: true,
+        user: true
       },
       orderBy: [
         { lastName: 'asc' },
