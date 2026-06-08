@@ -194,43 +194,86 @@ export async function DELETE(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const id = searchParams.get('id');
+    const idsParam = searchParams.get('ids');
 
-    if (!id) {
-      return NextResponse.json({ error: 'Student ID is required for deletion' }, { status: 400 });
+    if (!id && !idsParam) {
+      return NextResponse.json({ error: 'Student ID or IDs parameter is required for deletion' }, { status: 400 });
     }
 
-    // 1. Check if student has scores
-    const scoresCount = await prisma.score.count({
-      where: { studentId: id },
-    });
+    if (idsParam) {
+      const ids = idsParam.split(',').map(item => item.trim()).filter(Boolean);
+      if (ids.length === 0) {
+        return NextResponse.json({ error: 'No student IDs provided' }, { status: 400 });
+      }
 
-    // 2. Check if student has attendance records
-    const attendanceCount = await prisma.attendance.count({
-      where: { studentId: id },
-    });
+      // Check if any of these students has active academic records
+      const studentsWithRecords = await prisma.student.findMany({
+        where: {
+          id: { in: ids },
+          OR: [
+            { scores: { some: {} } },
+            { attendance: { some: {} } },
+            { reportComments: { some: {} } }
+          ]
+        },
+        select: {
+          firstName: true,
+          lastName: true
+        }
+      });
 
-    // 3. Check if student has report comments
-    const commentsCount = await prisma.reportCardComment.count({
-      where: { studentId: id },
-    });
+      if (studentsWithRecords.length > 0) {
+        const names = studentsWithRecords.map(s => `${s.firstName} ${s.lastName}`).join(', ');
+        return NextResponse.json({
+          error: `Deletion Blocked: The following selected students have active academic records: ${names}. Hard-deleting them is prohibited to preserve academic history. Please change their status to "ARCHIVED" instead.`,
+          canArchive: true,
+        }, { status: 403 });
+      }
 
-    const hasAcademicRecords = scoresCount > 0 || attendanceCount > 0 || commentsCount > 0;
+      // Delete student profiles
+      const deleted = await prisma.student.deleteMany({
+        where: { id: { in: ids } }
+      });
 
-    if (hasAcademicRecords) {
-      return NextResponse.json({
-        error: 'Deletion Blocked: This student has active academic records. Hard-deleting is prohibited to preserve academic history. Please change student status to "ARCHIVED" or "WITHDRAWN" instead.',
-        canArchive: true,
-      }, { status: 403 });
+      return NextResponse.json({ 
+        success: true, 
+        message: `Successfully deleted ${deleted.count} student profiles.` 
+      });
     }
 
-    // If no records, allow permanent delete (e.g. created by mistake)
-    await prisma.student.delete({
-      where: { id },
-    });
+    // Single deletion fallback
+    if (id) {
+      const scoresCount = await prisma.score.count({
+        where: { studentId: id },
+      });
 
-    return NextResponse.json({ success: true, message: 'Student profile permanently deleted' });
+      const attendanceCount = await prisma.attendance.count({
+        where: { studentId: id },
+      });
+
+      const commentsCount = await prisma.reportCardComment.count({
+        where: { studentId: id },
+      });
+
+      const hasAcademicRecords = scoresCount > 0 || attendanceCount > 0 || commentsCount > 0;
+
+      if (hasAcademicRecords) {
+        return NextResponse.json({
+          error: 'Deletion Blocked: This student has active academic records. Hard-deleting is prohibited to preserve academic history. Please change student status to "ARCHIVED" or "WITHDRAWN" instead.',
+          canArchive: true,
+        }, { status: 403 });
+      }
+
+      await prisma.student.delete({
+        where: { id },
+      });
+
+      return NextResponse.json({ success: true, message: 'Student profile permanently deleted' });
+    }
+
+    return NextResponse.json({ error: 'Invalid parameters provided' }, { status: 400 });
   } catch (error: any) {
     console.error('Student DELETE Error:', error);
-    return NextResponse.json({ error: 'Failed to delete student profile' }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to delete student profiles' }, { status: 500 });
   }
 }

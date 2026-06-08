@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { 
   Users, UserPlus, Search, GraduationCap, Archive, 
   Trash2, ShieldCheck, RefreshCw, X, AlertCircle, Edit, ArrowRightLeft, UserCheck,
-  FileSpreadsheet, UploadCloud, AlertTriangle, FileUp, CheckCircle, Eye, Sparkles
+  FileSpreadsheet, UploadCloud, AlertTriangle, FileUp, CheckCircle, Eye, Sparkles, Loader2
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 
@@ -56,6 +56,15 @@ export default function StudentsManagerPage() {
   const [successMsg, setSuccessMsg] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
   const [deleteBlockedMsg, setDeleteBlockedMsg] = useState('');
+
+  // Bulk selection states
+  const [selectedStudentIds, setSelectedStudentIds] = useState<string[]>([]);
+  const [bulkDeleting, setBulkDeleting] = useState(false);
+
+  // Clear bulk selection on pagination or filter changes
+  useEffect(() => {
+    setSelectedStudentIds([]);
+  }, [currentPage, filterClass, filterArm, filterStatus, searchQuery, students]);
 
   useEffect(() => {
     const userSession = localStorage.getItem('report_user_session');
@@ -443,6 +452,64 @@ export default function StudentsManagerPage() {
     }
   };
 
+  const handleSelectStudentChange = (id: string) => {
+    setSelectedStudentIds(prev =>
+      prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
+    );
+  };
+
+  const handleSelectAllChange = () => {
+    const currentIds = currentStudents.map(s => s.id);
+    const allSelectedOnPage = currentIds.every(id => selectedStudentIds.includes(id));
+    if (allSelectedOnPage) {
+      setSelectedStudentIds(prev => prev.filter(id => !currentIds.includes(id)));
+    } else {
+      setSelectedStudentIds(prev => Array.from(new Set([...prev, ...currentIds])));
+    }
+  };
+
+  const triggerBulkDelete = async () => {
+    if (selectedStudentIds.length === 0) return;
+
+    if (session?.user?.role === 'CLASS_TEACHER') {
+      setErrorMsg('Unauthorized: Class Teachers are not permitted to admit or modify student lists.');
+      return;
+    }
+
+    if (!confirm(`Are you sure you want to permanently delete the ${selectedStudentIds.length} selected student(s)? This action is irreversible.`)) {
+      return;
+    }
+
+    setBulkDeleting(true);
+    setErrorMsg('');
+    setSuccessMsg('');
+    setDeleteBlockedMsg('');
+
+    try {
+      const res = await fetch(`/api/students?ids=${selectedStudentIds.join(',')}`, {
+        method: 'DELETE',
+      });
+
+      const json = await res.json();
+
+      if (res.status === 403) {
+        setDeleteBlockedMsg(json.error);
+        setBulkDeleting(false);
+        return;
+      }
+
+      if (!res.ok) throw new Error(json.error || 'Failed to delete student profiles');
+
+      setSuccessMsg(`Successfully deleted ${selectedStudentIds.length} student profile(s).`);
+      setSelectedStudentIds([]);
+      await loadStudents(session.school.id);
+    } catch (err: any) {
+      setErrorMsg(err.message);
+    } finally {
+      setBulkDeleting(false);
+    }
+  };
+
   const resetForm = () => {
     setFirstName('');
     setLastName('');
@@ -713,6 +780,42 @@ export default function StudentsManagerPage() {
           </span>
         </div>
 
+        {selectedStudentIds.length > 0 && (
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 bg-red-50/50 border border-red-100 rounded-2xl gap-3 animate-fadeIn">
+            <div className="flex items-center gap-2 text-xs font-bold text-red-800">
+              <span className="flex h-2 w-2 relative">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
+              </span>
+              <span>{selectedStudentIds.length} student(s) selected for management operations</span>
+            </div>
+            
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={triggerBulkDelete}
+                disabled={bulkDeleting}
+                className="flex items-center gap-1.5 px-4 py-2 bg-red-600 hover:bg-red-500 disabled:bg-red-400 text-white rounded-xl text-xs font-bold transition-all shadow-sm shadow-red-600/10 cursor-pointer animate-pulse"
+              >
+                {bulkDeleting ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <Trash2 className="w-3.5 h-3.5" />
+                )}
+                Delete Selected Permanently
+              </button>
+              
+              <button
+                type="button"
+                onClick={() => setSelectedStudentIds([])}
+                className="px-3.5 py-2 bg-white hover:bg-slate-50 border border-slate-200 text-slate-600 rounded-xl text-xs font-bold transition-all cursor-pointer"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
+
         {loading ? (
           <div className="h-60 flex items-center justify-center">
             <div className="text-center space-y-3">
@@ -730,6 +833,16 @@ export default function StudentsManagerPage() {
             <table className="w-full border-collapse text-left text-xs font-semibold text-slate-600">
               <thead>
                 <tr className="bg-slate-50 border-b border-slate-100 text-[10px] font-black uppercase tracking-wider text-slate-400">
+                  {!isClassTeacher && (
+                    <th className="p-4 w-10">
+                      <input
+                        type="checkbox"
+                        checked={currentStudents.length > 0 && currentStudents.every(s => selectedStudentIds.includes(s.id))}
+                        onChange={handleSelectAllChange}
+                        className="rounded border-slate-350 text-indigo-600 focus:ring-indigo-500 w-3.5 h-3.5 cursor-pointer"
+                      />
+                    </th>
+                  )}
                   <th className="p-4">Photo</th>
                   <th className="p-4">Admission ID</th>
                   <th className="p-4">Student Name</th>
@@ -741,6 +854,16 @@ export default function StudentsManagerPage() {
               <tbody className="divide-y divide-slate-50">
                 {currentStudents.map((stud) => (
                   <tr key={stud.id} className="hover:bg-slate-50/50 transition-colors">
+                    {!isClassTeacher && (
+                      <td className="p-4 w-10">
+                        <input
+                          type="checkbox"
+                          checked={selectedStudentIds.includes(stud.id)}
+                          onChange={() => handleSelectStudentChange(stud.id)}
+                          className="rounded border-slate-350 text-indigo-600 focus:ring-indigo-500 w-3.5 h-3.5 cursor-pointer"
+                        />
+                      </td>
+                    )}
                     {/* Passport Photo */}
                     <td className="p-4">
                       <div className="w-8 h-8 rounded-full border border-slate-200 overflow-hidden bg-slate-50 shadow-inner flex items-center justify-center flex-shrink-0">
