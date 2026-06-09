@@ -32,6 +32,7 @@ async function ensureSuperAdminExists() {
       data: {
         schoolId: systemSchool.id,
         email: 'superadmin@system.com',
+        username: 'superadmin',
         passwordHash: 'password',
         firstName: 'System',
         lastName: 'Administrator',
@@ -213,6 +214,7 @@ export async function POST(req: NextRequest) {
         data: {
           schoolId: school.id,
           email: adminEmail,
+          username: adminEmail,
           firstName: 'Principal',
           lastName: 'Admin',
           role: 'SCHOOL_ADMIN',

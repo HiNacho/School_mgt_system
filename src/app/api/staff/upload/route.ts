@@ -77,6 +77,7 @@ export async function POST(req: NextRequest) {
           data: {
             schoolId,
             email: cleanEmail,
+            username: cleanEmail,
             firstName: cleanFirstName,
             lastName: cleanLastName,
             role: cleanRole,
