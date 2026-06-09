@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { 
   Home, Users, GraduationCap, BookOpen, Layers, ClipboardList, 
   MessageSquare, User, Settings, LogOut, Menu, X, 
-  Bell, Award, Shield, Sparkles, Calendar
+  Bell, Award, Shield, Sparkles, Calendar, FileText
 } from 'lucide-react';
 
 interface SidebarItem {
@@ -61,6 +61,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     } catch (e) {
       localStorage.removeItem('report_auth_token');
       localStorage.removeItem('report_user_session');
+      document.cookie = 'report_auth_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
       router.push('/login');
     }
   }, [router]);
@@ -69,10 +70,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   useEffect(() => {
     if (!ready || !session) return;
 
-    fetchUnreadNotifications(session.school.id, session.user.id);
+    if (session.school?.id) {
+      fetchUnreadNotifications(session.school.id, session.user.id);
+    }
 
     const interval = setInterval(() => {
-      fetchUnreadNotifications(session.school.id, session.user.id);
+      if (session.school?.id) {
+        fetchUnreadNotifications(session.school.id, session.user.id);
+      }
     }, 15000); // Poll every 15 seconds
 
     return () => clearInterval(interval);
@@ -94,10 +99,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   const handleExitImpersonation = () => {
     const backup = localStorage.getItem('report_super_session_backup');
-    if (backup) {
+    const tokenBackup = localStorage.getItem('report_super_token_backup');
+    if (backup && tokenBackup) {
       localStorage.setItem('report_user_session', backup);
+      localStorage.setItem('report_auth_token', tokenBackup);
+      document.cookie = `report_auth_token=${tokenBackup}; path=/; max-age=3600; SameSite=Lax`;
       localStorage.removeItem('report_super_session_backup');
-      localStorage.setItem('report_auth_token', 'mock-jwt-token-for-SUPER_ADMIN');
+      localStorage.removeItem('report_super_token_backup');
       window.location.href = '/dashboard/tenants';
     }
   };
@@ -106,6 +114,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     localStorage.removeItem('report_auth_token');
     localStorage.removeItem('report_user_session');
     localStorage.removeItem('report_super_session_backup');
+    localStorage.removeItem('report_super_token_backup');
+    document.cookie = 'report_auth_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
     router.push('/login');
   };
 
@@ -173,6 +183,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     { name: 'Settings', href: '/dashboard/settings', icon: Settings },
   ];
 
+  if (role === 'SUPER_ADMIN' || role === 'SCHOOL_ADMIN') {
+    otherItems.push({ name: 'Audit Logs', href: '/dashboard/logs', icon: FileText });
+  }
+
   return (
     <div className="min-h-screen flex flex-col font-sans overflow-hidden bg-slate-50">
       {/* Impersonation Banner */}
@@ -200,17 +214,20 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       {/* 1. Desktop Sidebar */}
       <aside className="w-64 bg-white border-r border-slate-200/80 flex flex-col justify-between hidden lg:flex flex-shrink-0 z-40">
         <div className="overflow-y-auto flex-1">
-          {/* Logo Header */}
           <div className="p-5 flex items-center gap-3">
-            {school?.logoUrl ? (
+            {role === 'SUPER_ADMIN' ? (
+              <div className="p-2 rounded-xl bg-indigo-50 text-indigo-600 border border-indigo-100 shadow-sm">
+                <Sparkles className="w-5 h-5 text-indigo-600 animate-pulse" />
+              </div>
+            ) : school?.logoUrl ? (
               <img src={school.logoUrl} alt="School Crest" className="w-8 h-8 rounded-xl object-cover border border-slate-200 bg-white" />
             ) : (
               <div className="p-2 rounded-xl bg-indigo-50 text-indigo-600 border border-indigo-100 shadow-sm">
                 <Sparkles className="w-5 h-5 text-indigo-600" />
               </div>
             )}
-            <span className="font-bold text-lg text-slate-900 tracking-tight truncate max-w-[150px]" title={school?.name || 'NachoEd'}>
-              {school?.name || 'NachoEd'}
+            <span className="font-bold text-lg text-slate-900 tracking-tight truncate max-w-[150px]" title={role === 'SUPER_ADMIN' ? 'NachoEd' : (school?.name || 'NachoEd')}>
+              {role === 'SUPER_ADMIN' ? 'NachoEd' : (school?.name || 'NachoEd')}
             </span>
           </div>
 
@@ -290,15 +307,19 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <div>
               <div className="flex items-center justify-between pb-5 border-b border-slate-100 mb-4">
                 <div className="flex items-center gap-2">
-                  {school?.logoUrl ? (
+                  {role === 'SUPER_ADMIN' ? (
+                    <div className="p-1.5 rounded-lg bg-indigo-50 text-indigo-600 border border-indigo-100 shadow-sm">
+                      <Sparkles className="w-4 h-4 text-indigo-600" />
+                    </div>
+                  ) : school?.logoUrl ? (
                     <img src={school.logoUrl} alt="School Crest" className="w-6 h-6 rounded-lg object-cover border border-slate-200 bg-white" />
                   ) : (
                     <div className="p-1.5 rounded-lg bg-indigo-50 text-indigo-600 border border-indigo-100 shadow-sm">
                       <Sparkles className="w-4 h-4 text-indigo-600" />
                     </div>
                   )}
-                  <span className="font-bold text-sm text-slate-900 truncate max-w-[130px]" title={school?.name || 'NachoEd'}>
-                    {school?.name || 'NachoEd'}
+                  <span className="font-bold text-sm text-slate-900 truncate max-w-[130px]" title={role === 'SUPER_ADMIN' ? 'NachoEd' : (school?.name || 'NachoEd')}>
+                    {role === 'SUPER_ADMIN' ? 'NachoEd' : (school?.name || 'NachoEd')}
                   </span>
                 </div>
                 <button type="button" onClick={() => setMobileMenuOpen(false)} className="p-1 rounded-md bg-slate-50 text-slate-400 hover:text-slate-600">

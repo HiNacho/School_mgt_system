@@ -1,12 +1,19 @@
 // Staff Accounts API Endpoint
 import { NextRequest, NextResponse } from 'next/server';
+import bcrypt from 'bcryptjs';
 import prisma from '@/lib/db';
 import { verifySubscriptionAccess } from '@/lib/subscriptionRules';
+import { requireAuth, requireRole, requireSchoolScope } from '@/lib/auth-middleware';
+import { generateUniqueUsername, generateTempPassword } from '@/lib/auth-utils';
 
 
 // 1. GET: Fetch all staff accounts in current school tenant context
 export async function GET(req: NextRequest) {
   try {
+    // Enforce auth, roles, and school scope
+    const session = await requireAuth(req);
+    requireRole(session, ['SUPER_ADMIN', 'SCHOOL_ADMIN']);
+
     const { searchParams } = new URL(req.url);
     const schoolId = searchParams.get('schoolId');
     const staffId = searchParams.get('staffId');
@@ -14,6 +21,8 @@ export async function GET(req: NextRequest) {
     if (!schoolId) {
       return NextResponse.json({ error: 'School ID is required' }, { status: 400 });
     }
+
+    requireSchoolScope(session, schoolId);
 
     if (staffId) {
       const s = await prisma.user.findFirst({
@@ -103,6 +112,10 @@ export async function GET(req: NextRequest) {
 // 2. POST: Create a new Staff Account
 export async function POST(req: NextRequest) {
   try {
+    // Enforce auth, roles, and school scope
+    const session = await requireAuth(req);
+    requireRole(session, ['SUPER_ADMIN', 'SCHOOL_ADMIN']);
+
     const body = await req.json();
     const { 
       schoolId, email, firstName, lastName, role, phone, passportPhoto,
@@ -113,12 +126,13 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Missing required staff fields' }, { status: 400 });
     }
 
+    requireSchoolScope(session, schoolId);
+
     // Verify subscription access
     const subscriptionError = await verifySubscriptionAccess(schoolId, true);
     if (subscriptionError) {
       return NextResponse.json({ error: subscriptionError.error }, { status: 403 });
     }
-
 
     // Check if email already exists globally in SaaS system
     const existing = await prisma.user.findUnique({
@@ -129,12 +143,19 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'A staff member with this email address is already registered on the platform.' }, { status: 400 });
     }
 
+    // Auto-generate unique username and hashed temporary password
+    const tempPassword = generateTempPassword();
+    const salt = await bcrypt.genSalt(10);
+    const passwordHash = await bcrypt.hash(tempPassword, salt);
+    const username = await generateUniqueUsername(lastName);
+
     // Run in transaction to guarantee relational allocations succeed or rollback cleanly
     const result = await prisma.$transaction(async (tx) => {
       // 1. Create staff user
       const user = await tx.user.create({
         data: {
           schoolId,
+          username,
           email: email.toLowerCase().trim(),
           firstName: firstName.trim(),
           lastName: lastName.trim(),
@@ -142,7 +163,8 @@ export async function POST(req: NextRequest) {
           phone: phone || null,
           passportPhoto: passportPhoto || null,
           status: 'ACTIVE',
-          passwordHash: 'password' // Default demo password
+          passwordHash,
+          isFirstLogin: true
         }
       });
 
@@ -206,7 +228,12 @@ export async function POST(req: NextRequest) {
       return user;
     });
 
-    return NextResponse.json({ success: true, data: result });
+    return NextResponse.json({ 
+      success: true, 
+      data: result,
+      username: result.username,
+      temporaryPassword: tempPassword
+    });
   } catch (error: any) {
     console.error('Staff POST Error:', error);
     return NextResponse.json({ error: error.message || 'Failed to create new staff profile' }, { status: 500 });
@@ -216,12 +243,18 @@ export async function POST(req: NextRequest) {
 // 3. PUT: Toggle Staff Account Status (ACTIVE / INACTIVE / ARCHIVED)
 export async function PUT(req: NextRequest) {
   try {
+    // Enforce auth, roles, and school scope
+    const session = await requireAuth(req);
+    requireRole(session, ['SUPER_ADMIN', 'SCHOOL_ADMIN']);
+
     const body = await req.json();
     const { staffId, status, schoolId, staffIds } = body;
 
     if (!status || !schoolId) {
       return NextResponse.json({ error: 'Missing required parameters' }, { status: 400 });
     }
+
+    requireSchoolScope(session, schoolId);
 
     if (staffIds && Array.isArray(staffIds)) {
       // Prevent deactivating sole active admin
@@ -285,14 +318,22 @@ export async function PUT(req: NextRequest) {
 // 4. PATCH: Update Staff Details (firstName, lastName, email, phone, role, classTeacherArmId, subjectAssignments)
 export async function PATCH(req: NextRequest) {
   try {
+    // Enforce auth, roles, and school scope
+    const session = await requireAuth(req);
+    requireRole(session, ['SUPER_ADMIN', 'SCHOOL_ADMIN']);
+
     const body = await req.json();
     const { 
       staffId, schoolId, firstName, lastName, email, phone, passportPhoto,
       role, classTeacherArmId, subjectAssignments 
     } = body;
 
-    if (!staffId || !schoolId) {
+    if (!staffId || (!schoolId && session.role !== 'SUPER_ADMIN')) {
       return NextResponse.json({ error: 'Staff ID and School ID are required' }, { status: 400 });
+    }
+
+    if (schoolId) {
+      requireSchoolScope(session, schoolId);
     }
 
     // Verify ownership
@@ -405,6 +446,10 @@ export async function PATCH(req: NextRequest) {
 // 5. DELETE: Delete a Staff Account
 export async function DELETE(req: NextRequest) {
   try {
+    // Enforce auth, roles, and school scope
+    const session = await requireAuth(req);
+    requireRole(session, ['SUPER_ADMIN', 'SCHOOL_ADMIN']);
+
     const { searchParams } = new URL(req.url);
     const staffId = searchParams.get('staffId');
     const schoolId = searchParams.get('schoolId');
@@ -413,6 +458,8 @@ export async function DELETE(req: NextRequest) {
     if (!schoolId) {
       return NextResponse.json({ error: 'School ID is required' }, { status: 400 });
     }
+
+    requireSchoolScope(session, schoolId);
 
     if (staffIdsParam) {
       const staffIds = staffIdsParam.split(',').map(id => id.trim()).filter(Boolean);

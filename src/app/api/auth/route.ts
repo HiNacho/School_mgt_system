@@ -1,55 +1,24 @@
-// Authentication API Endpoint
 import { NextRequest, NextResponse } from 'next/server';
+import bcrypt from 'bcryptjs';
 import prisma from '@/lib/db';
-
-async function ensureSuperAdminExists() {
-  const superAdmin = await prisma.user.findFirst({
-    where: { role: 'SUPER_ADMIN' }
-  });
-
-  if (!superAdmin) {
-    console.log('🛡️ Auto-initializing system-portal and Super Admin user...');
-    let systemSchool = await prisma.school.findUnique({
-      where: { slug: 'system-portal' }
-    });
-
-    if (!systemSchool) {
-      systemSchool = await prisma.school.create({
-        data: {
-          name: 'System Administration Portal',
-          slug: 'system-portal',
-          address: 'System-wide Operations Boundary',
-          phone: 'N/A',
-          email: 'support@system.com',
-          gradingType: 'SECONDARY',
-          subscriptionPlan: 'Premium',
-          subscriptionStatus: 'active'
-        }
-      });
-    }
-
-    await prisma.user.create({
-      data: {
-        schoolId: systemSchool.id,
-        email: 'superadmin@system.com',
-        passwordHash: 'password',
-        firstName: 'System',
-        lastName: 'Administrator',
-        role: 'SUPER_ADMIN',
-        status: 'ACTIVE'
-      }
-    });
-    console.log('🛡️ Super Admin initialized successfully.');
-  }
-}
+import { generateJWT } from '@/lib/auth-utils';
+import { verifyRateLimit, logLoginAttempt, AuthError } from '@/lib/auth-middleware';
 
 export async function POST(req: NextRequest) {
+  const ipAddress = req.headers.get('x-forwarded-for') || '127.0.0.1';
+  let emailOrUsername = '';
+  
   try {
-    await ensureSuperAdminExists();
-    const { email, password, bypassRole, schoolSlug } = await req.json();
+    const body = await req.json();
+    const { email, password, bypassRole, schoolSlug } = body;
+    emailOrUsername = email || '';
+
+    // Enforce rate limiting / brute-force protection
+    if (!bypassRole && emailOrUsername) {
+      await verifyRateLimit(emailOrUsername, ipAddress);
+    }
 
     let user;
-
     const includeRelations = {
       school: true,
       student: {
@@ -70,10 +39,11 @@ export async function POST(req: NextRequest) {
       }
     };
 
+    // 1. Handle Demo Bypass (from Interactive Portal)
     if (bypassRole) {
       if (bypassRole === 'SUPER_ADMIN') {
         user = await prisma.user.findFirst({
-          where: { role: 'SUPER_ADMIN', status: 'ACTIVE' },
+          where: { role: 'SUPER_ADMIN', isActive: true },
           include: includeRelations,
         });
       } else {
@@ -85,12 +55,11 @@ export async function POST(req: NextRequest) {
           return NextResponse.json({ error: 'Selected school tenant not found' }, { status: 404 });
         }
 
-        // Find user with matching role in that school
         user = await prisma.user.findFirst({
           where: {
             schoolId: school.id,
             role: bypassRole,
-            status: 'ACTIVE',
+            isActive: true,
           },
           include: includeRelations,
         });
@@ -100,81 +69,145 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: `Demo account for role ${bypassRole} not seeded` }, { status: 404 });
       }
 
+      // Generate secure JWT session token containing only: userId, role, schoolId
+      const token = await generateJWT({
+        userId: user.id,
+        role: user.role,
+        schoolId: user.schoolId
+      }, false);
+
+      // Create Login Audit Log
+      const userAgent = req.headers.get('user-agent') || 'Unknown Device';
+      const auditLog = await prisma.loginAuditLog.create({
+        data: {
+          userId: user.id,
+          ipAddress,
+          deviceInfo: userAgent.slice(0, 255)
+        }
+      });
+
+      // Update lastLogin timestamp
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { lastLogin: new Date() }
+      });
+
       return NextResponse.json({
         success: true,
         user: {
           id: user.id,
           email: user.email,
+          username: user.username,
           firstName: user.firstName,
           lastName: user.lastName,
           role: user.role,
+          isFirstLogin: user.isFirstLogin,
           studentId: user.studentId,
           parentId: user.parentId,
           student: user.student,
           parent: user.parent,
         },
-        school: {
+        school: user.school ? {
           id: user.school.id,
           name: user.school.name,
           slug: user.school.slug,
           gradingType: user.school.gradingType,
           address: user.school.address,
           logoUrl: user.school.logoUrl,
-        },
-        token: `mock-jwt-token-for-${user.role}`,
+        } : null,
+        token,
+        auditLogId: auditLog.id
       });
     }
 
-    // 2. Standard Password Login (Demo fallback)
-    if (!email) {
-      return NextResponse.json({ error: 'Email address is required' }, { status: 400 });
+    // 2. Standard Password Login (Supports Email or Username)
+    if (!emailOrUsername || !password) {
+      return NextResponse.json({ error: 'Username/Email and password are required' }, { status: 400 });
     }
 
-    user = await prisma.user.findUnique({
-      where: { email: email.toLowerCase() },
+    user = await prisma.user.findFirst({
+      where: {
+        OR: [
+          { email: emailOrUsername.toLowerCase().trim() },
+          { username: emailOrUsername.toLowerCase().trim() }
+        ]
+      },
       include: includeRelations,
     });
 
-    if (!user) {
-      return NextResponse.json({ error: 'Invalid email address or staff record not found' }, { status: 401 });
+    // Mask credential errors (no indication of whether username or password was wrong)
+    if (!user || !user.isActive) {
+      await logLoginAttempt(ipAddress, emailOrUsername, false);
+      return NextResponse.json({ error: 'Invalid username or password' }, { status: 401 });
     }
 
-    // In a full production app, use bcrypt to compare password hash.
-    // For local evaluation, we accept simple verification checks for demo accounts.
-    if (
-      password !== 'password' && 
-      password !== 'password123' && 
-      password !== 'hashed_password_123' && 
-      user.passwordHash !== password
-    ) {
-      return NextResponse.json({ error: 'Incorrect credentials' }, { status: 401 });
+    // Verify hashed password using bcryptjs
+    const passwordIsValid = await bcrypt.compare(password, user.passwordHash);
+    if (!passwordIsValid) {
+      await logLoginAttempt(ipAddress, emailOrUsername, false);
+      return NextResponse.json({ error: 'Invalid username or password' }, { status: 401 });
     }
+
+    // Success: log attempt and login
+    await logLoginAttempt(ipAddress, emailOrUsername, true);
+
+    // Generate JWT token containing only: userId, role, schoolId
+    const token = await generateJWT({
+      userId: user.id,
+      role: user.role,
+      schoolId: user.schoolId
+    }, false);
+
+    // Create Audit Log
+    const userAgent = req.headers.get('user-agent') || 'Unknown Device';
+    const auditLog = await prisma.loginAuditLog.create({
+      data: {
+        userId: user.id,
+        ipAddress,
+        deviceInfo: userAgent.slice(0, 255)
+      }
+    });
+
+    // Update user login details
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { lastLogin: new Date() }
+    });
 
     return NextResponse.json({
       success: true,
       user: {
         id: user.id,
         email: user.email,
+        username: user.username,
         firstName: user.firstName,
         lastName: user.lastName,
         role: user.role,
+        isFirstLogin: user.isFirstLogin,
         studentId: user.studentId,
         parentId: user.parentId,
         student: user.student,
         parent: user.parent,
       },
-      school: {
+      school: user.school ? {
         id: user.school.id,
         name: user.school.name,
         slug: user.school.slug,
         gradingType: user.school.gradingType,
         address: user.school.address,
         logoUrl: user.school.logoUrl,
-      },
-      token: `jwt-token-for-${user.id}`,
+      } : null,
+      token,
+      auditLogId: auditLog.id
     });
+
   } catch (error: any) {
     console.error('Auth API Error:', error);
+    if (error instanceof AuthError) {
+      return NextResponse.json({ error: error.message }, { status: error.status });
+    }
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }
+
+export const dynamic = 'force-dynamic';

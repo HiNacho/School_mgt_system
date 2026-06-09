@@ -3,11 +3,14 @@ import { PrismaClient } from '@prisma/client';
 import * as fs from 'fs';
 import * as path from 'path';
 import XLSX from 'xlsx';
+import bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
 
 async function main() {
   console.log('🌱 Starting Database Seeding...');
+  const salt = await bcrypt.genSalt(10);
+  const passwordHash = await bcrypt.hash('password', salt);
 
   // --- 1. CLEAN EXISTING DATABASE ---
   await prisma.announcement.deleteMany();
@@ -180,36 +183,45 @@ async function main() {
   const adminGreenwood = await prisma.user.create({
     data: {
       schoolId: greenwood.id,
+      username: 'schooladmin',
       email: 'admin@greenwood.com',
-      passwordHash: 'hashed_password_123', // Demo mode supports plain hash match
+      passwordHash,
       firstName: 'Kola',
       lastName: 'Adekunle',
       role: 'SCHOOL_ADMIN',
       status: 'ACTIVE',
+      isActive: true,
+      isFirstLogin: false,
     },
   });
 
   const classTeacherGreenwood = await prisma.user.create({
     data: {
       schoolId: greenwood.id,
+      username: 'classteacher',
       email: 'classteacher@greenwood.com',
-      passwordHash: 'hashed_password_123',
+      passwordHash,
       firstName: 'Apeh',
       lastName: 'Solomon',
       role: 'CLASS_TEACHER',
       status: 'ACTIVE',
+      isActive: true,
+      isFirstLogin: false,
     },
   });
 
   const subjectTeacherGreenwood = await prisma.user.create({
     data: {
       schoolId: greenwood.id,
+      username: 'subjectteacher',
       email: 'subjectteacher@greenwood.com',
-      passwordHash: 'hashed_password_123',
+      passwordHash,
       firstName: 'Tunde',
       lastName: 'Bello',
       role: 'SUBJECT_TEACHER',
       status: 'ACTIVE',
+      isActive: true,
+      isFirstLogin: false,
     },
   });
 
@@ -217,25 +229,31 @@ async function main() {
   const adminLagos = await prisma.user.create({
     data: {
       schoolId: lagosExcel.id,
+      username: 'lagosadmin',
       email: 'admin@lagosexcel.com',
-      passwordHash: 'hashed_password_123',
+      passwordHash,
       firstName: 'Amina',
       lastName: 'Usman',
       role: 'SCHOOL_ADMIN',
       status: 'ACTIVE',
+      isActive: true,
+      isFirstLogin: false,
     },
   });
 
   // Platform-wide Super Admin
   const superAdmin = await prisma.user.create({
     data: {
-      schoolId: greenwood.id, // Associated to school but can oversee all
+      schoolId: null, // Platform-wide global override
+      username: 'superadmin',
       email: 'superadmin@system.com',
-      passwordHash: 'hashed_password_123',
+      passwordHash,
       firstName: 'Archibong',
       lastName: 'Bassey',
       role: 'SUPER_ADMIN',
       status: 'ACTIVE',
+      isActive: true,
+      isFirstLogin: false,
     },
   });
 
@@ -460,7 +478,7 @@ async function main() {
     data: {
       schoolId: greenwood.id,
       email: 'parent@greenwood.com',
-      passwordHash: 'hashed_password_123',
+      passwordHash,
       firstName: 'Alice',
       lastName: 'Bennett',
       phone: '456-456-789',
@@ -472,12 +490,16 @@ async function main() {
   const parentGreenwoodUser = await prisma.user.create({
     data: {
       schoolId: greenwood.id,
+      username: 'greenwood_parent',
       email: 'parent@greenwood.com',
-      passwordHash: 'hashed_password_123',
+      passwordHash,
       firstName: 'Alice',
       lastName: 'Bennett',
       role: 'PARENT',
       parentId: parentGreenwood.id,
+      isFirstLogin: false,
+      isActive: true,
+      status: 'ACTIVE'
     },
   });
 
@@ -486,7 +508,7 @@ async function main() {
     data: {
       schoolId: lagosExcel.id,
       email: 'parent@lagosexcel.com',
-      passwordHash: 'hashed_password_123',
+      passwordHash,
       firstName: 'Caleb',
       lastName: 'Brooks',
       phone: '563-325-245',
@@ -498,12 +520,16 @@ async function main() {
   const parentLagosUser = await prisma.user.create({
     data: {
       schoolId: lagosExcel.id,
+      username: 'lagos_parent',
       email: 'parent@lagosexcel.com',
-      passwordHash: 'hashed_password_123',
+      passwordHash,
       firstName: 'Caleb',
       lastName: 'Brooks',
       role: 'PARENT',
       parentId: parentLagos.id,
+      isFirstLogin: false,
+      isActive: true,
+      status: 'ACTIVE'
     },
   });
 
@@ -534,12 +560,16 @@ async function main() {
     await prisma.user.create({
       data: {
         schoolId: greenwood.id,
+        username: 'greenwood_student',
         email: 'student@greenwood.com',
-        passwordHash: 'hashed_password_123',
+        passwordHash,
         firstName: zainab.firstName,
         lastName: zainab.lastName,
         role: 'STUDENT',
         studentId: zainab.id,
+        isFirstLogin: false,
+        isActive: true,
+        status: 'ACTIVE'
       }
     });
   }
@@ -570,12 +600,16 @@ async function main() {
     await prisma.user.create({
       data: {
         schoolId: lagosExcel.id,
+        username: 'lagos_student',
         email: 'student@lagosexcel.com',
-        passwordHash: 'hashed_password_123',
+        passwordHash,
         firstName: timi.firstName,
         lastName: timi.lastName,
         role: 'STUDENT',
         studentId: timi.id,
+        isFirstLogin: false,
+        isActive: true,
+        status: 'ACTIVE'
       }
     });
   }

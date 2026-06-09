@@ -1,14 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/db';
+import bcrypt from 'bcryptjs';
+import { requireAuth, requireRole, requireSchoolScope } from '@/lib/auth-middleware';
+import { generateUniqueUsername, generateTempPassword } from '@/lib/auth-utils';
 
 export async function POST(req: NextRequest) {
   try {
+    const session = await requireAuth(req);
+    requireRole(session, ['SUPER_ADMIN', 'SCHOOL_ADMIN']);
+
     const body = await req.json().catch(() => ({}));
     const { schoolId, classId, armId, students } = body;
 
     if (!schoolId || !classId || !armId || !students || !Array.isArray(students)) {
       return NextResponse.json({ error: 'Missing required upload parameters (schoolId, classId, armId, and students array)' }, { status: 400 });
     }
+
+    requireSchoolScope(session, schoolId);
 
     // Fetch the target Class and Arm details
     const targetClass = await prisma.class.findFirst({
@@ -75,23 +83,58 @@ export async function POST(req: NextRequest) {
           continue;
         }
 
-        // Create student
-        const newStudent = await prisma.student.create({
-          data: {
-            schoolId,
-            firstName: cleanFirstName,
-            lastName: cleanLastName || 'Student',
-            middleName: cleanMiddleName,
-            admissionNumber: cleanAdmissionNumber,
-            gender: cleanGender,
-            classId,
-            armId,
-            status: 'ACTIVE'
-          }
+        // Auto-generate credentials for student user
+        const tempPassword = generateTempPassword();
+        const salt = await bcrypt.genSalt(10);
+        const passwordHash = await bcrypt.hash(tempPassword, salt);
+        const username = await generateUniqueUsername(cleanLastName || 'student');
+        const email = `${username}@student.local`;
+
+        const newStudent = await prisma.$transaction(async (tx) => {
+          // 1. Create student record
+          const student = await tx.student.create({
+            data: {
+              schoolId,
+              firstName: cleanFirstName,
+              lastName: cleanLastName || 'Student',
+              middleName: cleanMiddleName,
+              admissionNumber: cleanAdmissionNumber,
+              gender: cleanGender,
+              classId,
+              armId,
+              status: 'ACTIVE'
+            }
+          });
+
+          // 2. Create linked User credentials
+          await tx.user.create({
+            data: {
+              schoolId,
+              username,
+              email,
+              passwordHash,
+              firstName: cleanFirstName,
+              lastName: cleanLastName || 'Student',
+              role: 'STUDENT',
+              studentId: student.id,
+              isFirstLogin: true,
+              status: 'ACTIVE',
+              isActive: true
+            }
+          });
+
+          return student;
         });
 
         results.successCount++;
-        results.createdStudents.push(newStudent);
+        results.createdStudents.push({
+          id: newStudent.id,
+          firstName: newStudent.firstName,
+          lastName: newStudent.lastName,
+          admissionNumber: newStudent.admissionNumber,
+          username,
+          temporaryPassword: tempPassword
+        });
       } catch (err: any) {
         console.error('Error inserting uploaded student:', err);
         results.failCount++;
@@ -109,6 +152,7 @@ export async function POST(req: NextRequest) {
         successCount: results.successCount,
         failCount: results.failCount,
         failures: results.failures,
+        createdStudents: results.createdStudents,
         className: targetClass.name,
         armName: targetArm.name
       }
@@ -116,7 +160,7 @@ export async function POST(req: NextRequest) {
 
   } catch (error: any) {
     console.error('Excel Upload Students API Error:', error);
-    return NextResponse.json({ error: 'Failed to process student roster Excel upload' }, { status: 500 });
+    return NextResponse.json({ error: error.message || 'Failed to process student roster Excel upload' }, { status: error.status || 500 });
   }
 }
 export const dynamic = 'force-dynamic';

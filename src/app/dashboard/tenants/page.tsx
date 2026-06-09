@@ -367,10 +367,14 @@ export default function SchoolTenantsPage() {
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || 'Failed to fetch impersonation credentials');
 
-      // Backup current super admin session
+      // Backup current super admin session & token
       const currentSession = localStorage.getItem('report_user_session');
+      const currentToken = localStorage.getItem('report_auth_token');
       if (currentSession) {
         localStorage.setItem('report_super_session_backup', currentSession);
+      }
+      if (currentToken) {
+        localStorage.setItem('report_super_token_backup', currentToken);
       }
 
       // Overwrite with school admin session
@@ -379,8 +383,9 @@ export default function SchoolTenantsPage() {
         school: json.data.school
       }));
 
-      // Set mock token for that role
+      // Set auth token in localStorage and cookie
       localStorage.setItem('report_auth_token', json.data.token);
+      document.cookie = `report_auth_token=${json.data.token}; path=/; max-age=3600; SameSite=Lax`;
 
       // Log usage trace
       await fetch('/api/superadmin/usage', {

@@ -83,7 +83,7 @@ export default function UserProfilePage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           staffId: user.id,
-          schoolId: school.id,
+          schoolId: school?.id || null,
           firstName,
           lastName,
           email,
@@ -243,7 +243,7 @@ export default function UserProfilePage() {
               </div>
               <div>
                 <span className="block text-[9px] font-bold text-slate-400 uppercase tracking-wider">School Institution</span>
-                <span className="text-slate-700 font-bold">{school.name}</span>
+                <span className="text-slate-700 font-bold">{school?.name || 'NachoEd Platform'}</span>
               </div>
             </div>
 

@@ -18,7 +18,9 @@ import {
   GraduationCap, 
   ArrowLeft, 
   Loader2, 
-  User 
+  User,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 
 export default function LoginPage() {
@@ -30,6 +32,7 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
   const [schools, setSchools] = useState<any[]>([]);
+  const [showPassword, setShowPassword] = useState(false);
 
   // Demo Persona States
   const [loginMode, setLoginMode] = useState<'demo' | 'standard'>('demo');
@@ -43,6 +46,7 @@ export default function LoginPage() {
   useEffect(() => {
     localStorage.removeItem('report_auth_token');
     localStorage.removeItem('report_user_session');
+    document.cookie = 'report_auth_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
   }, []);
 
   useEffect(() => {
@@ -83,53 +87,12 @@ export default function LoginPage() {
     setError('');
 
     try {
-      if (role === 'SCHOOL_ADMIN' || role === 'CLASS_TEACHER' || role === 'SUBJECT_TEACHER') {
-        const staffRes = await fetch(`/api/staff?schoolId=${school.id}`, { cache: 'no-store' });
-        const staffJson = await staffRes.json();
-        if (staffRes.ok && staffJson.data) {
-          const filtered = staffJson.data.filter((s: any) => s.role === role && s.status === 'ACTIVE');
-          setDemoUsers(filtered);
-        } else {
-          throw new Error(staffJson.error || 'Failed to load staff accounts');
-        }
-      } else if (role === 'PARENT') {
-        const parentRes = await fetch(`/api/parents?schoolId=${school.id}`, { cache: 'no-store' });
-        const parentJson = await parentRes.json();
-        if (parentRes.ok && parentJson.data) {
-          const mapped = parentJson.data
-            .filter((p: any) => p.status === 'ACTIVE' && p.user)
-            .map((p: any) => ({
-              id: p.id,
-              email: p.email,
-              firstName: p.firstName,
-              lastName: p.lastName,
-              role: 'PARENT',
-              extraInfo: p.students && p.students.length > 0
-                ? `Parent of: ${p.students.map((s: any) => `${s.firstName} ${s.lastName} (${s.class?.name || ''}${s.arm?.name || ''})`).join(', ')}`
-                : 'No registered children'
-            }));
-          setDemoUsers(mapped);
-        } else {
-          throw new Error(parentJson.error || 'Failed to load parent accounts');
-        }
-      } else if (role === 'STUDENT') {
-        const studentRes = await fetch(`/api/students?schoolId=${school.id}&status=ACTIVE`, { cache: 'no-store' });
-        const studentJson = await studentRes.json();
-        if (studentRes.ok && studentJson.data) {
-          const mapped = studentJson.data
-            .filter((s: any) => s.user)
-            .map((s: any) => ({
-              id: s.id,
-              email: s.user.email,
-              firstName: s.firstName,
-              lastName: s.lastName,
-              role: 'STUDENT',
-              extraInfo: `${s.class?.name || ''}${s.arm?.name ? ` Arm ${s.arm.name}` : ''} — Adm No: ${s.admissionNumber}`
-            }));
-          setDemoUsers(mapped);
-        } else {
-          throw new Error(studentJson.error || 'Failed to load student accounts');
-        }
+      const res = await fetch(`/api/auth/demo-users?schoolId=${school.id}&role=${role}`, { cache: 'no-store' });
+      const json = await res.json();
+      if (res.ok && json.data) {
+        setDemoUsers(json.data);
+      } else {
+        throw new Error(json.error || `Failed to load demo accounts for ${role}`);
       }
     } catch (e: any) {
       console.error(e);
@@ -165,10 +128,15 @@ export default function LoginPage() {
         user: resData.user,
         school: resData.school
       }));
+      document.cookie = `report_auth_token=${resData.token}; path=/; max-age=3600; SameSite=Lax`;
 
       // Short delay for micro-animation success visual
       setTimeout(() => {
-        router.push('/dashboard');
+        if (resData.user?.isFirstLogin) {
+          router.push('/login/change-password');
+        } else {
+          router.push('/dashboard');
+        }
       }, 800);
 
     } catch (err: any) {
@@ -611,13 +579,13 @@ export default function LoginPage() {
                   <form onSubmit={handleLoginSubmit} className="space-y-4">
                     <div>
                       <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">
-                        Email Address
+                        Username or Email Address
                       </label>
                       <input
-                        type="email"
+                        type="text"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
-                        placeholder="e.g. admin@greenwood.com"
+                        placeholder="e.g. admin@greenwood.com or admin001"
                         className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-slate-600 transition-colors placeholder-slate-600"
                         disabled={loading}
                       />
@@ -629,14 +597,20 @@ export default function LoginPage() {
                       </label>
                       <div className="relative">
                         <input
-                          type="password"
+                          type={showPassword ? 'text' : 'password'}
                           value={password}
                           onChange={(e) => setPassword(e.target.value)}
                           placeholder="••••••••"
-                          className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-slate-600 transition-colors placeholder-slate-600"
+                          className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-slate-600 transition-colors placeholder-slate-600 pr-12"
                           disabled={loading}
                         />
-                        <Key className="absolute right-4 top-3.5 w-4 h-4 text-slate-600" />
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword(!showPassword)}
+                          className="absolute right-4 top-3.5 text-slate-500 hover:text-slate-300 transition-colors"
+                        >
+                          {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        </button>
                       </div>
                     </div>
 

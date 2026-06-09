@@ -66,8 +66,13 @@ export default function DashboardHome() {
 
   const fetchDashboardDetails = async (sess: any) => {
     try {
-      const schoolId = sess.school.id;
+      const schoolId = sess.school?.id;
       const role = sess.user.role;
+
+      if (!schoolId) {
+        setLoading(false);
+        return;
+      }
 
       // 1. Parallel loading of primary configurations
       const [setupRes, studentsRes, parentsRes, staffRes, eventsRes, announcementsRes, subjectsRes, weeklyAttendanceRes] = await Promise.all([
@@ -162,7 +167,7 @@ export default function DashboardHome() {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          schoolId: session.school.id,
+          schoolId: session.school?.id,
           userId: session.user.id
         })
       });
@@ -180,7 +185,7 @@ export default function DashboardHome() {
     if (notifications.length === 0 || !session) return;
     if (!confirm('Are you sure you want to clear all alerts?')) return;
     try {
-      const res = await fetch(`/api/notifications?schoolId=${session.school.id}&userId=${session.user.id}`, {
+      const res = await fetch(`/api/notifications?schoolId=${session.school?.id}&userId=${session.user.id}`, {
         method: 'DELETE'
       });
       if (res.ok) {
@@ -199,7 +204,7 @@ export default function DashboardHome() {
   const handleDismissNotification = async (id: string) => {
     if (!session) return;
     try {
-      const res = await fetch(`/api/notifications?schoolId=${session.school.id}&userId=${session.user.id}&id=${id}`, {
+      const res = await fetch(`/api/notifications?schoolId=${session.school?.id}&userId=${session.user.id}&id=${id}`, {
         method: 'DELETE'
       });
       if (res.ok) {
@@ -227,7 +232,7 @@ export default function DashboardHome() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           id: submissionId,
-          schoolId: session.school.id,
+          schoolId: session.school?.id,
           status,
           feedback: status === 'REJECTED' ? feedbackComments : undefined,
           userId: session.user.id
@@ -297,7 +302,7 @@ export default function DashboardHome() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          schoolId: session.school.id,
+          schoolId: session.school?.id,
           title: newEventTitle.trim(),
           description: newEventDesc.trim(),
           date: selectedDateStr,
@@ -437,7 +442,7 @@ export default function DashboardHome() {
             Hello, {user.firstName} {user.lastName}!
           </h1>
           <p className="text-xs text-slate-400 font-semibold mt-0.5">
-            Active Tenant Boundary: <strong className="text-blue-600">{school.name}</strong> • Authorized Role: <strong className="text-slate-600 capitalize">{role.toLowerCase().replace('_', ' ')}</strong>
+            Active Tenant Boundary: <strong className="text-blue-600">{school?.name || 'NachoEd Global Platform'}</strong> • Authorized Role: <strong className="text-slate-600 capitalize">{role.toLowerCase().replace('_', ' ')}</strong>
           </p>
         </div>
 

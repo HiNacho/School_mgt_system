@@ -60,13 +60,15 @@ export default function SettingsPage() {
         setSchool(sessionObj.school);
         setUser(sessionObj.user);
 
-        // Populate school details
-        setSchoolName(sessionObj.school.name || '');
-        setLogoUrl(sessionObj.school.logoUrl || '');
-        setAddress(sessionObj.school.address || '');
-        setPhone(sessionObj.school.phone || '');
-        setEmail(sessionObj.school.email || '');
-        setGradingType(sessionObj.school.gradingType || 'SECONDARY');
+        // Populate school details if school context exists
+        if (sessionObj.school) {
+          setSchoolName(sessionObj.school.name || '');
+          setLogoUrl(sessionObj.school.logoUrl || '');
+          setAddress(sessionObj.school.address || '');
+          setPhone(sessionObj.school.phone || '');
+          setEmail(sessionObj.school.email || '');
+          setGradingType(sessionObj.school.gradingType || 'SECONDARY');
+        }
 
         // Populate local user preference configurations
         const localTheme = localStorage.getItem('pref_theme') || 'light';
@@ -170,6 +172,7 @@ export default function SettingsPage() {
   };
 
   const isAdmin = user?.role === 'SUPER_ADMIN' || user?.role === 'SCHOOL_ADMIN' || user?.role === 'HEAD_TEACHER';
+  const isSchoolAdmin = user?.role === 'SCHOOL_ADMIN' || user?.role === 'HEAD_TEACHER';
   const isGreenwood = school?.slug === 'greenwood-secondary';
 
   const accentText = isGreenwood ? 'text-emerald-500' : 'text-indigo-500';
@@ -331,7 +334,7 @@ export default function SettingsPage() {
 
         {/* Right Column: Academic Settings (Admins only) */}
         <div className="md:col-span-2">
-          {isAdmin ? (
+          {isSchoolAdmin ? (
             <form onSubmit={handleSaveSchoolSettings} className="bg-white rounded-2xl border border-slate-200/80 p-6 shadow-sm space-y-4">
               <div className="flex items-center gap-2 pb-3 border-b border-slate-100">
                 <Building className={`w-4.5 h-4.5 ${accentText}`} />
@@ -348,6 +351,7 @@ export default function SettingsPage() {
                     onChange={(e) => setSchoolName(e.target.value)}
                     placeholder="E.g., Greenwood Secondary School"
                     className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-slate-800 font-bold focus:outline-none focus:border-slate-300"
+                    disabled={saving}
                   />
                 </div>
 
@@ -487,10 +491,14 @@ export default function SettingsPage() {
                 <Shield className="w-6 h-6" />
               </div>
               <div className="max-w-sm mx-auto space-y-2">
-                <h4 className="text-sm font-extrabold text-slate-800">Academic Parameters Locked</h4>
+                <h4 className="text-sm font-extrabold text-slate-800">
+                  {user?.role === 'SUPER_ADMIN' ? 'Platform-Wide Settings' : 'Academic Parameters Locked'}
+                </h4>
                 <p className="text-xs text-slate-400 leading-relaxed font-normal">
-                  You are logged in under a **{getRoleLabel(user.role)}** authorization context.
-                  General institutional settings are locked. Contact school administration to modify academic configurations.
+                  {user?.role === 'SUPER_ADMIN' 
+                    ? 'You are logged in under a platform-wide Super Admin context. School-specific settings must be managed within individual school boundary portals.'
+                    : `You are logged in under a ${getRoleLabel(user.role)} authorization context. General institutional settings are locked. Contact school administration to modify academic configurations.`
+                  }
                 </p>
               </div>
             </div>

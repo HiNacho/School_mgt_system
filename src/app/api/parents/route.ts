@@ -1,16 +1,24 @@
 // Parents Registry API Endpoint
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/db';
+import bcrypt from 'bcryptjs';
+import { requireAuth, requireRole, requireSchoolScope } from '@/lib/auth-middleware';
+import { generateUniqueUsername, generateTempPassword } from '@/lib/auth-utils';
 
 // 1. GET: Fetch list of parents in current school context
 export async function GET(req: NextRequest) {
   try {
+    const session = await requireAuth(req);
+    requireRole(session, ['SUPER_ADMIN', 'SCHOOL_ADMIN']);
+
     const { searchParams } = new URL(req.url);
     const schoolId = searchParams.get('schoolId');
 
     if (!schoolId) {
       return NextResponse.json({ error: 'School ID parameter is required' }, { status: 400 });
     }
+
+    requireSchoolScope(session, schoolId);
 
     const parents = await prisma.parent.findMany({
       where: { schoolId },
@@ -32,19 +40,24 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ success: true, data: parents });
   } catch (error: any) {
     console.error('Parents GET Error:', error);
-    return NextResponse.json({ error: 'Failed to fetch parent registry' }, { status: 500 });
+    return NextResponse.json({ error: error.message || 'Failed to fetch parent registry' }, { status: error.status || 500 });
   }
 }
 
 // 2. POST: Register a parent and automatically provision login credentials
 export async function POST(req: NextRequest) {
   try {
+    const session = await requireAuth(req);
+    requireRole(session, ['SUPER_ADMIN', 'SCHOOL_ADMIN']);
+
     const body = await req.json();
     const { schoolId, firstName, lastName, email, phone, address, studentIds } = body;
 
     if (!schoolId || !firstName || !lastName || !email) {
       return NextResponse.json({ error: 'Missing required parent fields' }, { status: 400 });
     }
+
+    requireSchoolScope(session, schoolId);
 
     // Verify unique email globally across User & Parent tables
     const existingUser = await prisma.user.findUnique({
@@ -60,6 +73,12 @@ export async function POST(req: NextRequest) {
       }, { status: 409 });
     }
 
+    // Auto-generate credentials
+    const tempPassword = generateTempPassword();
+    const salt = await bcrypt.genSalt(10);
+    const passwordHash = await bcrypt.hash(tempPassword, salt);
+    const username = await generateUniqueUsername(lastName);
+
     const result = await prisma.$transaction(async (tx) => {
       // 1. Create parent profile
       const parent = await tx.parent.create({
@@ -70,7 +89,7 @@ export async function POST(req: NextRequest) {
           lastName: lastName.trim(),
           phone: phone || null,
           address: address || null,
-          passwordHash: 'password' // Default demo bypass
+          passwordHash
         }
       });
 
@@ -88,13 +107,16 @@ export async function POST(req: NextRequest) {
       await tx.user.create({
         data: {
           schoolId,
+          username,
           email: email.toLowerCase().trim(),
           firstName: firstName.trim(),
           lastName: lastName.trim(),
           role: 'PARENT',
-          passwordHash: 'password', // Default
+          passwordHash,
           parentId: parent.id,
-          status: 'ACTIVE'
+          status: 'ACTIVE',
+          isActive: true,
+          isFirstLogin: true
         }
       });
 
@@ -105,16 +127,24 @@ export async function POST(req: NextRequest) {
       });
     });
 
-    return NextResponse.json({ success: true, data: result });
+    return NextResponse.json({ 
+      success: true, 
+      data: result,
+      username,
+      temporaryPassword: tempPassword
+    });
   } catch (error: any) {
     console.error('Parent POST Error:', error);
-    return NextResponse.json({ error: error.message || 'Failed to create parent profile' }, { status: 500 });
+    return NextResponse.json({ error: error.message || 'Failed to create parent profile' }, { status: error.status || 500 });
   }
 }
 
 // 3. PUT: Update parent profile
 export async function PUT(req: NextRequest) {
   try {
+    const session = await requireAuth(req);
+    requireRole(session, ['SUPER_ADMIN', 'SCHOOL_ADMIN']);
+
     const body = await req.json();
     const { id, firstName, lastName, email, phone, address, studentIds } = body;
 
@@ -126,6 +156,8 @@ export async function PUT(req: NextRequest) {
     if (!existing) {
       return NextResponse.json({ error: 'Parent profile not found' }, { status: 404 });
     }
+
+    requireSchoolScope(session, existing.schoolId);
 
     // Verify email collision if changed
     if (email && email.toLowerCase().trim() !== existing.email) {
@@ -194,13 +226,16 @@ export async function PUT(req: NextRequest) {
     return NextResponse.json({ success: true, data: result });
   } catch (error: any) {
     console.error('Parent PUT Error:', error);
-    return NextResponse.json({ error: error.message || 'Failed to update parent profile' }, { status: 500 });
+    return NextResponse.json({ error: error.message || 'Failed to update parent profile' }, { status: error.status || 500 });
   }
 }
 
 // 4. DELETE: Remove parent profile and cascade credentials safely
 export async function DELETE(req: NextRequest) {
   try {
+    const session = await requireAuth(req);
+    requireRole(session, ['SUPER_ADMIN', 'SCHOOL_ADMIN']);
+
     const { searchParams } = new URL(req.url);
     const id = searchParams.get('id');
 
@@ -212,6 +247,8 @@ export async function DELETE(req: NextRequest) {
     if (!parent) {
       return NextResponse.json({ error: 'Parent profile not found' }, { status: 404 });
     }
+
+    requireSchoolScope(session, parent.schoolId);
 
     await prisma.$transaction(async (tx) => {
       // 1. Set parentId to null for all connected students
@@ -234,7 +271,7 @@ export async function DELETE(req: NextRequest) {
     return NextResponse.json({ success: true, message: 'Parent profile and login credentials successfully deleted' });
   } catch (error: any) {
     console.error('Parent DELETE Error:', error);
-    return NextResponse.json({ error: 'Failed to delete parent account' }, { status: 500 });
+    return NextResponse.json({ error: error.message || 'Failed to delete parent account' }, { status: error.status || 500 });
   }
 }
 

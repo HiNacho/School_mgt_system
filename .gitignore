@@ -43,3 +43,6 @@ next-env.d.ts
 # prisma SQLite dev db
 /prisma/*.db
 /prisma/*.db-journal
+
+# scratch scripts
+/scratch/

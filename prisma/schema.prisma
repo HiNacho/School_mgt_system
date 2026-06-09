@@ -53,7 +53,8 @@ model School {
 
 model User {
   id           String   @id @default(uuid())
-  schoolId     String
+  schoolId     String?
+  username     String   @unique
   email        String   @unique
   passwordHash String
   firstName    String
@@ -62,10 +63,13 @@ model User {
   phone        String?
   passportPhoto String?
   status       String   @default("ACTIVE") // ACTIVE, INACTIVE
+  isActive     Boolean  @default(true)
+  isFirstLogin Boolean  @default(true)
+  lastLogin    DateTime?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  school             School              @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  school             School?             @relation(fields: [schoolId], references: [id], onDelete: Cascade)
   classTeacherArms   Arm[]               @relation("ClassTeacher")
   subjectAssignments SubjectAssignment[]
   scoresEntered      Score[]             @relation("ScoreTeacher")
@@ -77,6 +81,26 @@ model User {
   student            Student?            @relation("StudentUser", fields: [studentId], references: [id], onDelete: Cascade)
   parentId           String?             @unique
   parent             Parent?             @relation("ParentUser", fields: [parentId], references: [id], onDelete: Cascade)
+  loginAuditLogs     LoginAuditLog[]
+}
+
+model LoginAuditLog {
+  id         String    @id @default(uuid())
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  loginTime  DateTime  @default(now())
+  logoutTime DateTime?
+  ipAddress  String?
+  deviceInfo String?
+  createdAt  DateTime  @default(now())
+}
+
+model LoginAttempt {
+  id              String   @id @default(uuid())
+  ipAddress       String
+  usernameOrEmail String
+  attemptTime     DateTime @default(now())
+  isSuccess       Boolean
 }
 
 model AcademicSession {
