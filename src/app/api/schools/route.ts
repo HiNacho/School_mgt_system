@@ -295,9 +295,57 @@ export async function DELETE(req: NextRequest) {
       return NextResponse.json({ error: 'The System Administration Portal tenant cannot be deleted.' }, { status: 403 });
     }
 
-    // Delete the school tenant (Prisma cascade rules handle student/staff/score cleanups)
-    await prisma.school.delete({
-      where: { id: schoolId }
+    // Delete the school tenant and all associated records manually to guarantee cleanup
+    // on databases without cascade constraints enabled.
+    await prisma.$transaction(async (tx) => {
+      // 1. Delete platform telemetry logs and payments
+      await tx.usageLog.deleteMany({ where: { schoolId } });
+      await tx.payment.deleteMany({ where: { schoolId } });
+
+      // 2. Delete notifications and messages
+      await tx.notification.deleteMany({ where: { schoolId } });
+      await tx.messageRecipient.deleteMany({
+        where: {
+          OR: [
+            { message: { schoolId } },
+            { recipient: { schoolId } }
+          ]
+        }
+      });
+      await tx.message.deleteMany({ where: { schoolId } });
+
+      // 3. Delete academic records and assignments
+      await tx.scoreSubmission.deleteMany({ where: { schoolId } });
+      await tx.subjectAssignment.deleteMany({ where: { schoolId } });
+      await tx.score.deleteMany({ where: { schoolId } });
+      await tx.reportCardComment.deleteMany({ where: { schoolId } });
+      await tx.attendance.deleteMany({ where: { schoolId } });
+      await tx.dailyAttendance.deleteMany({ where: { schoolId } });
+
+      // 4. Delete sessions, terms, classes, arms, subjects, rules
+      await tx.gradingRule.deleteMany({ where: { schoolId } });
+      await tx.event.deleteMany({ where: { schoolId } });
+      await tx.announcement.deleteMany({ where: { schoolId } });
+
+      // 5. Delete users, students, parents (to avoid foreign key violations, clean up audit logs/users first)
+      await tx.loginAuditLog.deleteMany({
+        where: {
+          user: { schoolId }
+        }
+      });
+      await tx.user.deleteMany({ where: { schoolId } });
+      await tx.student.deleteMany({ where: { schoolId } });
+      await tx.parent.deleteMany({ where: { schoolId } });
+
+      // 6. Delete structural components
+      await tx.arm.deleteMany({ where: { schoolId } });
+      await tx.class.deleteMany({ where: { schoolId } });
+      await tx.subject.deleteMany({ where: { schoolId } });
+      await tx.term.deleteMany({ where: { schoolId } });
+      await tx.academicSession.deleteMany({ where: { schoolId } });
+
+      // 7. Finally, delete the school itself
+      await tx.school.delete({ where: { id: schoolId } });
     });
 
     return NextResponse.json({ 
