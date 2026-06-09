@@ -1,6 +1,7 @@
 // Schools/Tenants API Endpoint
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/db';
+import bcrypt from 'bcryptjs';
 
 async function ensureSuperAdminExists() {
   const superAdmin = await prisma.user.findFirst({
@@ -28,12 +29,15 @@ async function ensureSuperAdminExists() {
       });
     }
 
+    const salt = await bcrypt.genSalt(10);
+    const passwordHash = await bcrypt.hash('password', salt);
+
     await prisma.user.create({
       data: {
         schoolId: systemSchool.id,
         email: 'superadmin@system.com',
         username: 'superadmin',
-        passwordHash: 'password',
+        passwordHash,
         firstName: 'System',
         lastName: 'Administrator',
         role: 'SUPER_ADMIN',
@@ -209,6 +213,9 @@ export async function POST(req: NextRequest) {
         });
       }
 
+      const salt = await bcrypt.genSalt(10);
+      const passwordHash = await bcrypt.hash('password', salt);
+
       // 3. Create the default school administrator user
       await tx.user.create({
         data: {
@@ -218,7 +225,7 @@ export async function POST(req: NextRequest) {
           firstName: 'Principal',
           lastName: 'Admin',
           role: 'SCHOOL_ADMIN',
-          passwordHash: 'password', // Default demo credentials
+          passwordHash, // Default demo credentials
           status: 'ACTIVE'
         }
       });
