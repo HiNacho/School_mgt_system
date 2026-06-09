@@ -47,7 +47,7 @@ export default function ChangePasswordPage() {
       
       // If user has already changed password, don't force them here
       if (parsed.user && parsed.user.isFirstLogin === false) {
-        router.push('/dashboard');
+        window.location.href = '/dashboard';
       }
     } catch (e) {
       localStorage.removeItem('report_auth_token');
@@ -135,7 +135,7 @@ export default function ChangePasswordPage() {
       }
 
       setTimeout(() => {
-        router.push('/dashboard');
+        window.location.href = '/dashboard';
       }, 1000);
 
     } catch (err: any) {

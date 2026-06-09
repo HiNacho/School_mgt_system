@@ -135,7 +135,7 @@ export default function LoginPage() {
         if (resData.user?.isFirstLogin) {
           router.push('/login/change-password');
         } else {
-          router.push('/dashboard');
+          window.location.href = '/dashboard';
         }
       }, 800);
 
