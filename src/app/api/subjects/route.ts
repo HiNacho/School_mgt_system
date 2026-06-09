@@ -30,9 +30,19 @@ export async function GET(req: NextRequest) {
       orderBy: { name: 'asc' }
     });
 
-    // C. Fetch all Class Arms
-    const arms = await prisma.arm.findMany({
+    // Fetch existing class levels first to prevent Prisma crashes on orphaned arms
+    const classes = await prisma.class.findMany({
       where: { schoolId },
+      select: { id: true }
+    });
+    const classIds = classes.map(c => c.id);
+
+    // C. Fetch all Class Arms (only for existing classes to prevent Prisma crashes on orphaned arms)
+    const arms = await prisma.arm.findMany({
+      where: { 
+        schoolId,
+        classId: { in: classIds }
+      },
       include: { class: true },
       orderBy: [
         { class: { name: 'asc' } },
@@ -59,9 +69,15 @@ export async function GET(req: NextRequest) {
       ]
     });
 
-    // E. Fetch Subject Assignments (mapping subjects to teachers in specific arms)
+    const armIds = arms.map(a => a.id);
+
+    // E. Fetch Subject Assignments (only for existing classes and arms to prevent Prisma crashes on orphaned assignments)
     const assignments = await prisma.subjectAssignment.findMany({
-      where: { schoolId },
+      where: { 
+        schoolId,
+        classId: { in: classIds },
+        armId: { in: armIds }
+      },
       include: {
         subject: true,
         class: true,

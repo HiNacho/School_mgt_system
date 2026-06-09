@@ -23,9 +23,14 @@ export async function GET(req: NextRequest) {
       }
     });
 
-    // Fetch arms for this school
+    const classIds = classes.map(c => c.id);
+
+    // Fetch arms for this school (only for existing classes to prevent Prisma crashes on orphaned arms)
     const arms = await prisma.arm.findMany({
-      where: { schoolId },
+      where: { 
+        schoolId,
+        classId: { in: classIds }
+      },
       orderBy: [
         { class: { name: 'asc' } },
         { name: 'asc' }

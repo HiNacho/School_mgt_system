@@ -56,9 +56,14 @@ export async function GET(req: NextRequest) {
       orderBy: { name: 'asc' },
     });
 
-    // 4. Fetch Arms
+    const classIds = classes.map(c => c.id);
+
+    // 4. Fetch Arms (only for existing classes to prevent Prisma crashes on orphaned arms)
     const arms = await prisma.arm.findMany({
-      where: { schoolId },
+      where: { 
+        schoolId,
+        classId: { in: classIds }
+      },
       include: { class: true, classTeacher: true },
       orderBy: { name: 'asc' },
     });

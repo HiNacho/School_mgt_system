@@ -21,9 +21,20 @@ export async function GET(req: NextRequest) {
 
     // A. If searching for pending submissions for a specific class teacher
     if (classTeacherId) {
+      // Fetch active class levels to ensure teacher's arms reference valid class cohort levels
+      const classes = await prisma.class.findMany({
+        where: { schoolId },
+        select: { id: true }
+      });
+      const classIds = classes.map(c => c.id);
+
       // Find all class arms managed by this teacher
       const teacherArms = await prisma.arm.findMany({
-        where: { schoolId, classTeacherId },
+        where: { 
+          schoolId, 
+          classTeacherId,
+          classId: { in: classIds }
+        },
         select: { id: true }
       });
 
@@ -38,6 +49,7 @@ export async function GET(req: NextRequest) {
         where: {
           schoolId,
           armId: { in: armIds },
+          classId: { in: classIds },
           ...(statusParam === 'all' ? {} : { status: statusParam || 'PENDING' })
         },
         include: {
@@ -59,10 +71,27 @@ export async function GET(req: NextRequest) {
 
     // B. If searching for all submissions made by a specific subject teacher
     if (teacherId) {
+      const classes = await prisma.class.findMany({
+        where: { schoolId },
+        select: { id: true }
+      });
+      const classIds = classes.map(c => c.id);
+
+      const arms = await prisma.arm.findMany({
+        where: { 
+          schoolId,
+          classId: { in: classIds }
+        },
+        select: { id: true }
+      });
+      const armIds = arms.map(a => a.id);
+
       const submissions = await prisma.scoreSubmission.findMany({
         where: {
           schoolId,
-          teacherId
+          teacherId,
+          classId: { in: classIds },
+          armId: { in: armIds }
         },
         include: {
           subject: true,
