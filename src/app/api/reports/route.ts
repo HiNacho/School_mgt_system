@@ -43,7 +43,19 @@ export async function GET(req: NextRequest) {
 
     const students = await prisma.student.findMany({
       where: studentQuery,
-      include: { class: true, arm: true },
+      include: { 
+        class: true, 
+        arm: {
+          include: {
+            classTeacher: {
+              select: {
+                firstName: true,
+                lastName: true
+              }
+            }
+          }
+        } 
+      },
     });
 
     if (students.length === 0) {
@@ -124,6 +136,9 @@ export async function GET(req: NextRequest) {
           className: dbStud?.class.name || '',
           armName: dbStud?.arm.name || '',
         },
+        classTeacherName: dbStud?.arm?.classTeacher 
+          ? `${dbStud.arm.classTeacher.firstName} ${dbStud.arm.classTeacher.lastName}`
+          : 'Class Teacher',
         subjects: report.subjects.map(s => ({
           ...s,
           rankFormatted: getOrdinalSuffix(s.subjectRank),

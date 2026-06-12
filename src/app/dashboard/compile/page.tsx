@@ -19,6 +19,7 @@ interface StudentReport {
     className: string;
     armName: string;
   };
+  classTeacherName?: string;
   subjects: Array<{
     subjectId: string;
     subjectName: string;
@@ -769,7 +770,7 @@ export default function ReportCardCompilerPage() {
                   <div className="grid grid-cols-3 gap-4 pt-4 border-t border-slate-200 text-center font-sans text-[9px]">
                     <div className="space-y-1">
                       <div className="h-6 flex items-end justify-center font-serif text-[10px] text-indigo-700 italic font-bold">
-                        {previewReport.student.className.startsWith('JS') ? 'Mrs. T. Adegoke' : 'Mr. K. Okon'}
+                        {previewReport.classTeacherName || 'Class Teacher'}
                       </div>
                       <div className="border-t border-slate-400 pt-1 text-slate-500 font-bold uppercase tracking-wider text-[8px]">
                         Class Teacher Signature
@@ -960,7 +961,7 @@ export default function ReportCardCompilerPage() {
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px', marginTop: '20px', borderTop: '1px solid #cbd5e1', paddingTop: '8px', textAlign: 'center', fontSize: '9px', fontFamily: 'sans-serif' }}>
                 <div>
                   <div style={{ height: '14px', fontFamily: 'serif', fontSize: '10px', color: '#1e3a8a', fontStyle: 'italic', fontWeight: 'bold' }}>
-                    {report.student.className.startsWith('JS') ? 'Mrs. T. Adegoke' : 'Mr. K. Okon'}
+                    {report.classTeacherName || 'Class Teacher'}
                   </div>
                   <div style={{ borderTop: '1px solid #94a3b8', paddingTop: '2px', fontSize: '8px', color: '#64748b', fontWeight: 'bold', textTransform: 'uppercase' }}>
                     Class Teacher Signature
