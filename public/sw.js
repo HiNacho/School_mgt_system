@@ -49,12 +49,19 @@ self.addEventListener('fetch', (event) => {
   // Skip caching for backend API requests
   if (requestUrl.pathname.startsWith('/api/')) {
     event.respondWith(
-      fetch(event.request).catch(() => {
-        // Fallback for API offline scenarios
+      fetch(event.request).catch((err) => {
+        console.error('[Service Worker] API fetch failed:', err);
+        
+        const isActuallyOffline = typeof navigator !== 'undefined' && !navigator.onLine;
+        const errorMessage = isActuallyOffline 
+          ? 'You are currently offline. Local cache database queued changes.'
+          : 'Server is unreachable. Please check if the backend service is running or online.';
+
         return new Response(
           JSON.stringify({ 
-            error: 'You are currently offline. Local cache database queued changes.', 
-            offline: true 
+            error: errorMessage, 
+            offline: isActuallyOffline,
+            serverError: !isActuallyOffline
           }), 
           { 
             headers: { 'Content-Type': 'application/json' },
