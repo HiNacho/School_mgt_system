@@ -153,9 +153,9 @@ export default function ClassTeacherDashboard() {
       const { id: userId }   = sess.user;
 
       const [setupRes, submissionsRes, notifRes] = await Promise.all([
-        fetch(`/api/setup?schoolId=${schoolId}`),
-        fetch(`/api/submissions?schoolId=${schoolId}&classTeacherId=${userId}&status=all`),
-        fetch(`/api/notifications?schoolId=${schoolId}&userId=${userId}`),
+        fetch(`/api/setup?schoolId=${schoolId}`, { cache: 'no-store' }),
+        fetch(`/api/submissions?schoolId=${schoolId}&classTeacherId=${userId}&status=all`, { cache: 'no-store' }),
+        fetch(`/api/notifications?schoolId=${schoolId}&userId=${userId}`, { cache: 'no-store' }),
       ]);
 
       let setup: any = null;
@@ -176,7 +176,8 @@ export default function ClassTeacherDashboard() {
 
       // Fetch attendance info (auto-detects arm from teacherId)
       const attRes = await fetch(
-        `/api/attendance?schoolId=${schoolId}&teacherId=${userId}&termId=${term.id}&date=${attendanceDate}`
+        `/api/attendance?schoolId=${schoolId}&teacherId=${userId}&termId=${term.id}&date=${attendanceDate}`,
+        { cache: 'no-store' }
       );
 
       if (attRes.ok) {
@@ -235,7 +236,7 @@ export default function ClassTeacherDashboard() {
     try {
       const activeTeacherId = classTeacherId || session?.user?.id || '';
       // Fetch all submissions for this arm (any status)
-      const res = await fetch(`/api/submissions?schoolId=${schoolId}&classTeacherId=${activeTeacherId}&status=all`);
+      const res = await fetch(`/api/submissions?schoolId=${schoolId}&classTeacherId=${activeTeacherId}&status=all`, { cache: 'no-store' });
       if (res.ok) {
         const j = await res.json();
         setSubmissions(j.data || []);
@@ -268,7 +269,8 @@ export default function ClassTeacherDashboard() {
     if (!term) return;
 
     const res = await fetch(
-      `/api/attendance?schoolId=${schoolId}&teacherId=${userId}&termId=${term.id}&date=${date}`
+      `/api/attendance?schoolId=${schoolId}&teacherId=${userId}&termId=${term.id}&date=${date}`,
+      { cache: 'no-store' }
     );
     if (res.ok) {
       const j = await res.json();
@@ -306,7 +308,8 @@ export default function ClassTeacherDashboard() {
         d.setDate(d.getDate() - i);
         const dateStr = d.toISOString().split('T')[0];
         const res = await fetch(
-          `/api/attendance?schoolId=${schoolId}&teacherId=${userId}&termId=${term.id}&date=${dateStr}`
+          `/api/attendance?schoolId=${schoolId}&teacherId=${userId}&termId=${term.id}&date=${dateStr}`,
+          { cache: 'no-store' }
         );
         if (res.ok) {
           const j = await res.json();
@@ -412,7 +415,7 @@ export default function ClassTeacherDashboard() {
       setReviewFeedback('');
       setSuccessMsg(status === 'APPROVED' ? 'Scores approved & published!' : 'Scoresheet returned to teacher.');
       // Refresh submissions
-      const r2 = await fetch(`/api/submissions?schoolId=${session.school.id}&classTeacherId=${session.user.id}&status=all`);
+      const r2 = await fetch(`/api/submissions?schoolId=${session.school.id}&classTeacherId=${session.user.id}&status=all`, { cache: 'no-store' });
       if (r2.ok) { const j2 = await r2.json(); setSubmissions(j2.data || []); }
     } catch (e: any) {
       setAttendanceError(e.message);

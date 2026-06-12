@@ -76,14 +76,14 @@ export default function DashboardHome() {
 
       // 1. Parallel loading of primary configurations
       const [setupRes, studentsRes, parentsRes, staffRes, eventsRes, announcementsRes, subjectsRes, weeklyAttendanceRes] = await Promise.all([
-        fetch(`/api/setup?schoolId=${schoolId}`),
-        fetch(`/api/students?schoolId=${schoolId}&status=ALL`),
-        fetch(`/api/parents?schoolId=${schoolId}`),
-        fetch(`/api/staff?schoolId=${schoolId}`),
-        fetch(`/api/events?schoolId=${schoolId}`),
-        fetch(`/api/announcements?schoolId=${schoolId}`),
-        fetch(`/api/subjects?schoolId=${schoolId}`),
-        fetch(`/api/attendance?schoolId=${schoolId}&weekly=true`)
+        fetch(`/api/setup?schoolId=${schoolId}`, { cache: 'no-store' }),
+        fetch(`/api/students?schoolId=${schoolId}&status=ALL`, { cache: 'no-store' }),
+        fetch(`/api/parents?schoolId=${schoolId}`, { cache: 'no-store' }),
+        fetch(`/api/staff?schoolId=${schoolId}`, { cache: 'no-store' }),
+        fetch(`/api/events?schoolId=${schoolId}`, { cache: 'no-store' }),
+        fetch(`/api/announcements?schoolId=${schoolId}`, { cache: 'no-store' }),
+        fetch(`/api/subjects?schoolId=${schoolId}`, { cache: 'no-store' }),
+        fetch(`/api/attendance?schoolId=${schoolId}&weekly=true`, { cache: 'no-store' })
       ]);
 
       if (setupRes.ok) {
@@ -122,21 +122,21 @@ export default function DashboardHome() {
       // 2. Fetch notifications and submissions for teachers
       if (role === 'CLASS_TEACHER' || role === 'SUBJECT_TEACHER') {
         try {
-          const notificationsRes = await fetch(`/api/notifications?schoolId=${schoolId}&userId=${sess.user.id}`);
+          const notificationsRes = await fetch(`/api/notifications?schoolId=${schoolId}&userId=${sess.user.id}`, { cache: 'no-store' });
           if (notificationsRes.ok) {
             const notJson = await notificationsRes.json();
             setNotifications(notJson.data.notifications || []);
             setUnreadNotificationsCount(notJson.data.unreadCount || 0);
           }
 
-          const submissionsRes = await fetch(`/api/submissions?schoolId=${schoolId}&teacherId=${sess.user.id}`);
+          const submissionsRes = await fetch(`/api/submissions?schoolId=${schoolId}&teacherId=${sess.user.id}`, { cache: 'no-store' });
           if (submissionsRes.ok) {
             const subJson = await submissionsRes.json();
             setMySubmissions(subJson.data || []);
           }
 
           if (role === 'CLASS_TEACHER') {
-            const pendingRes = await fetch(`/api/submissions?schoolId=${schoolId}&classTeacherId=${sess.user.id}`);
+            const pendingRes = await fetch(`/api/submissions?schoolId=${schoolId}&classTeacherId=${sess.user.id}`, { cache: 'no-store' });
             if (pendingRes.ok) {
               const penJson = await pendingRes.json();
               setPendingSubmissions(penJson.data || []);
