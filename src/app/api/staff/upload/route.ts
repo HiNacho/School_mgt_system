@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/db';
+import bcrypt from 'bcryptjs';
 
 export async function POST(req: NextRequest) {
   try {
@@ -9,6 +10,8 @@ export async function POST(req: NextRequest) {
     if (!schoolId || !staff || !Array.isArray(staff)) {
       return NextResponse.json({ error: 'Missing required upload parameters (schoolId and staff array)' }, { status: 400 });
     }
+
+    const defaultPasswordHash = await bcrypt.hash('password', 10);
 
     const results = {
       successCount: 0,
@@ -83,7 +86,7 @@ export async function POST(req: NextRequest) {
             role: cleanRole,
             phone: cleanPhone,
             status: 'ACTIVE',
-            passwordHash: 'password' // Default demo password
+            passwordHash: defaultPasswordHash // Default demo password
           }
         });
 
