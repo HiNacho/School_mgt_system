@@ -48,6 +48,7 @@ model School {
   parents            Parent[]
 
   events             Event[]
+  classReportStatuses ClassReportStatus[]
   announcements      Announcement[]
 }
 
@@ -131,6 +132,7 @@ model Term {
   dailyAttendance    DailyAttendance[]
   subjectAssignments SubjectAssignment[]
   scoreSubmissions   ScoreSubmission[]
+  classReportStatuses ClassReportStatus[]
 }
 
 model Class {
@@ -148,6 +150,7 @@ model Class {
   dailyAttendance       DailyAttendance[]
   subjectAssignments    SubjectAssignment[]
   scoreSubmissions      ScoreSubmission[]
+  classReportStatuses   ClassReportStatus[]
 
 }
 
@@ -168,6 +171,7 @@ model Arm {
   dailyAttendance    DailyAttendance[]
   subjectAssignments SubjectAssignment[]
   scoreSubmissions   ScoreSubmission[]
+  classReportStatuses ClassReportStatus[]
 }
 
 model Student {
@@ -473,5 +477,23 @@ model UsageLog {
   createdAt    DateTime @default(now())
 
   school       School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+}
+
+model ClassReportStatus {
+  id        String   @id @default(uuid())
+  schoolId  String
+  classId   String
+  armId     String
+  termId    String
+  status    String   @default("DRAFT") // DRAFT, AWAITING_APPROVAL, APPROVED, REJECTED
+  feedback  String?  // Feedback if returned for correction
+  updatedAt DateTime @updatedAt
+
+  school    School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  class     Class    @relation(fields: [classId], references: [id], onDelete: Cascade)
+  arm       Arm      @relation(fields: [armId], references: [id], onDelete: Cascade)
+  term      Term     @relation(fields: [termId], references: [id], onDelete: Cascade)
+
+  @@unique([schoolId, classId, armId, termId])
 }
 

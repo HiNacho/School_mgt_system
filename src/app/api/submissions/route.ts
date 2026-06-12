@@ -148,6 +148,21 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Missing required payload parameters' }, { status: 400 });
     }
 
+    // Check if class-level reports are already awaiting approval or approved
+    const classReportStatus = await prisma.classReportStatus.findUnique({
+      where: {
+        schoolId_classId_armId_termId: {
+          schoolId,
+          classId,
+          armId,
+          termId
+        }
+      }
+    });
+    if (classReportStatus && (classReportStatus.status === 'AWAITING_APPROVAL' || classReportStatus.status === 'APPROVED')) {
+      return NextResponse.json({ error: 'This class arm is currently awaiting school admin approval or has been approved. Subject scores are locked and cannot be modified.' }, { status: 403 });
+    }
+
     // Fetch the teacher details
     const teacher = await prisma.user.findFirst({
       where: { id: teacherId, schoolId }
@@ -249,6 +264,21 @@ export async function PATCH(req: NextRequest) {
 
     if (!submission) {
       return NextResponse.json({ error: 'Score submission record not found' }, { status: 404 });
+    }
+
+    // Check if class-level reports are already awaiting approval or approved
+    const classReportStatus = await prisma.classReportStatus.findUnique({
+      where: {
+        schoolId_classId_armId_termId: {
+          schoolId: submission.schoolId,
+          classId: submission.classId,
+          armId: submission.armId,
+          termId: submission.termId
+        }
+      }
+    });
+    if (classReportStatus && (classReportStatus.status === 'AWAITING_APPROVAL' || classReportStatus.status === 'APPROVED')) {
+      return NextResponse.json({ error: 'This class arm is currently awaiting school admin approval or has been approved. Score review actions are locked.' }, { status: 403 });
     }
 
     // Fetch details of the class teacher who is approving/rejecting

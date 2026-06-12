@@ -89,6 +89,13 @@ export default function ReportCardCompilerPage() {
   const [successMsg, setSuccessMsg] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
 
+  // Report Status states
+  const [reportStatus, setReportStatus] = useState<string>('DRAFT');
+  const [statusFeedback, setStatusFeedback] = useState<string | null>(null);
+  const [adminFeedbackInput, setAdminFeedbackInput] = useState('');
+  const [showRejectModal, setShowRejectModal] = useState(false);
+  const [transitioningStatus, setTransitioningStatus] = useState(false);
+
   useEffect(() => {
     const userSession = localStorage.getItem('report_user_session');
     if (userSession) {
@@ -186,11 +193,68 @@ export default function ReportCardCompilerPage() {
         setSelectedStudentIds(new Set(ids));
       }
 
+      // Fetch status
+      const statusRes = await fetch(
+        `/api/reports/status?schoolId=${session.school.id}&classId=${selectedClass}&armId=${selectedArm}&termId=${selectedTerm}`
+      );
+      if (statusRes.ok) {
+        const statusJson = await statusRes.json();
+        if (statusJson.success && statusJson.data) {
+          setReportStatus(statusJson.data.status || 'DRAFT');
+          setStatusFeedback(statusJson.data.feedback || null);
+        } else {
+          setReportStatus('DRAFT');
+          setStatusFeedback(null);
+        }
+      }
+
       setSuccessMsg(`Class Roster compiled! Calculated totals, grades, and positional ranks for ${json.data?.length || 0} students.`);
     } catch (e: any) {
       setErrorMsg(e.message || 'Error compiling reports. Ensure scores have been uploaded/saved first.');
     } finally {
       setCompiling(false);
+    }
+  };
+
+  const handleUpdateStatus = async (newStatus: string, reason?: string) => {
+    setTransitioningStatus(true);
+    setErrorMsg('');
+    setSuccessMsg('');
+    try {
+      const res = await fetch('/api/reports/status', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          schoolId: session.school.id,
+          classId: selectedClass,
+          armId: selectedArm,
+          termId: selectedTerm,
+          status: newStatus,
+          feedback: reason || null,
+        }),
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        throw new Error(json.error || 'Failed to update report status');
+      }
+      setReportStatus(newStatus);
+      setStatusFeedback(newStatus === 'REJECTED' ? (reason || null) : null);
+      
+      let statusName = '';
+      if (newStatus === 'AWAITING_APPROVAL') statusName = 'submitted for school approval';
+      else if (newStatus === 'APPROVED') statusName = 'approved and released to parents';
+      else if (newStatus === 'REJECTED') statusName = 'returned for correction';
+      else if (newStatus === 'DRAFT') statusName = 'reset to draft';
+
+      setSuccessMsg(`Report status successfully ${statusName}.`);
+      setShowRejectModal(false);
+      setAdminFeedbackInput('');
+    } catch (e: any) {
+      setErrorMsg(e.message || 'Failed to update status.');
+    } finally {
+      setTransitioningStatus(false);
     }
   };
 
@@ -305,6 +369,10 @@ export default function ReportCardCompilerPage() {
     }
   };
 
+  const userRole = session?.user?.role;
+  const isClassTeacher = userRole === 'CLASS_TEACHER';
+  const isAdmin = userRole === 'SCHOOL_ADMIN' || userRole === 'SUPER_ADMIN';
+
   if (loading) {
     return (
       <div className="h-[60vh] flex items-center justify-center">
@@ -362,6 +430,105 @@ export default function ReportCardCompilerPage() {
               <span>{errorMsg}</span>
             </div>
             <button type="button" onClick={() => setErrorMsg('')} className="text-red-500 hover:text-red-700">✕</button>
+          </div>
+        )}
+
+        {/* Compilation Workflow Status Banner */}
+        {reports.length > 0 && (
+          <div className="p-6 rounded-3xl bg-white border border-slate-200/80 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="flex items-start gap-3.5">
+              <div className={`p-3 rounded-2xl ${
+                reportStatus === 'APPROVED' ? 'bg-emerald-50 text-emerald-600' :
+                reportStatus === 'AWAITING_APPROVAL' ? 'bg-amber-50 text-amber-600' :
+                reportStatus === 'REJECTED' ? 'bg-rose-50 text-rose-600' :
+                'bg-slate-100 text-slate-600'
+              }`}>
+                {reportStatus === 'APPROVED' ? <CheckCircle className="w-6 h-6" /> :
+                 reportStatus === 'AWAITING_APPROVAL' ? <AlertCircle className="w-6 h-6 animate-pulse" /> :
+                 reportStatus === 'REJECTED' ? <AlertCircle className="w-6 h-6" /> :
+                 <CheckSquare className="w-6 h-6" />}
+              </div>
+              <div className="space-y-1">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-[10px] uppercase tracking-wider font-extrabold text-slate-400">Compilation Status</span>
+                  <span className={`px-2 py-0.5 rounded-lg text-[9px] font-extrabold uppercase border ${
+                    reportStatus === 'APPROVED' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
+                    reportStatus === 'AWAITING_APPROVAL' ? 'bg-amber-50 text-amber-700 border-amber-200' :
+                    reportStatus === 'REJECTED' ? 'bg-rose-50 text-rose-700 border-rose-200' :
+                    'bg-slate-100 text-slate-700 border-slate-200'
+                  }`}>
+                    {reportStatus === 'APPROVED' ? 'Approved & Released' :
+                     reportStatus === 'AWAITING_APPROVAL' ? 'Awaiting School Approval' :
+                     reportStatus === 'REJECTED' ? 'Returned for Correction' :
+                     'Draft'}
+                  </span>
+                </div>
+                <p className="text-xs text-slate-600 font-semibold leading-relaxed">
+                  {reportStatus === 'APPROVED' ? 'The results for this class arm have been fully approved and released. Parents and students are now able to view and print report cards.' :
+                   reportStatus === 'AWAITING_APPROVAL' ? 'The results are locked and awaiting final review and approval by school administrators. Subject teacher scoring is frozen.' :
+                   reportStatus === 'REJECTED' ? 'The results compile has been returned for correction. Please check the feedback below and update scores/remarks.' :
+                   'Draft mode. Score sheet updates are open. Once compiled and finalized, submit for school approval.'}
+                </p>
+                {reportStatus === 'REJECTED' && statusFeedback && (
+                  <div className="mt-2.5 p-3 rounded-xl bg-rose-50/50 border border-rose-100 text-xs font-semibold text-rose-850 italic leading-relaxed">
+                    <strong className="not-italic text-rose-900 block font-bold text-[10px] uppercase tracking-wider mb-0.5">Admin Correction Feedback:</strong>
+                    "{statusFeedback}"
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Actions for Class Teacher */}
+            {isClassTeacher && (reportStatus === 'DRAFT' || reportStatus === 'REJECTED') && (
+              <button
+                type="button"
+                disabled={transitioningStatus}
+                onClick={() => handleUpdateStatus('AWAITING_APPROVAL')}
+                className={`flex items-center justify-center gap-1.5 px-4.5 py-2.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap shadow-sm ${themeBgAccent}`}
+              >
+                {transitioningStatus ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                Submit for School Approval
+              </button>
+            )}
+
+            {/* Actions for School Admin / Super Admin */}
+            {isAdmin && (
+              <div className="flex flex-wrap gap-2.5 mt-2 md:mt-0">
+                {reportStatus === 'AWAITING_APPROVAL' && (
+                  <>
+                    <button
+                      type="button"
+                      disabled={transitioningStatus}
+                      onClick={() => handleUpdateStatus('APPROVED')}
+                      className="flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-750 transition-all shadow-sm"
+                    >
+                      {transitioningStatus ? <RefreshCw className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
+                      Approve & Release
+                    </button>
+                    <button
+                      type="button"
+                      disabled={transitioningStatus}
+                      onClick={() => setShowRejectModal(true)}
+                      className="flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-bold text-white bg-rose-600 hover:bg-rose-755 transition-all shadow-sm"
+                    >
+                      <X className="w-4 h-4" />
+                      Return for Correction
+                    </button>
+                  </>
+                )}
+                {reportStatus === 'APPROVED' && (
+                  <button
+                    type="button"
+                    disabled={transitioningStatus}
+                    onClick={() => handleUpdateStatus('DRAFT')}
+                    className="flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 transition-all border border-slate-250 shadow-sm"
+                  >
+                    {transitioningStatus ? <RefreshCw className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+                    Revoke Approval (Reset to Draft)
+                  </button>
+                )}
+              </div>
+            )}
           </div>
         )}
 
@@ -802,6 +969,61 @@ export default function ReportCardCompilerPage() {
 
               </div>
 
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 4.5. ADMIN REJECTION REASON MODAL (no-print) */}
+      {showRejectModal && (
+        <div className="no-print fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white border border-slate-200 rounded-3xl w-full max-w-md overflow-hidden flex flex-col shadow-2xl animate-in zoom-in-95 duration-150">
+            <div className="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+              <h3 className="font-extrabold text-slate-850 text-sm flex items-center gap-2">
+                <AlertCircle className="w-4.5 h-4.5 text-rose-600" /> Return for Correction
+              </h3>
+              <button 
+                type="button" 
+                onClick={() => {
+                  setShowRejectModal(false);
+                  setAdminFeedbackInput('');
+                }} 
+                className="p-1.5 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-400 hover:text-slate-650 border border-slate-200"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              <p className="text-xs text-slate-500 font-semibold leading-relaxed">
+                Please provide feedback or instructions explaining why these results are being returned for correction. The class teacher will see this message.
+              </p>
+              <textarea
+                value={adminFeedbackInput}
+                onChange={(e) => setAdminFeedbackInput(e.target.value)}
+                placeholder="e.g. Please verify the Mathematics grades and recheck the attendance records for JSS 1A."
+                className="w-full h-32 bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-slate-350 font-semibold text-slate-700 hover:border-slate-250 transition-colors resize-none"
+              />
+            </div>
+            <div className="p-5 border-t border-slate-100 flex justify-end gap-2 bg-slate-50/50">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowRejectModal(false);
+                  setAdminFeedbackInput('');
+                }}
+                className="px-4 py-2 rounded-xl text-xs font-bold text-slate-500 bg-white hover:bg-slate-50 border border-slate-200 transition-all"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={transitioningStatus || !adminFeedbackInput.trim()}
+                onClick={() => handleUpdateStatus('REJECTED', adminFeedbackInput)}
+                className="flex items-center gap-1.5 px-4.5 py-2 rounded-xl text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 disabled:opacity-50 transition-all shadow-sm"
+              >
+                {transitioningStatus ? <RefreshCw className="w-4 h-4 animate-spin" /> : null}
+                Send Feedback & Return
+              </button>
             </div>
           </div>
         </div>

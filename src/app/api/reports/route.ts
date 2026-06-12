@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/db';
 import { compileClassResults, getOrdinalSuffix } from '@/lib/rankingEngine';
+import { requireAuth } from '@/lib/auth-middleware';
 
 export async function GET(req: NextRequest) {
   try {
@@ -14,6 +15,27 @@ export async function GET(req: NextRequest) {
 
     if (!schoolId || !termId || !classId || !armId) {
       return NextResponse.json({ error: 'Missing required query parameters' }, { status: 400 });
+    }
+
+    // Role-based release validation
+    const session = await requireAuth(req);
+    if (session.role === 'PARENT' || session.role === 'STUDENT') {
+      const statusRecord = await prisma.classReportStatus.findUnique({
+        where: {
+          schoolId_classId_armId_termId: {
+            schoolId,
+            classId,
+            armId,
+            termId
+          }
+        }
+      });
+      if (!statusRecord || statusRecord.status !== 'APPROVED') {
+        return NextResponse.json(
+          { error: 'Term report cards have not been approved and released by the administration yet.' },
+          { status: 403 }
+        );
+      }
     }
 
     // 1. Fetch School Details

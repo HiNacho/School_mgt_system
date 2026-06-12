@@ -39,6 +39,7 @@ export default function DashboardHome() {
   const [showRosterModal, setShowRosterModal] = useState(false);
   const [rosterClassName, setRosterClassName] = useState('');
   const [rosterStudents, setRosterStudents] = useState<any[]>([]);
+  const [classStatuses, setClassStatuses] = useState<any[]>([]);
 
   // Parent specific states
   const [selectedChildId, setSelectedChildId] = useState<string>('');
@@ -68,6 +69,7 @@ export default function DashboardHome() {
     try {
       const schoolId = sess.school?.id;
       const role = sess.user.role;
+      let currentTermId = '';
 
       if (!schoolId) {
         setLoading(false);
@@ -89,6 +91,7 @@ export default function DashboardHome() {
       if (setupRes.ok) {
         const json = await setupRes.json();
         setSetupData(json.data);
+        currentTermId = json.data.terms?.find((t: any) => t.isCurrent)?.id || json.data.terms?.[0]?.id || '';
       }
       if (studentsRes.ok) {
         const json = await studentsRes.json();
@@ -117,6 +120,21 @@ export default function DashboardHome() {
       if (weeklyAttendanceRes.ok) {
         const json = await weeklyAttendanceRes.json();
         setWeeklyAttendance(json.data || []);
+      }
+
+      // Fetch class statuses if admin
+      if ((role === 'SCHOOL_ADMIN' || role === 'SUPER_ADMIN') && currentTermId) {
+        try {
+          const statusRes = await fetch(`/api/reports/status?schoolId=${schoolId}&termId=${currentTermId}&all=true`, { cache: 'no-store' });
+          if (statusRes.ok) {
+            const statusJson = await statusRes.json();
+            if (statusJson.success && statusJson.data) {
+              setClassStatuses(statusJson.data);
+            }
+          }
+        } catch (statusErr) {
+          console.error('Error fetching class statuses', statusErr);
+        }
       }
 
       // 2. Fetch notifications and submissions for teachers
@@ -510,6 +528,108 @@ export default function DashboardHome() {
                 </div>
               </div>
 
+            </div>
+
+            {/* Class Compilation Status Roster */}
+            <div className="bg-white border border-slate-100 p-6 rounded-3xl shadow-sm space-y-4">
+              <div className="flex justify-between items-center border-b border-slate-100 pb-3">
+                <div className="flex items-center gap-2">
+                  <Award className="w-4 h-4 text-emerald-500" />
+                  <h3 className="text-xs font-black uppercase text-slate-700 tracking-wider">Class Report Cards Status Roster</h3>
+                </div>
+                <span className="text-[9px] font-extrabold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded uppercase tracking-wider">APPROVAL CONTROL</span>
+              </div>
+              
+              <div className="overflow-x-auto rounded-2xl border border-slate-100">
+                <table className="w-full border-collapse text-left text-xs">
+                  <thead>
+                    <tr className="bg-slate-50 border-b border-slate-150 text-[9px] font-black uppercase tracking-wider text-slate-500">
+                      <th className="p-3.5">Class / Arm</th>
+                      <th className="p-3.5 text-center">Status</th>
+                      <th className="p-3.5">Admin Action</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 font-semibold text-slate-700">
+                    {(() => {
+                      const allClassArms = [];
+                      if (setupData?.classes && setupData?.arms) {
+                        for (const cls of setupData.classes) {
+                          const relatedArms = setupData.arms.filter((a: any) => a.classId === cls.id);
+                          for (const arm of relatedArms) {
+                            const matchedStatus = classStatuses.find(
+                              (s: any) => s.classId === cls.id && s.armId === arm.id
+                            );
+                            allClassArms.push({
+                              classId: cls.id,
+                              className: cls.name,
+                              armId: arm.id,
+                              armName: arm.name,
+                              status: matchedStatus?.status || 'DRAFT',
+                              feedback: matchedStatus?.feedback || null,
+                            });
+                          }
+                        }
+                      }
+
+                      if (allClassArms.length === 0) {
+                        return (
+                          <tr>
+                            <td colSpan={3} className="p-6 text-center text-slate-400 font-medium italic">
+                              No classes or arms configured yet in setups.
+                            </td>
+                          </tr>
+                        );
+                      }
+
+                      const termId = setupData?.terms?.find((t: any) => t.isCurrent)?.id || setupData?.terms?.[0]?.id || '';
+
+                      return allClassArms.map((item) => {
+                        let statusColor = 'bg-slate-50 text-slate-600 border-slate-150';
+                        let statusText = 'Draft';
+                        if (item.status === 'AWAITING_APPROVAL') {
+                          statusColor = 'bg-amber-50 text-amber-700 border-amber-200 animate-pulse';
+                          statusText = 'Pending Approval';
+                        } else if (item.status === 'APPROVED') {
+                          statusColor = 'bg-emerald-50 text-emerald-700 border-emerald-200';
+                          statusText = 'Released to Parents';
+                        } else if (item.status === 'REJECTED') {
+                          statusColor = 'bg-rose-50 text-rose-700 border-rose-200';
+                          statusText = 'Correction Required';
+                        }
+
+                        return (
+                          <tr key={`${item.classId}-${item.armId}`} className="hover:bg-slate-50/40 transition-colors">
+                            <td className="p-3.5">
+                              <span className="font-extrabold text-slate-800">{item.className} {item.armName}</span>
+                            </td>
+                            <td className="p-3.5 text-center">
+                              <span className={`inline-block px-2.5 py-0.5 rounded-lg text-[9px] font-black uppercase border ${statusColor}`}>
+                                {statusText}
+                              </span>
+                            </td>
+                            <td className="p-3.5">
+                              <a
+                                href={`/dashboard/compile?classId=${item.classId}&armId=${item.armId}&termId=${termId}`}
+                                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase transition-all shadow-sm border ${
+                                  item.status === 'AWAITING_APPROVAL'
+                                    ? 'bg-amber-500 hover:bg-amber-600 border-amber-600 text-white shadow-amber-500/10'
+                                    : 'bg-white hover:bg-slate-50 border-slate-200 text-slate-650 hover:text-slate-805'
+                                }`}
+                              >
+                                {item.status === 'AWAITING_APPROVAL' ? (
+                                  <>Review & Approve <ArrowRight className="w-3 h-3" /></>
+                                ) : (
+                                  <>Inspect Compiler <Eye className="w-3 h-3" /></>
+                                )}
+                              </a>
+                            </td>
+                          </tr>
+                        );
+                      });
+                    })()}
+                  </tbody>
+                </table>
+              </div>
             </div>
 
             {/* CHARTS CONTAINER GRID */}
