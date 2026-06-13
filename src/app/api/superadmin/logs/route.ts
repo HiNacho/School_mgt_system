@@ -58,8 +58,8 @@ export async function GET(req: NextRequest) {
 
   } catch (error: any) {
     console.error('Fetch Audit Logs Error:', error);
-    if (error instanceof AuthError) {
-      return NextResponse.json({ error: error.message }, { status: error.status });
+    if (error instanceof AuthError || error.name === 'AuthError' || (error.status && typeof error.status === 'number')) {
+      return NextResponse.json({ error: error.message }, { status: error.status || 401 });
     }
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }

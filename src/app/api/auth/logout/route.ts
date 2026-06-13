@@ -27,8 +27,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ success: true, message: 'Logged out successfully.' });
   } catch (error: any) {
     console.error('Logout API Error:', error);
-    if (error instanceof AuthError) {
-      return NextResponse.json({ error: error.message }, { status: error.status });
+    if (error instanceof AuthError || error.name === 'AuthError' || (error.status && typeof error.status === 'number')) {
+      return NextResponse.json({ error: error.message }, { status: error.status || 401 });
     }
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
