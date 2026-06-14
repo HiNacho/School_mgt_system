@@ -62,10 +62,48 @@ Dear ${name},
 
 Thank you for registering interest in NachoEd Report Card Automation! We're excited to help simplify academic operations at "${schoolName}".
 
-Here is a summary of what's happening next:
-1. Our onboarding engineers are preparing your isolated school tenant partition.
-2. A technical advisor will contact you at ${phone || email} to assist with uploading your teachers/students Excel rosters.
-3. We'll configure your grading matrices (such as A1-F9 scales or primary descriptors) so you can start compilation.
+To help you get started immediately, we have set up default test credentials you can use to explore the platform:
+
+Login Link: http://localhost:3000/login
+
+--------------------------------------------------
+🔑 PLATFORM-WIDE SUPER ADMIN CREDENTIALS
+--------------------------------------------------
+Role: Super Admin
+Username: superadmin
+Email: superadmin@system.com
+Password: password
+(Accesses SaaS tenants, billing plans, and central lead registries)
+
+--------------------------------------------------
+🔑 GREENWOOD SECONDARY ACADEMY (DEMO SCHOOL TENANT)
+--------------------------------------------------
+1. SCHOOL ADMIN PORTAL:
+   Username: schooladmin
+   Email: admin@greenwood.com
+   Password: password
+
+2. CLASS TEACHER PORTAL:
+   Username: classteacher
+   Email: classteacher@greenwood.com
+   Password: password
+
+3. SUBJECT TEACHER PORTAL:
+   Username: subjectteacher
+   Email: subjectteacher@greenwood.com
+   Password: password
+
+4. PARENT PORTAL:
+   Username: greenwood_parent
+   Email: parent@greenwood.com
+   Password: password
+
+5. STUDENT PORTAL:
+   Username: greenwood_student
+   Email: student@greenwood.com
+   Password: password
+
+Please use these credentials to log in, test workflows, view class registries, input grades, and compile academic reports.
 
 If you have any questions, reply directly to this email or chat with us instantly on WhatsApp.
 

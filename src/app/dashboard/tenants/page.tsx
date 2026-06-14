@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { 
   School, Plus, Shield, Users, FileSpreadsheet, CheckCircle, 
   AlertCircle, RefreshCw, Mail, Phone, MapPin, Sparkles, X, Check,
-  Search, Lock, Calendar, DollarSign, LineChart, Activity, Eye, Settings, AlertTriangle, CreditCard, ArrowRightLeft, Trash2
+  Search, Lock, Calendar, DollarSign, LineChart, Activity, Eye, Settings, AlertTriangle, CreditCard, ArrowRightLeft, Trash2, Loader2
 } from 'lucide-react';
 
 interface SchoolTenant {
@@ -136,7 +136,56 @@ To: ${lead.email}
 Name: ${lead.name}
 School Name: ${lead.schoolName}
 Timestamp: ${new Date().toISOString()}
-Subject: NachoEd Onboarding On-Demand Welcome Resend!
+Subject: Welcome to NachoEd - Report Card Automation Onboarding!
+
+Dear ${lead.name},
+
+Here is your requested welcome email resend containing the default credentials to access and explore the NachoEd platform!
+
+Use the link below to access the demo portals:
+Demo Portal Link: http://localhost:3000/login
+
+--------------------------------------------------
+🔑 PLATFORM-WIDE SUPER ADMIN CREDENTIALS
+--------------------------------------------------
+Role: Super Admin
+Username: superadmin
+Email: superadmin@system.com
+Password: password
+(Accesses SaaS tenants, billing plans, and central lead registries)
+
+--------------------------------------------------
+🔑 GREENWOOD SECONDARY ACADEMY (DEMO SCHOOL TENANT)
+--------------------------------------------------
+1. SCHOOL ADMIN PORTAL:
+   Username: schooladmin
+   Email: admin@greenwood.com
+   Password: password
+
+2. CLASS TEACHER PORTAL:
+   Username: classteacher
+   Email: classteacher@greenwood.com
+   Password: password
+
+3. SUBJECT TEACHER PORTAL:
+   Username: subjectteacher
+   Email: subjectteacher@greenwood.com
+   Password: password
+
+4. PARENT PORTAL:
+   Username: greenwood_parent
+   Email: parent@greenwood.com
+   Password: password
+
+5. STUDENT PORTAL:
+   Username: greenwood_student
+   Email: student@greenwood.com
+   Password: password
+
+Please use these credentials to log in, test workflows, view class registries, input grades, and compile academic reports.
+
+Best Regards,
+The NachoEd Support Team
 ============================================================
 `);
       
