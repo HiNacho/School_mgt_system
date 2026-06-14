@@ -108,6 +108,47 @@ export default function DashboardHome() {
       let currentTermId = '';
 
       if (!schoolId) {
+        if (role === 'SUPER_ADMIN') {
+          // Fetch global platform-wide statistics for Super Admin
+          const [schoolsRes, leadsRes] = await Promise.all([
+            fetch('/api/schools', { cache: 'no-store' }),
+            fetch('/api/superadmin/leads', { cache: 'no-store' })
+          ]);
+
+          let allSchools: any[] = [];
+          if (schoolsRes.ok) {
+            const json = await schoolsRes.json();
+            allSchools = json.data || [];
+          }
+
+          let allLeads: any[] = [];
+          if (leadsRes.ok) {
+            const json = await leadsRes.json();
+            allLeads = json.data || [];
+          }
+
+          // Aggregate platform totals
+          const totalStudents = allSchools.reduce((sum: number, s: any) => sum + (s.studentCount || 0), 0);
+          const totalStaff = allSchools.reduce((sum: number, s: any) => sum + (s.staffCount || 0), 0);
+
+          // Populate local states so standard KPI metric card logic works
+          setStudents(new Array(totalStudents).fill({ status: 'ACTIVE' }));
+          
+          // Re-create a representative staff list with roles to feed filters:
+          const aggregatedStaff: any[] = [];
+          allSchools.forEach((s: any) => {
+            // Assume 1 admin per school, and the rest are teachers
+            aggregatedStaff.push({ role: 'SCHOOL_ADMIN' });
+            const teachersCount = Math.max(0, s.staffCount - 1);
+            for (let i = 0; i < teachersCount; i++) {
+              aggregatedStaff.push({ role: 'CLASS_TEACHER' });
+            }
+          });
+          setStaff(aggregatedStaff);
+
+          // Map parents count to total registered leads
+          setParents(new Array(allLeads.length).fill({}));
+        }
         setLoading(false);
         return;
       }
