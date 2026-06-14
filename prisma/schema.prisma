@@ -497,3 +497,13 @@ model ClassReportStatus {
   @@unique([schoolId, classId, armId, termId])
 }
 
+model Lead {
+  id         String   @id @default(uuid())
+  name       String
+  email      String   @unique
+  schoolName String
+  phone      String?
+  message    String?  // Optional inquiry message if registered via Contact form
+  createdAt  DateTime @default(now())
+}
+

@@ -55,13 +55,29 @@ export default function RootLayout({
         <script
           dangerouslySetInnerHTML={{
             __html: `
-              if ('serviceWorker' in navigator) {
-                window.addEventListener('load', function() {
-                  navigator.serviceWorker.register('/sw.js').then(
-                    function(reg) { console.log('SW scope:', reg.scope); },
-                    function(err) { console.error('SW registration failed:', err); }
-                  );
-                });
+              if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
+                var hostname = window.location.hostname;
+                var isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1' || hostname.startsWith('192.168.');
+                if (isLocalhost) {
+                  navigator.serviceWorker.getRegistrations().then(function(registrations) {
+                    var unregistered = false;
+                    for (var i = 0; i < registrations.length; i++) {
+                      registrations[i].unregister();
+                      unregistered = true;
+                    }
+                    if (unregistered) {
+                      console.log('[Service Worker] Unregistered active service worker in development');
+                      window.location.reload();
+                    }
+                  });
+                } else {
+                  window.addEventListener('load', function() {
+                    navigator.serviceWorker.register('/sw.js').then(
+                      function(reg) { console.log('SW scope:', reg.scope); },
+                      function(err) { console.error('SW registration failed:', err); }
+                    );
+                  });
+                }
               }
             `
           }}

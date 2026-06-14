@@ -50,9 +50,12 @@ export default function SchoolTenantsPage() {
   const [tenants, setTenants] = useState<SchoolTenant[]>([]);
   const [payments, setPayments] = useState<PaymentRecord[]>([]);
   const [usageLogs, setUsageLogs] = useState<UsageRecord[]>([]);
+  const [leads, setLeads] = useState<any[]>([]);
   
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'schools' | 'payments' | 'usage'>('schools');
+  const [activeTab, setActiveTab] = useState<'schools' | 'payments' | 'usage' | 'leads'>('schools');
+  const [searchLeadQuery, setSearchLeadQuery] = useState('');
+  const [resendingLeadId, setResendingLeadId] = useState<string | null>(null);
   
   // Registration Form State
   const [showRegModal, setShowRegModal] = useState(false);
@@ -88,27 +91,60 @@ export default function SchoolTenantsPage() {
     setLoading(true);
     setErrorMsg('');
     try {
-      const [schoolsRes, paymentsRes, usageRes] = await Promise.all([
+      const [schoolsRes, paymentsRes, usageRes, leadsRes] = await Promise.all([
         fetch('/api/schools', { cache: 'no-store' }),
         fetch('/api/superadmin/payments', { cache: 'no-store' }),
-        fetch('/api/superadmin/usage', { cache: 'no-store' })
+        fetch('/api/superadmin/usage', { cache: 'no-store' }),
+        fetch('/api/superadmin/leads', { cache: 'no-store' })
       ]);
 
       const schoolsJson = await schoolsRes.json();
       const paymentsJson = await paymentsRes.json();
       const usageJson = await usageRes.json();
+      const leadsJson = await leadsRes.json();
 
       if (!schoolsRes.ok) throw new Error(schoolsJson.error || 'Failed to load school tenants');
       if (!paymentsRes.ok) throw new Error(paymentsJson.error || 'Failed to load payments logs');
       if (!usageRes.ok) throw new Error(usageJson.error || 'Failed to load usage telemetry');
+      if (!leadsRes.ok) throw new Error(leadsJson.error || 'Failed to load registered leads');
 
       setTenants(schoolsJson.data || []);
       setPayments(paymentsJson.data || []);
       setUsageLogs(usageJson.data || []);
+      setLeads(leadsJson.data || []);
     } catch (e: any) {
       setErrorMsg(e.message || 'Error loading platform separation matrix databases');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleResendWelcomeEmail = async (lead: any) => {
+    setResendingLeadId(lead.id);
+    setErrorMsg('');
+    setSuccessMsg('');
+    
+    try {
+      // Simulate network request/email sending delay
+      await new Promise((resolve) => setTimeout(resolve, 800));
+      
+      console.log(`
+============================================================
+📬 [RESEND AUTOMATED WELCOME EMAIL] DISPATCHED!
+============================================================
+To: ${lead.email}
+Name: ${lead.name}
+School Name: ${lead.schoolName}
+Timestamp: ${new Date().toISOString()}
+Subject: NachoEd Onboarding On-Demand Welcome Resend!
+============================================================
+`);
+      
+      setSuccessMsg(`Simulated welcome email successfully resent to ${lead.email}! Check server terminal logs.`);
+    } catch (e: any) {
+      setErrorMsg('Failed to resend automated welcome email.');
+    } finally {
+      setResendingLeadId(null);
     }
   };
 
@@ -481,7 +517,7 @@ export default function SchoolTenantsPage() {
       )}
 
       {/* Business Stat Widgets */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         <div className="p-5 rounded-3xl bg-white border border-slate-200/60 shadow-sm flex items-center gap-4">
           <div className="p-3 rounded-xl bg-emerald-50 text-emerald-600">
             <School className="w-5 h-5" />
@@ -489,6 +525,16 @@ export default function SchoolTenantsPage() {
           <div>
             <span className="block text-[10px] text-slate-400 font-bold uppercase tracking-wider">Total / Active</span>
             <span className="text-xl font-extrabold text-slate-800">{tenants.length} / <span className="text-emerald-650">{activeCount} Schools</span></span>
+          </div>
+        </div>
+
+        <div className="p-5 rounded-3xl bg-white border border-slate-200/60 shadow-sm flex items-center gap-4">
+          <div className="p-3 rounded-xl bg-purple-50 text-purple-600">
+            <Mail className="w-5 h-5" />
+          </div>
+          <div>
+            <span className="block text-[10px] text-slate-400 font-bold uppercase tracking-wider">Registered Leads</span>
+            <span className="text-xl font-extrabold text-slate-800">{leads.length} Leads</span>
           </div>
         </div>
 
@@ -524,7 +570,7 @@ export default function SchoolTenantsPage() {
       </div>
 
       {/* Tabs navigation block */}
-      <div className="flex border-b border-slate-200 bg-white p-1 rounded-2xl border border-slate-150 max-w-md">
+      <div className="flex border-b border-slate-200 bg-white p-1 rounded-2xl border border-slate-150 w-full max-w-2xl">
         <button
           type="button"
           onClick={() => setActiveTab('schools')}
@@ -535,6 +581,17 @@ export default function SchoolTenantsPage() {
           }`}
         >
           <School className="w-4 h-4" /> Schools Registry
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab('leads')}
+          className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer ${
+            activeTab === 'leads' 
+              ? 'bg-emerald-50 text-emerald-800 border border-emerald-100 shadow-sm font-black' 
+              : 'text-slate-400 hover:text-slate-650'
+          }`}
+        >
+          <Mail className="w-4 h-4" /> Lead Registrations
         </button>
         <button
           type="button"
@@ -814,6 +871,111 @@ export default function SchoolTenantsPage() {
                           </td>
                           <td className="p-4 text-[10px] text-slate-400 font-mono">
                             {new Date(l.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 4: LEADS REGISTRATIONS */}
+          {activeTab === 'leads' && (
+            <div className="bg-white border border-slate-200/80 rounded-3xl shadow-sm p-6 space-y-4 animate-fadeIn">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-100 pb-3 gap-3">
+                <div>
+                  <h3 className="text-xs font-black uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+                    <Mail className="w-4 h-4 text-emerald-600" /> Platform Lead Registrations & Trial Signups
+                  </h3>
+                  <span className="text-[10px] text-slate-400 font-medium font-sans">
+                    View registrations submitted via homepage trial buttons and Contact Us inquiries.
+                  </span>
+                </div>
+                
+                {/* Search Bar */}
+                <div className="relative max-w-xs w-full">
+                  <span className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-slate-400">
+                    <Search className="w-3.5 h-3.5" />
+                  </span>
+                  <input
+                    type="text"
+                    placeholder="Search name or school..."
+                    value={searchLeadQuery}
+                    onChange={(e) => setSearchLeadQuery(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-3 py-1.5 text-xs focus:outline-none focus:border-slate-350 font-semibold text-slate-700 hover:border-slate-250 transition-colors"
+                  />
+                </div>
+              </div>
+
+              <div className="overflow-x-auto rounded-2xl border border-slate-200/60 shadow-sm">
+                <table className="w-full border-collapse text-left text-xs font-semibold text-slate-650">
+                  <thead>
+                    <tr className="bg-slate-50 border-b border-slate-200 text-[10px] font-black uppercase tracking-wider text-slate-400">
+                      <th className="p-4">Reference</th>
+                      <th className="p-4">Name</th>
+                      <th className="p-4">Email</th>
+                      <th className="p-4">School</th>
+                      <th className="p-4">Phone</th>
+                      <th className="p-4">Message / Source</th>
+                      <th className="p-4">Registered On</th>
+                      <th className="p-4 text-center">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 font-semibold">
+                    {leads.filter(l => 
+                      l.name.toLowerCase().includes(searchLeadQuery.toLowerCase()) ||
+                      l.schoolName.toLowerCase().includes(searchLeadQuery.toLowerCase()) ||
+                      l.email.toLowerCase().includes(searchLeadQuery.toLowerCase())
+                    ).length === 0 ? (
+                      <tr>
+                        <td colSpan={8} className="p-12 text-center text-slate-400 font-bold italic">
+                          No registered leads match your filter.
+                        </td>
+                      </tr>
+                    ) : (
+                      leads.filter(l => 
+                        l.name.toLowerCase().includes(searchLeadQuery.toLowerCase()) ||
+                        l.schoolName.toLowerCase().includes(searchLeadQuery.toLowerCase()) ||
+                        l.email.toLowerCase().includes(searchLeadQuery.toLowerCase())
+                      ).map((l) => (
+                        <tr key={l.id} className="hover:bg-slate-50/40">
+                          <td className="p-4 font-mono text-[9px] text-slate-400 uppercase">#{l.id.split('-')[0]}</td>
+                          <td className="p-4 text-slate-800 font-extrabold">{l.name}</td>
+                          <td className="p-4 font-mono text-slate-600">{l.email}</td>
+                          <td className="p-4 text-slate-800 font-extrabold">{l.schoolName}</td>
+                          <td className="p-4 text-slate-500 font-mono">{l.phone || 'N/A'}</td>
+                          <td className="p-4 max-w-[200px] truncate">
+                            {l.message ? (
+                              <span className="text-slate-700 bg-blue-50 text-[10px] px-2 py-0.5 rounded border border-blue-100 font-bold block overflow-hidden text-ellipsis whitespace-nowrap" title={l.message}>
+                                💬 {l.message}
+                              </span>
+                            ) : (
+                              <span className="text-emerald-700 bg-emerald-50 text-[10px] px-2 py-0.5 rounded border border-emerald-100 font-bold">
+                                🚀 Free Trial Request
+                              </span>
+                            )}
+                          </td>
+                          <td className="p-4 text-[10px] text-slate-400 font-mono">
+                            {new Date(l.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                          </td>
+                          <td className="p-4 text-center">
+                            <button
+                              type="button"
+                              disabled={resendingLeadId === l.id}
+                              onClick={() => handleResendWelcomeEmail(l)}
+                              className="px-3 py-1 bg-slate-100 hover:bg-emerald-50 hover:text-emerald-700 border border-slate-200 hover:border-emerald-200 text-slate-500 text-[10px] font-black uppercase tracking-wider transition-colors inline-flex items-center gap-1 cursor-pointer"
+                            >
+                              {resendingLeadId === l.id ? (
+                                <>
+                                  <Loader2 className="w-3 h-3 animate-spin" />
+                                  <span>Resending...</span>
+                                </>
+                              ) : (
+                                <span>Resend Email</span>
+                              )}
+                            </button>
                           </td>
                         </tr>
                       ))

@@ -188,7 +188,172 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }
 
   return (
-    <div className="min-h-screen flex flex-col font-sans overflow-hidden bg-slate-50">
+    <div className="min-h-screen flex flex-col font-sans overflow-hidden bg-[#f8f9fa]">
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Playfair+Display:ital,wght@1,400;1,600&display=swap');
+        
+        :root {
+          --font-sans: 'Plus Jakarta Sans', sans-serif;
+          --font-serif: 'Playfair Display', serif;
+        }
+
+        body, .font-sans, .font-sans-custom {
+          font-family: var(--font-sans) !important;
+          background-color: #f8f9fa !important;
+        }
+
+        .serif-italic {
+          font-family: var(--font-serif) !important;
+        }
+
+        /* Border Overrides */
+        .border-slate-100, .border-slate-200, .border-slate-150, .border-slate-300, .border-slate-200\/60, .border-slate-200\/80, .border-slate-800\/80, .border-slate-850, .border-slate-250 {
+          border-color: #e9ecef !important;
+        }
+        .divide-slate-100 > * + * {
+          border-color: #e9ecef !important;
+        }
+
+        /* Card and container backgrounds */
+        .bg-slate-50, .bg-slate-900\/60, .bg-slate-900\/80, .bg-slate-950, .bg-slate-950\/40, .bg-slate-100 {
+          background-color: #f8f9fa !important;
+        }
+        main {
+          background-color: #f8f9fa !important;
+        }
+        aside, header {
+          background-color: #ffffff !important;
+        }
+        .bg-white {
+          background-color: #ffffff !important;
+        }
+        
+        /* Table headers */
+        .bg-slate-50, th {
+          background-color: #f8f9fa !important;
+        }
+        
+        /* Sidebar active items */
+        .bg-blue-50, .bg-indigo-50, .bg-emerald-50, .bg-blue-50\/50, .bg-indigo-50\/50, .bg-emerald-50\/50 {
+          background-color: #f1f3f5 !important;
+          color: #1e293b !important;
+          border-color: #cbd5e1 !important;
+        }
+        .text-blue-600, .text-indigo-600, .text-emerald-600 {
+          color: #1e293b !important;
+        }
+        .border-blue-100, .border-indigo-100, .border-emerald-100 {
+          border-color: #cbd5e1 !important;
+        }
+
+        /* Forms, Inputs, Selects & Textareas */
+        input, select, textarea {
+          font-family: var(--font-sans) !important;
+          background-color: #ffffff !important;
+          border: 1px solid #e9ecef !important;
+          color: #1e293b !important;
+          border-radius: 0.75rem !important;
+          font-weight: 500 !important;
+          transition: all 0.2s ease-in-out !important;
+        }
+        input:focus, select:focus, textarea:focus {
+          border-color: #cbd5e1 !important;
+          outline: none !important;
+          box-shadow: 0 0 0 2px rgba(30, 41, 59, 0.05) !important;
+        }
+        label, .text-\[9px\]\.font-bold\.uppercase\.tracking-widest {
+          color: #64748b !important;
+          font-weight: 700 !important;
+          letter-spacing: 0.08em !important;
+        }
+
+        /* Buttons Overrides */
+        .bg-blue-600, .bg-indigo-600, .bg-emerald-600, .bg-blue-500, .bg-indigo-500, .bg-emerald-500 {
+          background-color: #1e293b !important;
+          color: #ffffff !important;
+          border-radius: 0.75rem !important;
+          transition: all 0.2s ease-in-out !important;
+        }
+        .bg-blue-600:hover, .bg-indigo-600:hover, .bg-emerald-600:hover, .bg-blue-500:hover, .bg-indigo-500:hover, .bg-emerald-500:hover {
+          background-color: #0f172a !important;
+        }
+        .text-blue-600, .text-indigo-600, .text-emerald-600 {
+          color: #1e293b !important;
+        }
+
+        /* Calendar Widget Custom Overrides */
+        .bg-blue-600.text-white, .bg-indigo-600.text-white {
+          background-color: #1e293b !important;
+          color: #ffffff !important;
+        }
+        .bg-blue-50.text-blue-600, .bg-indigo-50.text-indigo-600 {
+          background-color: #f1f3f5 !important;
+          color: #1e293b !important;
+          border-color: #cbd5e1 !important;
+        }
+
+        /* Status Badge/Card overrides (keeps semantics but clean/soft) */
+        .bg-green-50, .bg-emerald-50\/20 {
+          background-color: #eafaf1 !important;
+          color: #10b981 !important;
+          border-color: #d1fae5 !important;
+        }
+        .bg-red-50, .bg-red-50\/20 {
+          background-color: #fbf1f2 !important;
+          color: #ef4444 !important;
+          border-color: #fee2e2 !important;
+        }
+        .bg-amber-50, .bg-amber-50\/20 {
+          background-color: #fdf4e9 !important;
+          color: #f59e0b !important;
+          border-color: #fef3c7 !important;
+        }
+        .text-green-800, .text-emerald-800 {
+          color: #10b981 !important;
+        }
+        .text-red-800 {
+          color: #ef4444 !important;
+        }
+        .text-amber-800 {
+          color: #d97706 !important;
+        }
+
+        /* KPI Card Override */
+        .bg-\[\#edf2fe\], .bg-\[\#fdf4e9\], .bg-\[\#eafaf1\], .bg-\[\#fbf1f2\] {
+          background-color: #ffffff !important;
+          border-color: #e9ecef !important;
+        }
+
+        /* KPI Text Colors */
+        .text-blue-800, .text-amber-800, .text-emerald-800, .text-red-800 {
+          color: #1e293b !important;
+        }
+        .text-blue-500, .text-amber-600, .text-emerald-600, .text-red-650, .text-red-600 {
+          color: #94a3b8 !important;
+        }
+
+        /* Global headings to match NachoEd theme */
+        h1, h2, h3, h4, h5, h6, .text-slate-800, .text-slate-900 {
+          color: #1e293b !important;
+        }
+        .text-slate-400, .text-slate-500, .text-slate-450 {
+          color: #64748b !important;
+        }
+
+        /* Modals & Dialog Boxes */
+        .modal-content, .bg-white.rounded-3xl {
+          background-color: #ffffff !important;
+          border: 1px solid #e9ecef !important;
+        }
+
+        @keyframes float-slow {
+          0%, 100% { transform: translateY(0px) rotate(0deg); }
+          50% { transform: translateY(-8px) rotate(1deg); }
+        }
+        .animate-float-slow {
+          animation: float-slow 7s ease-in-out infinite;
+        }
+      `}</style>
       {/* Impersonation Banner */}
       {isImpersonating && (
         <div className="bg-yellow-500 text-slate-900 px-6 py-2.5 flex items-center justify-between z-[9999] text-xs font-black shadow-md shrink-0 border-b border-yellow-600 animate-fadeIn">
@@ -214,19 +379,21 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       {/* 1. Desktop Sidebar */}
       <aside className="w-64 bg-white border-r border-slate-200/80 flex flex-col justify-between hidden lg:flex flex-shrink-0 z-40">
         <div className="overflow-y-auto flex-1">
-          <div className="p-5 flex items-center gap-3">
-            {role === 'SUPER_ADMIN' ? (
-              <div className="p-2 rounded-xl bg-indigo-50 text-indigo-600 border border-indigo-100 shadow-sm">
-                <Sparkles className="w-5 h-5 text-indigo-600 animate-pulse" />
-              </div>
-            ) : school?.logoUrl ? (
+          <div className="p-5 flex items-center gap-3 border-b border-[#e9ecef] mb-2">
+            {school?.logoUrl ? (
               <img src={school.logoUrl} alt="School Crest" className="w-8 h-8 rounded-xl object-cover border border-slate-200 bg-white" />
             ) : (
-              <div className="p-2 rounded-xl bg-indigo-50 text-indigo-600 border border-indigo-100 shadow-sm">
-                <Sparkles className="w-5 h-5 text-indigo-600" />
-              </div>
+              <svg viewBox="0 0 100 100" className="w-8 h-8 flex-shrink-0" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M50 15 C25 25 25 60 50 85 C75 60 75 25 50 15 Z" fill="#eff6ff" stroke="#3b82f6" strokeWidth="4" />
+                <path d="M36 45 C42 48 48 51 50 54 C52 51 58 48 64 45 V65 C58 68 52 71 50 74 C48 71 42 68 36 65 Z" fill="#2563eb" stroke="#1d4ed8" strokeWidth="1.5" />
+                <path d="M50 54 V74" stroke="#1d4ed8" strokeWidth="1.5" />
+                <path d="M50 22 L62 27 L50 32 L38 27 Z" fill="#1e293b" />
+                <path d="M44 29.5 V33 C44 36 56 36 56 33 V29.5" fill="#1e293b" />
+                <path d="M62 27 V35" stroke="#db2777" strokeWidth="1.5" />
+                <circle cx="62" cy="35" r="1.5" fill="#db2777" />
+              </svg>
             )}
-            <span className="font-bold text-lg text-slate-900 tracking-tight truncate max-w-[150px]" title={role === 'SUPER_ADMIN' ? 'NachoEd' : (school?.name || 'NachoEd')}>
+            <span className="font-bold text-base text-[#1e293b] tracking-tight truncate max-w-[150px] uppercase font-sans-custom" title={role === 'SUPER_ADMIN' ? 'NachoEd' : (school?.name || 'NachoEd')}>
               {role === 'SUPER_ADMIN' ? 'NachoEd' : (school?.name || 'NachoEd')}
             </span>
           </div>
@@ -305,20 +472,22 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             onClick={(e) => e.stopPropagation()}
           >
             <div>
-              <div className="flex items-center justify-between pb-5 border-b border-slate-100 mb-4">
-                <div className="flex items-center gap-2">
-                  {role === 'SUPER_ADMIN' ? (
-                    <div className="p-1.5 rounded-lg bg-indigo-50 text-indigo-600 border border-indigo-100 shadow-sm">
-                      <Sparkles className="w-4 h-4 text-indigo-600" />
-                    </div>
-                  ) : school?.logoUrl ? (
+              <div className="flex items-center justify-between pb-5 border-b border-[#e9ecef] mb-4">
+                <div className="flex items-center gap-2.5">
+                  {school?.logoUrl ? (
                     <img src={school.logoUrl} alt="School Crest" className="w-6 h-6 rounded-lg object-cover border border-slate-200 bg-white" />
                   ) : (
-                    <div className="p-1.5 rounded-lg bg-indigo-50 text-indigo-600 border border-indigo-100 shadow-sm">
-                      <Sparkles className="w-4 h-4 text-indigo-600" />
-                    </div>
+                    <svg viewBox="0 0 100 100" className="w-6 h-6 flex-shrink-0" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M50 15 C25 25 25 60 50 85 C75 60 75 25 50 15 Z" fill="#eff6ff" stroke="#3b82f6" strokeWidth="4" />
+                      <path d="M36 45 C42 48 48 51 50 54 C52 51 58 48 64 45 V65 C58 68 52 71 50 74 C48 71 42 68 36 65 Z" fill="#2563eb" stroke="#1d4ed8" strokeWidth="1.5" />
+                      <path d="M50 54 V74" stroke="#1d4ed8" strokeWidth="1.5" />
+                      <path d="M50 22 L62 27 L50 32 L38 27 Z" fill="#1e293b" />
+                      <path d="M44 29.5 V33 C44 36 56 36 56 33 V29.5" fill="#1e293b" />
+                      <path d="M62 27 V35" stroke="#db2777" strokeWidth="1.5" />
+                      <circle cx="62" cy="35" r="1.5" fill="#db2777" />
+                    </svg>
                   )}
-                  <span className="font-bold text-sm text-slate-900 truncate max-w-[130px]" title={role === 'SUPER_ADMIN' ? 'NachoEd' : (school?.name || 'NachoEd')}>
+                  <span className="font-bold text-sm text-[#1e293b] truncate max-w-[130px] uppercase font-sans-custom" title={role === 'SUPER_ADMIN' ? 'NachoEd' : (school?.name || 'NachoEd')}>
                     {role === 'SUPER_ADMIN' ? 'NachoEd' : (school?.name || 'NachoEd')}
                   </span>
                 </div>
