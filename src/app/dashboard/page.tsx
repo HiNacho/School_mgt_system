@@ -120,15 +120,9 @@ export default function DashboardHome() {
           allSchools = json.data || [];
         }
 
-        let allLeads: any[] = [];
-        if (leadsRes.ok) {
-          const json = await leadsRes.json();
-          allLeads = json.data || [];
-        }
-
         // Aggregate platform totals
         const totalStudents = allSchools.reduce((sum: number, s: any) => sum + (s.studentCount || 0), 0);
-        const totalStaff = allSchools.reduce((sum: number, s: any) => sum + (s.staffCount || 0), 0);
+        const totalParents = allSchools.reduce((sum: number, s: any) => sum + (s.parentCount || 0), 0);
 
         // Populate local states so standard KPI metric card logic works
         setStudents(new Array(totalStudents).fill({ status: 'ACTIVE' }));
@@ -136,17 +130,19 @@ export default function DashboardHome() {
         // Re-create a representative staff list with roles to feed filters:
         const aggregatedStaff: any[] = [];
         allSchools.forEach((s: any) => {
-          // Assume 1 admin per school, and the rest are teachers
-          aggregatedStaff.push({ role: 'SCHOOL_ADMIN' });
-          const teachersCount = Math.max(0, s.staffCount - 1);
+          const adminsCount = s.adminCount || 0;
+          const teachersCount = s.teacherCount || 0;
+          for (let i = 0; i < adminsCount; i++) {
+            aggregatedStaff.push({ role: 'SCHOOL_ADMIN' });
+          }
           for (let i = 0; i < teachersCount; i++) {
             aggregatedStaff.push({ role: 'CLASS_TEACHER' });
           }
         });
         setStaff(aggregatedStaff);
 
-        // Map parents count to total registered leads
-        setParents(new Array(allLeads.length).fill({}));
+        // Map parents count to actual registered school parents
+        setParents(new Array(totalParents).fill({}));
         setLoading(false);
         return;
       }

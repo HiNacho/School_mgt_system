@@ -62,8 +62,13 @@ export async function GET(req: NextRequest) {
         _count: {
           select: {
             students: true,
-            users: true,
             scores: true,
+            parents: true,
+          }
+        },
+        users: {
+          select: {
+            role: true
           }
         },
         payments: true,
@@ -80,6 +85,9 @@ export async function GET(req: NextRequest) {
         .filter(p => p.status === 'paid')
         .reduce((sum, p) => sum + p.amount, 0);
 
+      const adminCount = s.users.filter(u => u.role === 'SCHOOL_ADMIN').length;
+      const teacherCount = s.users.filter(u => ['CLASS_TEACHER', 'SUBJECT_TEACHER', 'HEAD_TEACHER'].includes(u.role)).length;
+
       return {
         id: s.id,
         name: s.name,
@@ -90,7 +98,10 @@ export async function GET(req: NextRequest) {
         gradingType: s.gradingType,
         createdAt: s.createdAt,
         studentCount: s._count.students,
-        staffCount: s._count.users,
+        staffCount: s.users.length,
+        adminCount,
+        teacherCount,
+        parentCount: s._count.parents,
         scoresRecorded: s._count.scores,
         subscriptionPlan: s.subscriptionPlan,
         subscriptionStatus: s.subscriptionStatus,
