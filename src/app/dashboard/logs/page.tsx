@@ -32,6 +32,10 @@ export default function AuditLogsPage() {
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState('');
 
+  // Pagination
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 15;
+
   const fetchLogs = async () => {
     setLoading(true);
     setErrorMsg('');
@@ -89,6 +93,11 @@ export default function AuditLogsPage() {
     }
   }, [session, schoolFilter]);
 
+  // Reset page when search or other filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, roleFilter, statusFilter, schoolFilter]);
+
   // Format date helper
   const formatDate = (dateStr: string) => {
     if (!dateStr) return '—';
@@ -137,6 +146,11 @@ export default function AuditLogsPage() {
 
     return matchesSearch && matchesRole && matchesStatus;
   });
+
+  // Paginated logs
+  const totalPages = Math.ceil(filteredLogs.length / ITEMS_PER_PAGE);
+  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+  const paginatedLogs = filteredLogs.slice(startIndex, startIndex + ITEMS_PER_PAGE);
 
   const isGreenwood = session?.school?.slug === 'greenwood-secondary';
   const accentText = isGreenwood ? 'text-emerald-500' : 'text-indigo-500';
@@ -278,7 +292,8 @@ export default function AuditLogsPage() {
             </div>
           </div>
         ) : (
-          <div className="overflow-x-auto">
+          <>
+            <div className="overflow-x-auto">
             <table className="w-full border-collapse text-left text-xs font-semibold text-slate-600">
               <thead className="bg-slate-50 text-[10px] text-slate-400 uppercase tracking-wider font-extrabold border-b border-slate-100">
                 <tr>
@@ -292,7 +307,7 @@ export default function AuditLogsPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {filteredLogs.map((log: any) => {
+                {paginatedLogs.map((log: any) => {
                   const isSuccess = true; // LoginAuditLog records are always successful logins
                   const deviceAgent = log.deviceInfo || 'Unknown client';
                   const isMobile = /mobile|android|iphone/i.test(deviceAgent);
@@ -387,6 +402,36 @@ export default function AuditLogsPage() {
               </tbody>
             </table>
           </div>
+          {/* Pagination Controls */}
+          {totalPages > 1 && (
+            <div className="bg-slate-50 border-t border-slate-100 px-6 py-4 flex flex-col sm:flex-row items-center justify-between gap-3 font-sans">
+              <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
+                Showing {startIndex + 1} to {Math.min(startIndex + ITEMS_PER_PAGE, filteredLogs.length)} of {filteredLogs.length} entries
+              </span>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  disabled={currentPage === 1}
+                  onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                  className="px-3 py-1.5 border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 disabled:opacity-40 disabled:hover:bg-white rounded-lg text-xs font-bold transition-all cursor-pointer"
+                >
+                  Previous
+                </button>
+                <span className="text-xs text-slate-600 font-bold px-2">
+                  Page {currentPage} of {totalPages}
+                </span>
+                <button
+                  type="button"
+                  disabled={currentPage === totalPages}
+                  onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                  className="px-3 py-1.5 border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 disabled:opacity-40 disabled:hover:bg-white rounded-lg text-xs font-bold transition-all cursor-pointer"
+                >
+                  Next
+                </button>
+              </div>
+            </div>
+          )}
+          </>
         )}
       </div>
 
