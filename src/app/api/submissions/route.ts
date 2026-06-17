@@ -54,7 +54,7 @@ export async function GET(req: NextRequest) {
         },
         include: {
           teacher: {
-            select: { id: true, firstName: true, lastName: true, email: true }
+            select: { id: true, firstName: true, lastName: true, title: true, email: true }
           },
           subject: true,
           class: true,
@@ -119,7 +119,7 @@ export async function GET(req: NextRequest) {
         },
         include: {
           teacher: {
-            select: { id: true, firstName: true, lastName: true }
+            select: { id: true, firstName: true, lastName: true, title: true }
           },
           subject: true,
           class: true,

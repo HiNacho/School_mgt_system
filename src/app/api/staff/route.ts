@@ -54,6 +54,7 @@ export async function GET(req: NextRequest) {
           email: s.email,
           firstName: s.firstName,
           lastName: s.lastName,
+          title: s.title,
           role: s.role,
           phone: s.phone || 'Not Provided',
           passportPhoto: s.passportPhoto || null,
@@ -93,6 +94,7 @@ export async function GET(req: NextRequest) {
       email: s.email,
       firstName: s.firstName,
       lastName: s.lastName,
+      title: s.title,
       role: s.role,
       phone: s.phone || 'Not Provided',
       passportPhoto: s.passportPhoto || null,
@@ -127,7 +129,7 @@ export async function POST(req: NextRequest) {
 
     const body = await req.json();
     const { 
-      schoolId, email, firstName, lastName, role, phone, passportPhoto,
+      schoolId, email, firstName, lastName, title, role, phone, passportPhoto,
       classTeacherArmId, subjectAssignments 
     } = body;
 
@@ -168,6 +170,7 @@ export async function POST(req: NextRequest) {
           email: email.toLowerCase().trim(),
           firstName: firstName.trim(),
           lastName: lastName.trim(),
+          title: title || null,
           role,
           phone: phone || null,
           passportPhoto: passportPhoto || null,
@@ -333,7 +336,7 @@ export async function PATCH(req: NextRequest) {
 
     const body = await req.json();
     const { 
-      staffId, schoolId, firstName, lastName, email, phone, passportPhoto,
+      staffId, schoolId, firstName, lastName, title, email, phone, passportPhoto,
       role, classTeacherArmId, subjectAssignments 
     } = body;
 
@@ -372,6 +375,7 @@ export async function PATCH(req: NextRequest) {
         data: {
           firstName: firstName !== undefined ? firstName.trim() : undefined,
           lastName: lastName !== undefined ? lastName.trim() : undefined,
+          title: title !== undefined ? (title ? title.trim() : null) : undefined,
           email: email !== undefined ? email.toLowerCase().trim() : undefined,
           phone: phone !== undefined ? (phone ? phone.trim() : null) : undefined,
           role: role !== undefined ? role : undefined,

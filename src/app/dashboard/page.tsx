@@ -1108,7 +1108,7 @@ export default function DashboardHome() {
                         <div key={sub.id} className="py-3.5 flex justify-between items-center gap-4">
                           <div>
                             <span className="font-bold text-slate-800 text-[13px]">{sub.subject.name} ({sub.subject.code})</span>
-                            <p className="text-xs text-slate-400 mt-0.5">Compiled by: Mr. {sub.teacher.firstName} {sub.teacher.lastName}</p>
+                            <p className="text-xs text-slate-400 mt-0.5">Compiled by: {sub.teacher.title ? `${sub.teacher.title} ` : ''}{sub.teacher.firstName} {sub.teacher.lastName}</p>
                           </div>
                           <button
                             type="button"
@@ -1633,7 +1633,7 @@ export default function DashboardHome() {
                 <span className="px-2 py-0.5 rounded bg-blue-50 border border-blue-100 text-[9px] font-black text-blue-600 uppercase">{activeReviewSubmission.subject.code}</span>
               </div>
               <p className="text-xs text-slate-450 font-semibold">
-                Classroom: <strong className="text-slate-700">{activeReviewSubmission.class.name} {activeReviewSubmission.arm.name}</strong> • Compiled by <strong className="text-slate-700">Mr. {activeReviewSubmission.teacher.firstName} {activeReviewSubmission.teacher.lastName}</strong>
+                Classroom: <strong className="text-slate-700">{activeReviewSubmission.class.name} {activeReviewSubmission.arm.name}</strong> • Compiled by <strong className="text-slate-700">{activeReviewSubmission.teacher.title ? `${activeReviewSubmission.teacher.title} ` : ''}{activeReviewSubmission.teacher.firstName} {activeReviewSubmission.teacher.lastName}</strong>
               </p>
             </div>
 

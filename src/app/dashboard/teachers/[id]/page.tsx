@@ -28,6 +28,7 @@ interface TeacherProfile {
   id: string;
   firstName: string;
   lastName: string;
+  title?: string | null;
   email: string;
   role: string;
   phone: string;
@@ -62,6 +63,7 @@ export default function TeacherDetailPage() {
   const [showEditModal, setShowEditModal] = useState(false);
   const [editFirstName, setEditFirstName] = useState('');
   const [editLastName, setEditLastName] = useState('');
+  const [editTitle, setEditTitle] = useState('');
   const [editEmail, setEditEmail] = useState('');
   const [editPhone, setEditPhone] = useState('');
   const [editSubmitting, setEditSubmitting] = useState(false);
@@ -165,6 +167,7 @@ export default function TeacherDetailPage() {
       setTeacher(json.data);
       
       // Pre-populate fields
+      setEditTitle(json.data.title || '');
       setEditFirstName(json.data.firstName || '');
       setEditLastName(json.data.lastName || '');
       setEditEmail(json.data.email || '');
@@ -228,6 +231,7 @@ export default function TeacherDetailPage() {
         body: JSON.stringify({
           staffId: teacherId,
           schoolId: session?.school?.id,
+          title: editTitle || null,
           firstName: editFirstName.trim(),
           lastName: editLastName.trim(),
           email: editEmail.toLowerCase().trim(),
@@ -336,6 +340,7 @@ export default function TeacherDetailPage() {
                 <button
                   type="button"
                   onClick={() => {
+                    setEditTitle(teacher.title || '');
                     setEditFirstName(teacher.firstName);
                     setEditLastName(teacher.lastName);
                     setEditEmail(teacher.email);
@@ -375,7 +380,7 @@ export default function TeacherDetailPage() {
               <div className="space-y-1.5 flex-1 min-w-0">
                 <div className="flex items-center gap-2">
                   <h2 className="text-lg font-bold text-slate-900 leading-tight truncate">
-                    {teacher.firstName} {teacher.lastName}
+                    {teacher.title ? `${teacher.title} ` : ''}{teacher.firstName} {teacher.lastName}
                   </h2>
                   <button type="button" className="p-1 rounded-full bg-slate-900 text-white hover:bg-slate-800 transition-all flex items-center justify-center flex-shrink-0">
                     <Target className="w-3 h-3" />
@@ -618,8 +623,28 @@ export default function TeacherDetailPage() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-1">
+                <div className="grid grid-cols-5 gap-3">
+                  <div className="space-y-1 col-span-1">
+                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-wider">
+                      Title
+                    </label>
+                    <select
+                      value={editTitle}
+                      onChange={(e) => setEditTitle(e.target.value)}
+                      className="w-full px-3 py-2.5 bg-[#c3ebfa]/30 border border-[#a0def7] rounded-2xl text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#c3ebfa]/50 focus:bg-white transition-all"
+                    >
+                      <option value="">None</option>
+                      <option value="Mr.">Mr.</option>
+                      <option value="Mrs.">Mrs.</option>
+                      <option value="Miss">Miss</option>
+                      <option value="Ms.">Ms.</option>
+                      <option value="Dr.">Dr.</option>
+                      <option value="Prof.">Prof.</option>
+                      <option value="Rev.">Rev.</option>
+                    </select>
+                  </div>
+
+                  <div className="space-y-1 col-span-2">
                     <label className="block text-[10px] font-black text-slate-400 uppercase tracking-wider">
                       First Name
                     </label>
@@ -633,7 +658,7 @@ export default function TeacherDetailPage() {
                     />
                   </div>
 
-                  <div className="space-y-1">
+                  <div className="space-y-1 col-span-2">
                     <label className="block text-[10px] font-black text-slate-400 uppercase tracking-wider">
                       Last Name
                     </label>

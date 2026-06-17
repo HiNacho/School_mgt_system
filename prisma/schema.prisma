@@ -60,6 +60,7 @@ model User {
   passwordHash String
   firstName    String
   lastName     String
+  title        String?
   role         String // SUPER_ADMIN, SCHOOL_ADMIN, HEAD_TEACHER, CLASS_TEACHER, SUBJECT_TEACHER
   phone        String?
   passportPhoto String?

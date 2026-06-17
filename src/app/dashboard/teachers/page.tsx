@@ -151,6 +151,7 @@ export default function TeachersDirectoryPage() {
   const [showModal, setShowModal] = useState(false);
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
+  const [title, setTitle] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
 
@@ -171,6 +172,7 @@ export default function TeachersDirectoryPage() {
   const [editTeacherId, setEditTeacherId] = useState('');
   const [editFirstName, setEditFirstName] = useState('');
   const [editLastName, setEditLastName] = useState('');
+  const [editTitle, setEditTitle] = useState('');
   const [editEmail, setEditEmail] = useState('');
   const [editPhone, setEditPhone] = useState('');
   const [editRole, setEditRole] = useState('');
@@ -378,6 +380,7 @@ export default function TeachersDirectoryPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           schoolId: school.id,
+          title: title || undefined,
           firstName,
           lastName,
           email,
@@ -392,9 +395,10 @@ export default function TeachersDirectoryPage() {
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || 'Failed to register teacher profile.');
 
-      setSuccessMsg(`Teacher credentials successfully active for Mr. ${lastName} ${firstName}!`);
+      setSuccessMsg(`Teacher credentials successfully active for ${title ? `${title} ` : ''}${lastName} ${firstName}!`);
       
       // Reset form states
+      setTitle('');
       setFirstName('');
       setLastName('');
       setEmail('');
@@ -600,6 +604,7 @@ export default function TeachersDirectoryPage() {
         body: JSON.stringify({
           staffId: editTeacherId,
           schoolId: school.id,
+          title: editTitle || null,
           firstName: editFirstName.trim(),
           lastName: editLastName.trim(),
           email: editEmail.toLowerCase().trim(),
@@ -841,7 +846,7 @@ export default function TeachersDirectoryPage() {
                     {/* Name */}
                     <td className="p-4">
                       <span className="font-extrabold text-sm text-slate-800 block">
-                        Mr. {row.lastName} {row.firstName}
+                        {row.title ? `${row.title} ` : ''}{row.lastName} {row.firstName}
                       </span>
                     </td>
 
@@ -927,6 +932,7 @@ export default function TeachersDirectoryPage() {
                           type="button"
                           onClick={() => {
                             setEditTeacherId(row.id);
+                            setEditTitle(row.title || '');
                             setEditFirstName(row.firstName);
                             setEditLastName(row.lastName);
                             setEditEmail(row.email);
@@ -1047,7 +1053,7 @@ export default function TeachersDirectoryPage() {
                   </div>
                 )}
                 <div>
-                  <h3 className="text-base font-extrabold text-slate-800">Mr. {viewingTeacher.lastName} {viewingTeacher.firstName}</h3>
+                  <h3 className="text-base font-extrabold text-slate-800">{viewingTeacher.title ? `${viewingTeacher.title} ` : ''}{viewingTeacher.lastName} {viewingTeacher.firstName}</h3>
                   <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">{getRoleLabel(viewingTeacher.role)}</span>
                 </div>
               </div>
@@ -1094,6 +1100,7 @@ export default function TeachersDirectoryPage() {
                   type="button"
                   onClick={() => {
                     setEditTeacherId(viewingTeacher.id);
+                    setEditTitle(viewingTeacher.title || '');
                     setEditFirstName(viewingTeacher.firstName);
                     setEditLastName(viewingTeacher.lastName);
                     setEditEmail(viewingTeacher.email);
@@ -1175,8 +1182,25 @@ export default function TeachersDirectoryPage() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
+                <div className="grid grid-cols-5 gap-3">
+                  <div className="col-span-1">
+                    <label className="block text-[10px] font-black uppercase tracking-wider text-slate-500 mb-1.5 font-sans">Title</label>
+                    <select
+                      value={title}
+                      onChange={(e) => setTitle(e.target.value)}
+                      className="w-full bg-slate-50 border border-slate-150 rounded-xl px-3 py-2.5 text-xs text-slate-700 focus:outline-none focus:border-blue-300 focus:ring-0 transition-colors"
+                    >
+                      <option value="">None</option>
+                      <option value="Mr.">Mr.</option>
+                      <option value="Mrs.">Mrs.</option>
+                      <option value="Miss">Miss</option>
+                      <option value="Ms.">Ms.</option>
+                      <option value="Dr.">Dr.</option>
+                      <option value="Prof.">Prof.</option>
+                      <option value="Rev.">Rev.</option>
+                    </select>
+                  </div>
+                  <div className="col-span-2">
                     <label className="block text-[10px] font-black uppercase tracking-wider text-slate-500 mb-1.5">First Name</label>
                     <input
                       type="text"
@@ -1187,7 +1211,7 @@ export default function TeachersDirectoryPage() {
                       className="w-full bg-slate-50 border border-slate-150 rounded-xl px-4 py-2.5 text-xs text-slate-700 focus:outline-none focus:border-blue-300 focus:ring-0 transition-colors"
                     />
                   </div>
-                  <div>
+                  <div className="col-span-2">
                     <label className="block text-[10px] font-black uppercase tracking-wider text-slate-500 mb-1.5">Last Name (Surname)</label>
                     <input
                       type="text"
@@ -1448,8 +1472,28 @@ export default function TeachersDirectoryPage() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-1">
+                <div className="grid grid-cols-5 gap-3">
+                  <div className="space-y-1 col-span-1">
+                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-wider">
+                      Title
+                    </label>
+                    <select
+                      value={editTitle}
+                      onChange={(e) => setEditTitle(e.target.value)}
+                      className="w-full px-3 py-2.5 bg-slate-50 border border-slate-150 rounded-2xl text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:bg-white transition-all"
+                    >
+                      <option value="">None</option>
+                      <option value="Mr.">Mr.</option>
+                      <option value="Mrs.">Mrs.</option>
+                      <option value="Miss">Miss</option>
+                      <option value="Ms.">Ms.</option>
+                      <option value="Dr.">Dr.</option>
+                      <option value="Prof.">Prof.</option>
+                      <option value="Rev.">Rev.</option>
+                    </select>
+                  </div>
+
+                  <div className="space-y-1 col-span-2">
                     <label className="block text-[10px] font-black text-slate-400 uppercase tracking-wider">
                       First Name
                     </label>
@@ -1463,7 +1507,7 @@ export default function TeachersDirectoryPage() {
                     />
                   </div>
 
-                  <div className="space-y-1">
+                  <div className="space-y-1 col-span-2">
                     <label className="block text-[10px] font-black text-slate-400 uppercase tracking-wider">
                       Last Name
                     </label>

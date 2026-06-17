@@ -36,6 +36,7 @@ export default function StaffAccountsPage() {
   const [showModal, setShowModal] = useState(false);
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
+  const [title, setTitle] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
 
@@ -55,6 +56,7 @@ export default function StaffAccountsPage() {
   const [editStaffId, setEditStaffId] = useState('');
   const [editFirstName, setEditFirstName] = useState('');
   const [editLastName, setEditLastName] = useState('');
+  const [editTitle, setEditTitle] = useState('');
   const [editEmail, setEditEmail] = useState('');
   const [editPhone, setEditPhone] = useState('');
   const [editStaffCategory, setEditStaffCategory] = useState<'TEACHER' | 'HEAD_TEACHER' | 'SCHOOL_ADMIN'>('TEACHER');
@@ -306,6 +308,7 @@ export default function StaffAccountsPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           schoolId: school.id,
+          title: title || undefined,
           firstName,
           lastName,
           email,
@@ -322,6 +325,7 @@ export default function StaffAccountsPage() {
       setSuccessMsg(`Staff account successfully initialized for ${lastName} ${firstName}! Default login password set to "password".`);
       
       // Reset form states
+      setTitle('');
       setFirstName('');
       setLastName('');
       setEmail('');
@@ -421,6 +425,7 @@ export default function StaffAccountsPage() {
         body: JSON.stringify({
           staffId: editStaffId,
           schoolId: school.id,
+          title: editTitle || null,
           firstName: editFirstName.trim(),
           lastName: editLastName.trim(),
           email: editEmail.toLowerCase().trim(),
@@ -686,7 +691,7 @@ export default function StaffAccountsPage() {
                           {row.lastName[0]}{row.firstName[0]}
                         </div>
                         <span className="font-extrabold text-sm text-slate-800">
-                          {row.lastName} {row.firstName}
+                          {row.title ? `${row.title} ` : ''}{row.lastName} {row.firstName}
                         </span>
                       </div>
                     </td>
@@ -764,6 +769,7 @@ export default function StaffAccountsPage() {
                           type="button"
                           onClick={() => {
                             setEditStaffId(row.id);
+                            setEditTitle(row.title || '');
                             setEditFirstName(row.firstName);
                             setEditLastName(row.lastName);
                             setEditEmail(row.email);
@@ -889,8 +895,25 @@ export default function StaffAccountsPage() {
 
             <form onSubmit={handleRegisterStaff} className="p-6 flex flex-col space-y-4 text-xs font-semibold overflow-hidden">
               <div className="space-y-4 overflow-y-auto max-h-[60vh] pr-2">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
+                <div className="grid grid-cols-5 gap-3">
+                  <div className="col-span-1">
+                    <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1.5 font-sans">Title</label>
+                    <select
+                      value={title}
+                      onChange={(e) => setTitle(e.target.value)}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-xs text-slate-800 focus:outline-none focus:border-slate-400 transition-colors"
+                    >
+                      <option value="">None</option>
+                      <option value="Mr.">Mr.</option>
+                      <option value="Mrs.">Mrs.</option>
+                      <option value="Miss">Miss</option>
+                      <option value="Ms.">Ms.</option>
+                      <option value="Dr.">Dr.</option>
+                      <option value="Prof.">Prof.</option>
+                      <option value="Rev.">Rev.</option>
+                    </select>
+                  </div>
+                  <div className="col-span-2">
                     <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1.5">First Name</label>
                     <input
                       type="text"
@@ -901,7 +924,7 @@ export default function StaffAccountsPage() {
                       className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs text-slate-800 focus:outline-none focus:border-slate-400 transition-colors"
                     />
                   </div>
-                  <div>
+                  <div className="col-span-2">
                     <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1.5">Last Name</label>
                     <input
                       type="text"
@@ -1089,8 +1112,28 @@ export default function StaffAccountsPage() {
               )}
 
               <div className="space-y-4 overflow-y-auto max-h-[60vh] pr-2 text-left">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-1">
+                <div className="grid grid-cols-5 gap-3">
+                  <div className="space-y-1 col-span-1">
+                    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                      Title
+                    </label>
+                    <select
+                      value={editTitle}
+                      onChange={(e) => setEditTitle(e.target.value)}
+                      className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-slate-400 transition-colors"
+                    >
+                      <option value="">None</option>
+                      <option value="Mr.">Mr.</option>
+                      <option value="Mrs.">Mrs.</option>
+                      <option value="Miss">Miss</option>
+                      <option value="Ms.">Ms.</option>
+                      <option value="Dr.">Dr.</option>
+                      <option value="Prof.">Prof.</option>
+                      <option value="Rev.">Rev.</option>
+                    </select>
+                  </div>
+
+                  <div className="space-y-1 col-span-2">
                     <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">
                       First Name
                     </label>
@@ -1104,7 +1147,7 @@ export default function StaffAccountsPage() {
                     />
                   </div>
 
-                  <div className="space-y-1">
+                  <div className="space-y-1 col-span-2">
                     <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">
                       Last Name
                     </label>
