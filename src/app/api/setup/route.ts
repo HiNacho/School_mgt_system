@@ -100,18 +100,27 @@ export async function GET(req: NextRequest) {
       ]
     });
 
-    return NextResponse.json({
-      success: true,
-      data: {
-        sessions,
-        terms,
-        classes,
-        arms,
-        subjects,
-        gradingRules,
-        teachers
+    return NextResponse.json(
+      {
+        success: true,
+        data: {
+          sessions,
+          terms,
+          classes,
+          arms,
+          subjects,
+          gradingRules,
+          teachers
+        },
       },
-    });
+      {
+        headers: {
+          'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0',
+        }
+      }
+    );
   } catch (error: any) {
     console.error('Setup GET Error:', error);
     return NextResponse.json({ error: 'Failed to fetch setup configurations' }, { status: 500 });

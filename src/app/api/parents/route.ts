@@ -37,7 +37,16 @@ export async function GET(req: NextRequest) {
       ]
     });
 
-    return NextResponse.json({ success: true, data: parents });
+    return NextResponse.json(
+      { success: true, data: parents },
+      {
+        headers: {
+          'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0',
+        }
+      }
+    );
   } catch (error: any) {
     console.error('Parents GET Error:', error);
     return NextResponse.json({ error: error.message || 'Failed to fetch parent registry' }, { status: error.status || 500 });

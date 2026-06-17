@@ -229,7 +229,6 @@ export default function SubjectRegistryPage() {
       setSubmitting(false);
     }
   };
-
   // 3. De-allocate Teacher Assignment slot
   const handleDeallocateAssignment = async (assignmentId: string) => {
     if (!window.confirm('Are you sure you want to de-allocate this teacher from this subject classroom slot? This will remove their exclusive score sheet entry permissions.')) {
@@ -248,6 +247,30 @@ export default function SubjectRegistryPage() {
       if (!res.ok) throw new Error(json.error || 'Failed to delete assignment slot.');
 
       setSuccessMsg('Teacher assignment successfully de-allocated. Slot is now free.');
+      await loadRegistryData(school.id);
+    } catch (err: any) {
+      setErrorMsg(err.message || 'Error processing request.');
+    }
+  };
+
+  // 4. Delete Subject itself
+  const handleDeleteSubject = async (subjectId: string, subjectName: string) => {
+    if (!window.confirm(`Are you sure you want to permanently delete the subject "${subjectName}"? This will delete all student scores and teacher assignments associated with this subject!`)) {
+      return;
+    }
+
+    setErrorMsg('');
+    setSuccessMsg('');
+
+    try {
+      const res = await fetch(`/api/subjects?subjectId=${subjectId}&schoolId=${school.id}`, {
+        method: 'DELETE'
+      });
+
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || 'Failed to delete subject.');
+
+      setSuccessMsg(`Subject "${subjectName}" was successfully deleted along with all its relational data.`);
       await loadRegistryData(school.id);
     } catch (err: any) {
       setErrorMsg(err.message || 'Error processing request.');
@@ -427,9 +450,19 @@ export default function SubjectRegistryPage() {
                         {sub.category}
                       </span>
                     </div>
-                    <span className="text-xs font-black text-slate-700 bg-white px-2 py-1 rounded-xl font-mono border border-slate-150">
-                      {sub.code}
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-black text-slate-700 bg-white px-2 py-1 rounded-xl font-mono border border-slate-150">
+                        {sub.code}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteSubject(sub.id, sub.name)}
+                        className="p-1.5 rounded-lg bg-red-50 text-red-500 hover:bg-red-100 transition-colors cursor-pointer"
+                        title={`Delete subject ${sub.name}`}
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>

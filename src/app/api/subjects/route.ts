@@ -215,35 +215,58 @@ export async function POST(req: NextRequest) {
   }
 }
 
-// 3. DELETE: De-allocate a Teacher Assignment
+// 3. DELETE: Delete a Subject or de-allocate a Teacher Assignment
 export async function DELETE(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const assignmentId = searchParams.get('id');
+    const subjectId = searchParams.get('subjectId');
     const schoolId = searchParams.get('schoolId');
 
-    if (!assignmentId || !schoolId) {
-      return NextResponse.json({ error: 'Assignment ID and School ID are required' }, { status: 400 });
+    if (!schoolId) {
+      return NextResponse.json({ error: 'School ID is required' }, { status: 400 });
     }
 
-    // Verify ownership
-    const assignment = await prisma.subjectAssignment.findFirst({
-      where: { id: assignmentId, schoolId }
-    });
+    // A. Delete Subject itself
+    if (subjectId) {
+      const subject = await prisma.subject.findFirst({
+        where: { id: subjectId, schoolId }
+      });
 
-    if (!assignment) {
-      return NextResponse.json({ error: 'Subject Assignment slot not found within current school boundary' }, { status: 404 });
+      if (!subject) {
+        return NextResponse.json({ error: 'Subject not found within current school boundary' }, { status: 404 });
+      }
+
+      await prisma.subject.delete({
+        where: { id: subjectId }
+      });
+
+      return NextResponse.json({ success: true, message: 'Subject and all associated scores and assignments permanently deleted.' });
     }
 
-    // Delete allocation record
-    await prisma.subjectAssignment.delete({
-      where: { id: assignmentId }
-    });
+    // B. De-allocate Teacher Assignment
+    if (assignmentId) {
+      // Verify ownership
+      const assignment = await prisma.subjectAssignment.findFirst({
+        where: { id: assignmentId, schoolId }
+      });
 
-    return NextResponse.json({ success: true, message: 'Teacher successfully de-allocated from teaching slot.' });
+      if (!assignment) {
+        return NextResponse.json({ error: 'Subject Assignment slot not found within current school boundary' }, { status: 404 });
+      }
+
+      // Delete allocation record
+      await prisma.subjectAssignment.delete({
+        where: { id: assignmentId }
+      });
+
+      return NextResponse.json({ success: true, message: 'Teacher successfully de-allocated from teaching slot.' });
+    }
+
+    return NextResponse.json({ error: 'Subject ID or Assignment ID is required' }, { status: 400 });
   } catch (error: any) {
     console.error('Subjects DELETE Error:', error);
-    return NextResponse.json({ error: 'Failed to de-allocate teaching slot' }, { status: 500 });
+    return NextResponse.json({ error: error.message || 'Failed to execute delete operation' }, { status: 500 });
   }
 }
 

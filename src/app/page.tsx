@@ -821,18 +821,29 @@ export default function LandingPage() {
           {/* Right column form */}
           <div className="lg:col-span-7 bg-white border border-[#e9ecef] p-8">
             {contactSubmitted ? (
-              <div className="h-full flex flex-col items-center justify-center text-center space-y-4 py-12">
-                <div className="w-12 h-12 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center">
-                  <CheckCircle className="w-6 h-6" />
+              <div className="h-full flex flex-col items-center justify-center text-center space-y-5 py-12">
+                <div className="w-14 h-14 bg-emerald-50 text-emerald-600 rounded-full flex items-center justify-center shadow-inner animate-pulse">
+                  <CheckCircle className="w-7 h-7" />
                 </div>
                 <h4 className="text-lg font-bold text-slate-800">Inquiry Received Successfully</h4>
                 <p className="text-xs text-[#64748b] max-w-sm">
-                  Thank you! Our technical onboarding team will reach out to your school coordinator within 24 hours. Your inquiry has also been stored in our registration leads database.
+                  Thank you! Our technical onboarding team will reach out to your school coordinator within 24 hours.
                 </p>
+                
+                <div className="bg-[#f8f9fa] border border-[#e2e8f0] p-5 rounded-2xl text-left space-y-3 max-w-md mx-auto shadow-sm">
+                  <div className="flex items-center gap-2 text-emerald-600">
+                    <Mail className="w-4 h-4" />
+                    <span className="text-[10px] font-extrabold uppercase tracking-wider">Check Your Email</span>
+                  </div>
+                  <p className="text-xs text-[#475569] leading-relaxed font-semibold">
+                    We have also sent your **demo login credentials** (email and password) to your registered email address. Please check your inbox (and spam folder) to log in immediately!
+                  </p>
+                </div>
+
                 <button
                   type="button"
                   onClick={() => setContactSubmitted(false)}
-                  className="px-6 py-2 border border-[#cbd5e1] text-[#475569] text-xs font-bold uppercase tracking-widest hover:bg-slate-50"
+                  className="px-6 py-2.5 bg-[#1e293b] text-white hover:bg-[#0f172a] text-xs font-bold uppercase tracking-widest transition-colors rounded-xl shadow-md"
                 >
                   Send another message
                 </button>
@@ -945,21 +956,38 @@ export default function LandingPage() {
             </button>
 
             {regSuccess ? (
-              <div className="text-center space-y-4 py-8">
-                <div className="w-14 h-14 bg-emerald-50 text-emerald-600 rounded-full flex items-center justify-center mx-auto">
-                  <CheckCircle className="w-7 h-7" />
+              <div className="text-center space-y-6 py-6">
+                <div className="w-16 h-16 bg-emerald-50 text-emerald-600 rounded-full flex items-center justify-center mx-auto shadow-inner animate-pulse">
+                  <CheckCircle className="w-8 h-8" />
                 </div>
-                <h3 className="text-lg font-bold text-[#1e293b] uppercase tracking-wider">Registration Successful</h3>
-                <p className="text-xs text-[#64748b] leading-relaxed">
-                  Thank you! An automated email containing onboarding details and demo sandbox access credentials has been sent to <strong className="text-slate-800">{regEmail}</strong>. 
-                  Our technical team is preparing a custom environment for your school.
-                </p>
+                
+                <div className="space-y-1">
+                  <h3 className="text-lg font-bold text-[#1e293b] uppercase tracking-wider">Registration Successful</h3>
+                  <p className="text-xs text-slate-400 font-semibold">Your trial environment setup request was received.</p>
+                </div>
+
+                <div className="bg-[#f8f9fa] border border-[#e2e8f0] p-5 rounded-2xl text-left space-y-3 max-w-md mx-auto shadow-sm">
+                  <div className="flex items-center gap-2 text-emerald-600">
+                    <Mail className="w-4 h-4" />
+                    <span className="text-[10px] font-extrabold uppercase tracking-wider">Check Your Email</span>
+                  </div>
+                  <p className="text-xs text-[#475569] leading-relaxed font-semibold">
+                    We have sent your **demo login credentials** (email and password) to:
+                  </p>
+                  <div className="bg-white border border-[#e2e8f0] px-3.5 py-2.5 rounded-xl text-center">
+                    <strong className="text-[#1e293b] font-bold text-xs">{regEmail}</strong>
+                  </div>
+                  <p className="text-[10px] text-amber-600 font-bold leading-normal bg-amber-50/50 border border-amber-100 p-2.5 rounded-xl">
+                    ⚠️ IMPORTANT: Please check your Spam, Junk, or Promotions folder if you do not see the email in your primary inbox within 1 minute.
+                  </p>
+                </div>
+
                 <button
                   type="button"
                   onClick={() => { setRegModalOpen(false); resetRegForm(); }}
-                  className="px-6 py-2.5 bg-[#1e293b] text-white hover:bg-[#0f172a] text-xs font-bold uppercase tracking-widest transition-colors"
+                  className="w-full sm:w-auto px-8 py-3 bg-[#1e293b] text-white hover:bg-[#0f172a] text-xs font-bold uppercase tracking-widest transition-colors rounded-xl shadow-md"
                 >
-                  Explore Platform
+                  Got it, close
                 </button>
               </div>
             ) : (

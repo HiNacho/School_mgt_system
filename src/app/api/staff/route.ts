@@ -102,7 +102,16 @@ export async function GET(req: NextRequest) {
       subjectAssignments: s.subjectAssignments
     }));
 
-    return NextResponse.json({ success: true, data: formatted });
+    return NextResponse.json(
+      { success: true, data: formatted },
+      {
+        headers: {
+          'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0',
+        }
+      }
+    );
   } catch (error: any) {
     console.error('Staff GET Error:', error);
     return NextResponse.json({ error: 'Failed to fetch school staff registry' }, { status: 500 });
