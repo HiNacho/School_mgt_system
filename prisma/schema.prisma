@@ -498,12 +498,74 @@ model ClassReportStatus {
 }
 
 model Lead {
-  id         String   @id @default(uuid())
-  name       String
-  email      String   @unique
-  schoolName String
-  phone      String?
-  message    String?  // Optional inquiry message if registered via Contact form
-  createdAt  DateTime @default(now())
+  id                      String            @id @default(uuid())
+  schoolName              String
+  schoolType              String?           // PRIMARY, SECONDARY, COMBINED
+  ownershipType           String?           // PRIVATE, PUBLIC
+  contactName             String?
+  position                String?           // PROPRIETOR, PRINCIPAL, VICE_PRINCIPAL, TEACHER, ADMINISTRATOR
+  email                   String            @unique
+  phone                   String?
+  studentCount            Int?
+  teacherCount            Int?
+  classCount              Int?
+  currentResultMethod     String?
+  currentAttendanceMethod String?
+  biggestChallenge        String?
+  interestedFeatures      String?           // Comma-separated list or JSON array string of features
+  leadStatus              String            @default("NEW") // NEW, CONTACTED, DEMO_SENT, TESTING, FEEDBACK_RECEIVED, INTERESTED, PILOT_SCHOOL, CUSTOMER, NOT_INTERESTED
+  demoSchoolId            String?           // Reference to created demo school
+  createdAt               DateTime          @default(now())
+  updatedAt               DateTime          @default(now()) @updatedAt
+  
+  emailLogs               EmailLog[]
+  feedback                Feedback?
+  testerActivity          TesterActivity?
 }
+
+model EmailLog {
+  id         String   @id @default(uuid())
+  leadId     String
+  recipient  String
+  subject    String
+  body       String
+  sentAt     DateTime @default(now())
+  
+  lead       Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+}
+
+model TesterActivity {
+  id                         String    @id @default(uuid())
+  userId                     String    @unique // Auth User ID generated for demo access
+  leadId                     String    @unique
+  lastLogin                  DateTime?
+  loginCount                 Int       @default(0)
+  timeSpent                  Int       @default(0) // Cumulative seconds active
+  featuresVisited            String    @default("") // Comma-separated feature codes
+  reportCardsGeneratedCount  Int       @default(0)
+  attendanceSessionsCount    Int       @default(0)
+  resultsViewedCount         Int       @default(0)
+  createdAt                  DateTime  @default(now())
+  updatedAt                  DateTime  @updatedAt
+  
+  lead                       Lead      @relation(fields: [leadId], references: [id], onDelete: Cascade)
+}
+
+model Feedback {
+  id                 String   @id @default(uuid())
+  leadId             String   @unique
+  easeOfUse          Int      // Rating 1-5
+  design             Int      // Rating 1-5
+  usefulness         Int      // Rating 1-5
+  mostUsefulFeature  String
+  confusingFeature   String
+  suggestions        String
+  wouldUseInSchool   String   // YES, MAYBE, NO
+  wouldPay           String   // YES, MAYBE, NO
+  additionalComments String?
+  createdAt          DateTime @default(now())
+  
+  lead               Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+}
+
 

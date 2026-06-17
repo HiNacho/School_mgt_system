@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { 
   Shield, Sparkles, BookOpen, Layers, BarChart3, ArrowRight, 
   CheckCircle, Smartphone, HelpCircle, MessageSquare, Phone, 
-  Mail, MapPin, Menu, X, Compass, Target, Award, Users, Heart, Loader2
+  Mail, MapPin, Menu, X, Compass, Target, Award, Users, Heart, Loader2, GraduationCap
 } from 'lucide-react';
 
 export default function LandingPage() {
@@ -15,13 +15,46 @@ export default function LandingPage() {
   
   // Registration Modal State
   const [regModalOpen, setRegModalOpen] = useState(false);
+  const [tryModalOpen, setTryModalOpen] = useState(false);
+  const [regStep, setRegStep] = useState(1);
   const [regName, setRegName] = useState('');
   const [regEmail, setRegEmail] = useState('');
   const [regSchoolName, setRegSchoolName] = useState('');
   const [regPhone, setRegPhone] = useState('');
+  const [regPosition, setRegPosition] = useState('');
+  const [regSchoolType, setRegSchoolType] = useState('');
+  const [regOwnership, setRegOwnership] = useState('');
+  const [regStudentCount, setRegStudentCount] = useState('');
+  const [regTeacherCount, setRegTeacherCount] = useState('');
+  const [regClassCount, setRegClassCount] = useState('');
+  const [regResultMethod, setRegResultMethod] = useState('');
+  const [regAttendanceMethod, setRegAttendanceMethod] = useState('');
+  const [regChallenge, setRegChallenge] = useState('');
+  const [regFeatures, setRegFeatures] = useState<string[]>([]);
   const [regLoading, setRegLoading] = useState(false);
   const [regError, setRegError] = useState('');
   const [regSuccess, setRegSuccess] = useState(false);
+
+  // Helper to reset registration form
+  const resetRegForm = () => {
+    setRegStep(1);
+    setRegName('');
+    setRegEmail('');
+    setRegSchoolName('');
+    setRegPhone('');
+    setRegPosition('');
+    setRegSchoolType('');
+    setRegOwnership('');
+    setRegStudentCount('');
+    setRegTeacherCount('');
+    setRegClassCount('');
+    setRegResultMethod('');
+    setRegAttendanceMethod('');
+    setRegChallenge('');
+    setRegFeatures([]);
+    setRegSuccess(false);
+    setRegError('');
+  };
 
   // Contact Form State
   const [contactName, setContactName] = useState('');
@@ -43,6 +76,13 @@ export default function LandingPage() {
   // Handle Registration Modal Submit
   const handleRegisterSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Check if we are at the final step. If not, don't submit yet.
+    if (regStep < 4) {
+      setRegStep(prev => prev + 1);
+      return;
+    }
+
     setRegLoading(true);
     setRegError('');
     setRegSuccess(false);
@@ -52,10 +92,20 @@ export default function LandingPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          name: regName,
-          email: regEmail,
           schoolName: regSchoolName,
-          phone: regPhone || null
+          schoolType: regSchoolType || null,
+          ownershipType: regOwnership || null,
+          contactName: regName,
+          position: regPosition || null,
+          email: regEmail,
+          phone: regPhone || null,
+          studentCount: regStudentCount ? parseInt(regStudentCount, 10) : null,
+          teacherCount: regTeacherCount ? parseInt(regTeacherCount, 10) : null,
+          classCount: regClassCount ? parseInt(regClassCount, 10) : null,
+          currentResultMethod: regResultMethod || null,
+          currentAttendanceMethod: regAttendanceMethod || null,
+          biggestChallenge: regChallenge || null,
+          interestedFeatures: regFeatures,
         })
       });
 
@@ -66,11 +116,10 @@ export default function LandingPage() {
       }
 
       setRegSuccess(true);
-      // Reset form
-      setRegName('');
-      setRegEmail('');
-      setRegSchoolName('');
-      setRegPhone('');
+      // Clear fields
+      resetRegForm();
+      // Keep regSuccess as true to show successful screen
+      setRegSuccess(true);
     } catch (err: any) {
       setRegError(err.message || 'Connection error. Please try again.');
     } finally {
@@ -241,10 +290,10 @@ export default function LandingPage() {
             </Link>
             <button
               type="button"
-              onClick={() => setRegModalOpen(true)}
+              onClick={() => setTryModalOpen(true)}
               className="px-6 py-2.5 bg-[#1e293b] hover:bg-[#0f172a] text-white text-xs font-bold tracking-widest uppercase transition-all duration-200 shadow-sm"
             >
-              Register
+              Try App
             </button>
           </div>
 
@@ -296,10 +345,17 @@ export default function LandingPage() {
             </Link>
             <button
               type="button"
-              onClick={() => { setMobileMenuOpen(false); setRegModalOpen(true); }}
+              onClick={() => { setMobileMenuOpen(false); setTryModalOpen(true); }}
               className="w-full py-2.5 text-center bg-[#1e293b] text-white font-bold text-xs uppercase tracking-widest transition-all"
             >
-              Register
+              Try App
+            </button>
+            <button
+              type="button"
+              onClick={() => { setMobileMenuOpen(false); setRegModalOpen(true); }}
+              className="w-full py-2.5 text-center border border-[#cbd5e1] text-[#475569] font-bold text-xs uppercase tracking-widest transition-all"
+            >
+              Register Interest
             </button>
           </div>
         </div>
@@ -328,17 +384,18 @@ export default function LandingPage() {
           <div className="pt-2 flex flex-col sm:flex-row justify-center lg:justify-start items-center gap-4">
             <button
               type="button"
-              onClick={() => setRegModalOpen(true)}
-              className="w-full sm:w-auto px-8 py-4 bg-[#1e293b] hover:bg-[#0f172a] text-white text-xs font-bold tracking-widest uppercase transition-all duration-200 shadow-md text-center"
+              onClick={() => setTryModalOpen(true)}
+              className="w-full sm:w-auto px-8 py-4 bg-[#1e293b] hover:bg-[#0f172a] text-white text-xs font-bold tracking-widest uppercase transition-all duration-200 shadow-md text-center cursor-pointer"
             >
-              Get Started Now
+              Try App Now
             </button>
-            <a
-              href="#about"
-              className="w-full sm:w-auto px-8 py-4 border border-[#cbd5e1] bg-white hover:bg-slate-50 text-[#475569] text-xs font-bold tracking-widest uppercase transition-all duration-200 text-center"
+            <button
+              type="button"
+              onClick={() => setRegModalOpen(true)}
+              className="w-full sm:w-auto px-8 py-4 border border-[#cbd5e1] bg-white hover:bg-slate-50 text-[#475569] text-xs font-bold tracking-widest uppercase transition-all duration-200 text-center cursor-pointer"
             >
-              Explore Vision
-            </a>
+              Register Interest
+            </button>
           </div>
         </div>
 
@@ -874,14 +931,14 @@ export default function LandingPage() {
         </div>
       </footer>
 
-      {/* Register Interest Modal (Image 1 cue) */}
+      {/* Register Interest Modal */}
       {regModalOpen && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-6 animate-in fade-in duration-200">
-          <div className="bg-white border border-[#cbd5e1] max-w-md w-full p-8 shadow-2xl relative animate-in zoom-in-95 duration-200">
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="bg-white border border-[#cbd5e1] max-w-lg w-full p-8 shadow-2xl relative animate-in zoom-in-95 duration-200">
             {/* Close Button */}
             <button
               type="button"
-              onClick={() => { setRegModalOpen(false); setRegSuccess(false); setRegError(''); }}
+              onClick={() => { setRegModalOpen(false); resetRegForm(); }}
               className="absolute top-4 right-4 p-1.5 hover:bg-slate-100 text-slate-400 hover:text-slate-700 transition-colors"
             >
               <X className="w-4 h-4" />
@@ -894,24 +951,43 @@ export default function LandingPage() {
                 </div>
                 <h3 className="text-lg font-bold text-[#1e293b] uppercase tracking-wider">Registration Successful</h3>
                 <p className="text-xs text-[#64748b] leading-relaxed">
-                  Thank you! We have simulated and sent a welcome email to <strong className="text-slate-800">{regEmail}</strong>. 
-                  Our technical onboarding team will be in touch with you shortly to configure your school grading parameters.
+                  Thank you! An automated email containing onboarding details and demo sandbox access credentials has been sent to <strong className="text-slate-800">{regEmail}</strong>. 
+                  Our technical team is preparing a custom environment for your school.
                 </p>
                 <button
                   type="button"
-                  onClick={() => { setRegModalOpen(false); setRegSuccess(false); }}
+                  onClick={() => { setRegModalOpen(false); resetRegForm(); }}
                   className="px-6 py-2.5 bg-[#1e293b] text-white hover:bg-[#0f172a] text-xs font-bold uppercase tracking-widest transition-colors"
                 >
-                  Close Window
+                  Explore Platform
                 </button>
               </div>
             ) : (
               <div className="space-y-6">
                 <div>
-                  <h3 className="text-lg font-bold text-[#1e293b] uppercase tracking-wider">Register Interest</h3>
-                  <p className="text-xs text-[#64748b] mt-1">
-                    Start automating your school compilation reports. Fill out your details below to activate your free trial.
-                  </p>
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-extrabold uppercase tracking-widest text-emerald-600">
+                      Step {regStep} of 4
+                    </span>
+                    <span className="text-[10px] font-bold text-[#94a3b8] uppercase tracking-wider">
+                      {regStep === 1 && "Contact Profile"}
+                      {regStep === 2 && "School Identity"}
+                      {regStep === 3 && "Scale & Volume"}
+                      {regStep === 4 && "Operations & Focus"}
+                    </span>
+                  </div>
+                  
+                  {/* Progress Bar */}
+                  <div className="w-full bg-slate-100 h-1 mt-2 flex gap-1">
+                    {[1, 2, 3, 4].map((step) => (
+                      <div 
+                        key={step} 
+                        className={`h-full flex-1 transition-all duration-300 ${
+                          step <= regStep ? 'bg-[#1e293b]' : 'bg-slate-200'
+                        }`}
+                      />
+                    ))}
+                  </div>
                 </div>
 
                 <form onSubmit={handleRegisterSubmit} className="space-y-4">
@@ -921,67 +997,265 @@ export default function LandingPage() {
                     </div>
                   )}
 
-                  <div className="space-y-1">
-                    <label className="block text-[9px] font-bold uppercase tracking-widest text-[#94a3b8]">Full Name</label>
-                    <input
-                      type="text"
-                      required
-                      value={regName}
-                      onChange={(e) => setRegName(e.target.value)}
-                      placeholder="e.g. Zainab Abubakar"
-                      className="w-full bg-[#f8f9fa] border border-[#e9ecef] px-3.5 py-2.5 text-xs focus:outline-none focus:border-[#cbd5e1] font-semibold text-slate-700 hover:border-[#cbd5e1] transition-colors"
-                    />
-                  </div>
+                  {/* STEP 1: Contact Details */}
+                  {regStep === 1 && (
+                    <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                      <div className="space-y-1">
+                        <label className="block text-[9px] font-bold uppercase tracking-widest text-[#94a3b8]">Your Name</label>
+                        <input
+                          type="text"
+                          required
+                          value={regName}
+                          onChange={(e) => setRegName(e.target.value)}
+                          placeholder="e.g. Zainab Abubakar"
+                          className="w-full bg-[#f8f9fa] border border-[#e9ecef] px-3.5 py-2.5 text-xs focus:outline-none focus:border-[#cbd5e1] font-semibold text-slate-700 hover:border-[#cbd5e1] transition-colors"
+                        />
+                      </div>
 
-                  <div className="space-y-1">
-                    <label className="block text-[9px] font-bold uppercase tracking-widest text-[#94a3b8]">Email Address</label>
-                    <input
-                      type="email"
-                      required
-                      value={regEmail}
-                      onChange={(e) => setRegEmail(e.target.value)}
-                      placeholder="e.g. principal@school.com"
-                      className="w-full bg-[#f8f9fa] border border-[#e9ecef] px-3.5 py-2.5 text-xs focus:outline-none focus:border-[#cbd5e1] font-semibold text-slate-700 hover:border-[#cbd5e1] transition-colors"
-                    />
-                  </div>
+                      <div className="space-y-1">
+                        <label className="block text-[9px] font-bold uppercase tracking-widest text-[#94a3b8]">Your Position / Role</label>
+                        <select
+                          required
+                          value={regPosition}
+                          onChange={(e) => setRegPosition(e.target.value)}
+                          className="w-full bg-[#f8f9fa] border border-[#e9ecef] px-3.5 py-2.5 text-xs focus:outline-none focus:border-[#cbd5e1] font-semibold text-slate-700 hover:border-[#cbd5e1] transition-colors"
+                        >
+                          <option value="">Select your position...</option>
+                          <option value="PROPRIETOR">Proprietor / Owner</option>
+                          <option value="PRINCIPAL">Principal / Head of School</option>
+                          <option value="VICE_PRINCIPAL">Vice Principal / Deputy Head</option>
+                          <option value="TEACHER">Teacher</option>
+                          <option value="ADMINISTRATOR">School IT / Administrator</option>
+                        </select>
+                      </div>
 
-                  <div className="space-y-1">
-                    <label className="block text-[9px] font-bold uppercase tracking-widest text-[#94a3b8]">School Name</label>
-                    <input
-                      type="text"
-                      required
-                      value={regSchoolName}
-                      onChange={(e) => setRegSchoolName(e.target.value)}
-                      placeholder="e.g. Greenwood Secondary School"
-                      className="w-full bg-[#f8f9fa] border border-[#e9ecef] px-3.5 py-2.5 text-xs focus:outline-none focus:border-[#cbd5e1] font-semibold text-slate-700 hover:border-[#cbd5e1] transition-colors"
-                    />
-                  </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-1">
+                          <label className="block text-[9px] font-bold uppercase tracking-widest text-[#94a3b8]">Email Address</label>
+                          <input
+                            type="email"
+                            required
+                            value={regEmail}
+                            onChange={(e) => setRegEmail(e.target.value)}
+                            placeholder="e.g. principal@school.com"
+                            className="w-full bg-[#f8f9fa] border border-[#e9ecef] px-3.5 py-2.5 text-xs focus:outline-none focus:border-[#cbd5e1] font-semibold text-slate-700 hover:border-[#cbd5e1] transition-colors"
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="block text-[9px] font-bold uppercase tracking-widest text-[#94a3b8]">Phone Number</label>
+                          <input
+                            type="tel"
+                            value={regPhone}
+                            onChange={(e) => setRegPhone(e.target.value)}
+                            placeholder="e.g. +234 803 123 4567"
+                            className="w-full bg-[#f8f9fa] border border-[#e9ecef] px-3.5 py-2.5 text-xs focus:outline-none focus:border-[#cbd5e1] font-semibold text-slate-700 hover:border-[#cbd5e1] transition-colors"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )}
 
-                  <div className="space-y-1">
-                    <label className="block text-[9px] font-bold uppercase tracking-widest text-[#94a3b8]">Phone Number (Optional)</label>
-                    <input
-                      type="tel"
-                      value={regPhone}
-                      onChange={(e) => setRegPhone(e.target.value)}
-                      placeholder="e.g. +234 803 123 4567"
-                      className="w-full bg-[#f8f9fa] border border-[#e9ecef] px-3.5 py-2.5 text-xs focus:outline-none focus:border-[#cbd5e1] font-semibold text-slate-700 hover:border-[#cbd5e1] transition-colors"
-                    />
-                  </div>
+                  {/* STEP 2: School Profile */}
+                  {regStep === 2 && (
+                    <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                      <div className="space-y-1">
+                        <label className="block text-[9px] font-bold uppercase tracking-widest text-[#94a3b8]">School Name</label>
+                        <input
+                          type="text"
+                          required
+                          value={regSchoolName}
+                          onChange={(e) => setRegSchoolName(e.target.value)}
+                          placeholder="e.g. Greenwood Secondary School"
+                          className="w-full bg-[#f8f9fa] border border-[#e9ecef] px-3.5 py-2.5 text-xs focus:outline-none focus:border-[#cbd5e1] font-semibold text-slate-700 hover:border-[#cbd5e1] transition-colors"
+                        />
+                      </div>
 
-                  <button
-                    type="submit"
-                    disabled={regLoading}
-                    className="w-full py-3 bg-[#1e293b] hover:bg-[#0f172a] text-white font-bold text-xs uppercase tracking-widest transition-all shadow-md flex justify-center items-center gap-2 mt-2"
-                  >
-                    {regLoading ? (
-                      <>
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                        <span>Registering Interest...</span>
-                      </>
-                    ) : (
-                      <span>Complete Registration</span>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-1">
+                          <label className="block text-[9px] font-bold uppercase tracking-widest text-[#94a3b8]">School Level</label>
+                          <select
+                            required
+                            value={regSchoolType}
+                            onChange={(e) => setRegSchoolType(e.target.value)}
+                            className="w-full bg-[#f8f9fa] border border-[#e9ecef] px-3.5 py-2.5 text-xs focus:outline-none focus:border-[#cbd5e1] font-semibold text-slate-700 hover:border-[#cbd5e1] transition-colors"
+                          >
+                            <option value="">Select...</option>
+                            <option value="PRIMARY">Primary / Elementary</option>
+                            <option value="SECONDARY">Secondary / High School</option>
+                            <option value="COMBINED">Combined (Primary & Secondary)</option>
+                          </select>
+                        </div>
+                        <div className="space-y-1">
+                          <label className="block text-[9px] font-bold uppercase tracking-widest text-[#94a3b8]">Ownership Type</label>
+                          <select
+                            required
+                            value={regOwnership}
+                            onChange={(e) => setRegOwnership(e.target.value)}
+                            className="w-full bg-[#f8f9fa] border border-[#e9ecef] px-3.5 py-2.5 text-xs focus:outline-none focus:border-[#cbd5e1] font-semibold text-slate-700 hover:border-[#cbd5e1] transition-colors"
+                          >
+                            <option value="">Select...</option>
+                            <option value="PRIVATE">Private School</option>
+                            <option value="PUBLIC">Public / Government</option>
+                          </select>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* STEP 3: School Scale */}
+                  {regStep === 3 && (
+                    <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                      <p className="text-[11px] text-[#64748b] leading-normal italic">
+                        Providing estimated student and teacher counts helps us optimize the grading engines and resource allocation for your sandbox tenant.
+                      </p>
+                      
+                      <div className="grid grid-cols-3 gap-4">
+                        <div className="space-y-1">
+                          <label className="block text-[9px] font-bold uppercase tracking-widest text-[#94a3b8]">Students</label>
+                          <input
+                            type="number"
+                            min="0"
+                            placeholder="e.g. 350"
+                            value={regStudentCount}
+                            onChange={(e) => setRegStudentCount(e.target.value)}
+                            className="w-full bg-[#f8f9fa] border border-[#e9ecef] px-3.5 py-2.5 text-xs focus:outline-none focus:border-[#cbd5e1] font-semibold text-slate-700 hover:border-[#cbd5e1] transition-colors"
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="block text-[9px] font-bold uppercase tracking-widest text-[#94a3b8]">Teachers</label>
+                          <input
+                            type="number"
+                            min="0"
+                            placeholder="e.g. 24"
+                            value={regTeacherCount}
+                            onChange={(e) => setRegTeacherCount(e.target.value)}
+                            className="w-full bg-[#f8f9fa] border border-[#e9ecef] px-3.5 py-2.5 text-xs focus:outline-none focus:border-[#cbd5e1] font-semibold text-slate-700 hover:border-[#cbd5e1] transition-colors"
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="block text-[9px] font-bold uppercase tracking-widest text-[#94a3b8]">Classes / Arms</label>
+                          <input
+                            type="number"
+                            min="0"
+                            placeholder="e.g. 12"
+                            value={regClassCount}
+                            onChange={(e) => setRegClassCount(e.target.value)}
+                            className="w-full bg-[#f8f9fa] border border-[#e9ecef] px-3.5 py-2.5 text-xs focus:outline-none focus:border-[#cbd5e1] font-semibold text-slate-700 hover:border-[#cbd5e1] transition-colors"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* STEP 4: Operational Profile */}
+                  {regStep === 4 && (
+                    <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-1">
+                          <label className="block text-[9px] font-bold uppercase tracking-widest text-[#94a3b8]">Current Grading Method</label>
+                          <select
+                            value={regResultMethod}
+                            onChange={(e) => setRegResultMethod(e.target.value)}
+                            className="w-full bg-[#f8f9fa] border border-[#e9ecef] px-3.5 py-2.5 text-xs focus:outline-none focus:border-[#cbd5e1] font-semibold text-slate-700 hover:border-[#cbd5e1] transition-colors"
+                          >
+                            <option value="">Select method...</option>
+                            <option value="EXCEL">Microsoft Excel sheets</option>
+                            <option value="MANUAL">Manual paper calculation</option>
+                            <option value="SOFTWARE">Another software platform</option>
+                            <option value="OTHER">Other method</option>
+                          </select>
+                        </div>
+                        <div className="space-y-1">
+                          <label className="block text-[9px] font-bold uppercase tracking-widest text-[#94a3b8]">Attendance Compilation</label>
+                          <select
+                            value={regAttendanceMethod}
+                            onChange={(e) => setRegAttendanceMethod(e.target.value)}
+                            className="w-full bg-[#f8f9fa] border border-[#e9ecef] px-3.5 py-2.5 text-xs focus:outline-none focus:border-[#cbd5e1] font-semibold text-slate-700 hover:border-[#cbd5e1] transition-colors"
+                          >
+                            <option value="">Select method...</option>
+                            <option value="PAPER">Paper register books</option>
+                            <option value="SOFTWARE">Digital attendance software</option>
+                            <option value="NONE">Not compiled centrally</option>
+                          </select>
+                        </div>
+                      </div>
+
+                      <div className="space-y-1">
+                        <label className="block text-[9px] font-bold uppercase tracking-widest text-[#94a3b8]">What is your biggest operational challenge?</label>
+                        <textarea
+                          rows={2}
+                          value={regChallenge}
+                          onChange={(e) => setRegChallenge(e.target.value)}
+                          placeholder="e.g. Teachers take too long to submit scores; compiling reports takes over 2 weeks after exams."
+                          className="w-full bg-[#f8f9fa] border border-[#e9ecef] px-3.5 py-2.5 text-xs focus:outline-none focus:border-[#cbd5e1] font-semibold text-slate-700 hover:border-[#cbd5e1] resize-none transition-colors"
+                        />
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <label className="block text-[9px] font-bold uppercase tracking-widest text-[#94a3b8]">Features of Interest (Optional)</label>
+                        <div className="flex flex-wrap gap-2 pt-0.5">
+                          {[
+                            { key: 'reports', label: 'Report Cards' },
+                            { key: 'attendance', label: 'Attendance' },
+                            { key: 'scores', label: 'Teacher Grading' },
+                            { key: 'portals', label: 'Parent Portal' }
+                          ].map((feat) => {
+                            const isSelected = regFeatures.includes(feat.key);
+                            return (
+                              <button
+                                key={feat.key}
+                                type="button"
+                                onClick={() => {
+                                  if (isSelected) {
+                                    setRegFeatures(regFeatures.filter(f => f !== feat.key));
+                                  } else {
+                                    setRegFeatures([...regFeatures, feat.key]);
+                                  }
+                                }}
+                                className={`px-3 py-1 border text-[10px] font-bold uppercase tracking-wider transition-all duration-150 ${
+                                  isSelected 
+                                    ? 'bg-[#1e293b] text-white border-[#1e293b]' 
+                                    : 'bg-white text-slate-600 border-slate-200 hover:border-slate-400'
+                                }`}
+                              >
+                                {feat.label}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Modal Navigation Buttons */}
+                  <div className="flex items-center gap-3 mt-6 pt-2 border-t border-slate-100">
+                    {regStep > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => setRegStep(prev => prev - 1)}
+                        className="flex-1 py-3 border border-slate-350 hover:bg-slate-50 text-slate-700 font-bold text-xs uppercase tracking-widest transition-all"
+                      >
+                        Back
+                      </button>
                     )}
-                  </button>
+                    
+                    <button
+                      type="submit"
+                      disabled={regLoading}
+                      className="flex-[2] py-3 bg-[#1e293b] hover:bg-[#0f172a] text-white font-bold text-xs uppercase tracking-widest transition-all shadow-md flex justify-center items-center gap-2"
+                    >
+                      {regLoading ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          <span>Submitting...</span>
+                        </>
+                      ) : (
+                        <span>
+                          {regStep < 4 ? 'Continue' : 'Complete Onboarding'}
+                        </span>
+                      )}
+                    </button>
+                  </div>
                 </form>
               </div>
             )}
@@ -1009,7 +1283,7 @@ export default function LandingPage() {
             </p>
 
             <a
-              href="https://wa.me/2348183334455"
+              href="https://wa.me/2349037397084"
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center justify-center gap-2 w-full py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl text-xs font-bold uppercase tracking-wider transition-colors shadow-sm"
@@ -1035,6 +1309,141 @@ export default function LandingPage() {
           )}
         </button>
       </div>
+
+      {/* Try App Demo Personas Modal */}
+      {tryModalOpen && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="bg-white border border-[#cbd5e1] max-w-2xl w-full p-8 shadow-2xl relative animate-in zoom-in-95 duration-200">
+            {/* Close Button */}
+            <button
+              type="button"
+              onClick={() => setTryModalOpen(false)}
+              className="absolute top-4 right-4 p-1.5 hover:bg-slate-100 text-slate-400 hover:text-slate-700 transition-colors"
+            >
+              <X className="w-4 h-4" />
+            </button>
+
+            <div className="space-y-6">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2 text-emerald-600">
+                  <Sparkles className="w-4 h-4 animate-pulse" />
+                  <span className="text-[10px] font-bold uppercase tracking-widest">Interactive Evaluation</span>
+                </div>
+                <h3 className="text-xl font-normal text-[#1e293b] tracking-tight">Try NachoEd Immediately</h3>
+                <p className="text-[#64748b] text-xs font-semibold leading-relaxed">
+                  Select a pre-populated role below to explore the dashboard. 
+                  Each demo environment has a limited sandbox database workspace ready to try out.
+                </p>
+              </div>
+
+              {/* Roles Grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {[
+                  {
+                    role: 'SCHOOL_ADMIN',
+                    name: 'School Admin',
+                    desc: 'Manage classrooms, teachers, schedules, and ranking configurations.',
+                    email: 'auntyalice@gmail.com',
+                    icon: Award,
+                    color: 'text-blue-600 border-blue-150 bg-blue-50/10'
+                  },
+                  {
+                    role: 'CLASS_TEACHER',
+                    name: 'Class Teacher',
+                    desc: 'Evaluate classroom gradesheets, compile reports, and record registers.',
+                    email: 'aminat.bello@school.com',
+                    icon: Users,
+                    color: 'text-indigo-600 border-indigo-150 bg-indigo-50/10'
+                  },
+                  {
+                    role: 'PARENT',
+                    name: 'Parent Portal',
+                    desc: 'Access terminal score sheets, download PDF report cards, and track attendance.',
+                    email: 'aliyu.bello80@example.com',
+                    icon: Heart,
+                    color: 'text-pink-600 border-pink-150 bg-pink-50/10'
+                  },
+                  {
+                    role: 'STUDENT',
+                    name: 'Student View',
+                    desc: 'Track score metrics, view academic grades, and check school events.',
+                    email: 'briggs001@student.local',
+                    icon: GraduationCap,
+                    color: 'text-violet-600 border-violet-150 bg-violet-50/10'
+                  }
+                ].map((persona) => {
+                  const Icon = persona.icon;
+                  return (
+                    <div 
+                      key={persona.role} 
+                      className="p-5 rounded-2xl border border-slate-150 bg-[#f8f9fa] flex flex-col justify-between hover:border-slate-300 hover:bg-white transition-all duration-200 group"
+                    >
+                      <div>
+                        <div className={`w-9 h-9 rounded-xl border flex items-center justify-center mb-3 bg-white ${persona.color}`}>
+                          <Icon className="w-5 h-5" />
+                        </div>
+                        <h4 className="text-sm font-bold text-[#1e293b]">{persona.name}</h4>
+                        <p className="text-[#64748b] text-[10px] leading-relaxed mt-1 font-semibold">
+                          {persona.desc}
+                        </p>
+                        <div className="mt-4 p-2.5 rounded-xl bg-slate-100/50 border border-slate-200/50 font-mono text-[9px] text-slate-600 space-y-1">
+                          <div><strong>Email:</strong> {persona.email}</div>
+                          <div><strong>Password:</strong> password</div>
+                        </div>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          setRegLoading(true);
+                          try {
+                            const res = await fetch('/api/auth', {
+                              method: 'POST',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({ bypassRole: persona.role, schoolSlug: 'greenwood-secondary' }),
+                            });
+                            const resData = await res.json();
+                            if (res.ok) {
+                              localStorage.setItem('report_auth_token', resData.token);
+                              localStorage.setItem('report_user_session', JSON.stringify({
+                                user: resData.user,
+                                school: resData.school
+                              }));
+                              document.cookie = `report_auth_token=${resData.token}; path=/; max-age=3600; SameSite=Lax`;
+                              window.location.href = '/dashboard';
+                            } else {
+                              alert(resData.error || 'Failed to authenticate demo user.');
+                            }
+                          } catch (err) {
+                            console.error(err);
+                            alert('Connection failed. Please check if your server is running.');
+                          } finally {
+                            setRegLoading(false);
+                          }
+                        }}
+                        disabled={regLoading}
+                        className="w-full mt-4 py-2.5 bg-[#1e293b] hover:bg-[#0f172a] text-white text-xs font-bold uppercase tracking-widest transition-colors flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
+                      >
+                        {regLoading ? (
+                          <>
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            <span>Launching...</span>
+                          </>
+                        ) : (
+                          <>
+                            <span>Quick Login</span>
+                            <ArrowRight className="w-3.5 h-3.5" />
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );

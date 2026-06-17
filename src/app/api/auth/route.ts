@@ -92,6 +92,28 @@ export async function POST(req: NextRequest) {
         data: { lastLogin: new Date() }
       });
 
+      // Telemetry: track tester login
+      try {
+        const testerActivity = await prisma.testerActivity.findUnique({
+          where: { userId: user.id }
+        });
+        if (testerActivity) {
+          await prisma.testerActivity.update({
+            where: { id: testerActivity.id },
+            data: {
+              loginCount: { increment: 1 },
+              lastLogin: new Date()
+            }
+          });
+          await prisma.lead.update({
+            where: { id: testerActivity.leadId },
+            data: { leadStatus: 'TESTING' }
+          });
+        }
+      } catch (telemetryErr) {
+        console.error('[Telemetry] Error recording tester login:', telemetryErr);
+      }
+
       return NextResponse.json({
         success: true,
         user: {
@@ -173,6 +195,28 @@ export async function POST(req: NextRequest) {
       where: { id: user.id },
       data: { lastLogin: new Date() }
     });
+
+    // Telemetry: track tester login
+    try {
+      const testerActivity = await prisma.testerActivity.findUnique({
+        where: { userId: user.id }
+      });
+      if (testerActivity) {
+        await prisma.testerActivity.update({
+          where: { id: testerActivity.id },
+          data: {
+            loginCount: { increment: 1 },
+            lastLogin: new Date()
+          }
+        });
+        await prisma.lead.update({
+          where: { id: testerActivity.leadId },
+          data: { leadStatus: 'TESTING' }
+        });
+      }
+    } catch (telemetryErr) {
+      console.error('[Telemetry] Error recording tester login:', telemetryErr);
+    }
 
     return NextResponse.json({
       success: true,

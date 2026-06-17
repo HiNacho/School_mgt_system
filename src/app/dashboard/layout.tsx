@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { 
   Home, Users, GraduationCap, BookOpen, Layers, ClipboardList, 
   MessageSquare, User, Settings, LogOut, Menu, X, 
-  Bell, Award, Shield, Sparkles, Calendar, FileText
+  Bell, Award, Shield, Sparkles, Calendar, FileText, CheckCircle
 } from 'lucide-react';
 
 interface SidebarItem {
@@ -25,6 +25,59 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [latestAlerts, setLatestAlerts] = useState<any[]>([]);
   const [bellOpen, setBellOpen] = useState(false);
   const [isImpersonating, setIsImpersonating] = useState(false);
+
+  // Telemetry Feedback Modal State
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
+  const [feedbackLeadId, setFeedbackLeadId] = useState('');
+  const [easeOfUse, setEaseOfUse] = useState(5);
+  const [designRating, setDesignRating] = useState(5);
+  const [usefulness, setUsefulness] = useState(5);
+  const [mostUseful, setMostUseful] = useState('');
+  const [confusing, setConfusing] = useState('');
+  const [suggestions, setSuggestions] = useState('');
+  const [wouldUse, setWouldUse] = useState('YES');
+  const [wouldPay, setWouldPay] = useState('YES');
+  const [feedbackLoading, setFeedbackLoading] = useState(false);
+  const [feedbackSuccess, setFeedbackSuccess] = useState(false);
+
+  const handleFeedbackSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setFeedbackLoading(true);
+
+    try {
+      const res = await fetch('/api/tester/feedback', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          leadId: feedbackLeadId,
+          easeOfUse,
+          design: designRating,
+          usefulness,
+          mostUsefulFeature: mostUseful,
+          confusingFeature: confusing,
+          suggestions,
+          wouldUseInSchool: wouldUse,
+          wouldPay,
+        }),
+      });
+
+      if (res.ok) {
+        setFeedbackSuccess(true);
+        setTimeout(() => {
+          setFeedbackOpen(false);
+          setFeedbackSuccess(false);
+        }, 3000);
+      } else {
+        const err = await res.json();
+        alert(err.error || 'Failed to submit feedback');
+      }
+    } catch (err) {
+      console.error('Error submitting feedback:', err);
+      alert('Network error. Please try again.');
+    } finally {
+      setFeedbackLoading(false);
+    }
+  };
 
   const fetchUnreadNotifications = async (schoolId: string, userId: string) => {
     try {
@@ -81,6 +134,88 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     }, 15000); // Poll every 15 seconds
 
     return () => clearInterval(interval);
+  }, [ready, session]);
+
+  // Telemetry: Time spent active heartbeat
+  useEffect(() => {
+    if (!ready || !session || !session.user?.id) return;
+    const userId = session.user.id;
+
+    // Send heartbeat immediately on load
+    fetch('/api/tester/track', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId, action: 'heartbeat' }),
+    }).catch(err => console.error('[Telemetry] Heartbeat error:', err));
+
+    // Send heartbeat every 15 seconds
+    const interval = setInterval(() => {
+      fetch('/api/tester/track', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, action: 'heartbeat' }),
+      }).catch(err => console.error('[Telemetry] Heartbeat error:', err));
+    }, 15000);
+
+    return () => clearInterval(interval);
+  }, [ready, session]);
+
+  // Telemetry: Features visited tracking on navigation
+  useEffect(() => {
+    if (!ready || !session || !session.user?.id || !pathname) return;
+    const userId = session.user.id;
+
+    // Map path to product features
+    let featureCode = '';
+    if (pathname.includes('/dashboard/compile') || pathname.includes('/dashboard/scores')) {
+      featureCode = 'scores';
+    } else if (pathname.includes('/dashboard/attendance')) {
+      featureCode = 'attendance';
+    } else if (pathname.includes('/dashboard/students') || pathname.includes('/dashboard/teachers') || pathname.includes('/dashboard/staff')) {
+      featureCode = 'reports';
+    } else if (pathname.includes('/dashboard/parents')) {
+      featureCode = 'portals';
+    }
+
+    if (featureCode) {
+      fetch('/api/tester/track', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, featureCode }),
+      }).catch(err => console.error('[Telemetry] Feature tracking error:', err));
+    }
+  }, [ready, session, pathname]);
+
+  // Telemetry: Check feedback status and trigger 45s modal timer
+  useEffect(() => {
+    if (!ready || !session || !session.user?.id) return;
+    const userId = session.user.id;
+
+    let timer: NodeJS.Timeout;
+
+    const checkFeedbackStatus = async () => {
+      try {
+        const res = await fetch(`/api/tester/feedback?userId=${userId}`);
+        const json = await res.json();
+        
+        if (res.ok && json.isTester && !json.feedbackSubmitted) {
+          setFeedbackLeadId(json.leadId);
+          
+          // Trigger feedback modal after 45 seconds of cumulative active time
+          timer = setTimeout(() => {
+            setFeedbackOpen(true);
+          }, 45000); // 45 seconds
+        }
+      } catch (err) {
+        console.error('[Feedback] Error checking tester feedback status:', err);
+      }
+    };
+
+    checkFeedbackStatus();
+    
+    return () => {
+      if (timer) clearTimeout(timer);
+    };
   }, [ready, session]);
 
   if (!ready || !session) {
@@ -707,6 +842,184 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           {children}
         </main>
       </div>
+      {/* Telemetry Feedback Collection Modal */}
+      {feedbackOpen && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[150] flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="bg-white border border-slate-200 max-w-md w-full p-6 shadow-2xl relative rounded-none animate-in zoom-in-95 duration-200">
+            {/* Close Button */}
+            <button
+              type="button"
+              onClick={() => setFeedbackOpen(false)}
+              className="absolute top-4 right-4 text-slate-400 hover:text-slate-650 transition-colors"
+            >
+              <X className="w-4 h-4" />
+            </button>
+
+            {feedbackSuccess ? (
+              <div className="text-center py-8 space-y-4">
+                <div className="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-full flex items-center justify-center mx-auto">
+                  <CheckCircle className="w-6 h-6" />
+                </div>
+                <h3 className="text-sm font-bold uppercase tracking-wider text-slate-800">Feedback Submitted</h3>
+                <p className="text-xs text-slate-500">Thank you! Your feedback has been logged in our CRM and we have sent you a confirmation email.</p>
+              </div>
+            ) : (
+              <form onSubmit={handleFeedbackSubmit} className="space-y-4">
+                <div>
+                  <h3 className="text-sm font-extrabold uppercase tracking-wider text-slate-800">Share Your Experience</h3>
+                  <p className="text-[10px] text-slate-400 font-bold uppercase mt-0.5 tracking-wider">Help Us Refine NachoEd</p>
+                </div>
+
+                {/* Ratings block */}
+                <div className="space-y-3 bg-slate-50 p-3.5 border border-slate-100">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Ease of Use</span>
+                    <div className="flex gap-1">
+                      {[1, 2, 3, 4, 5].map((val) => (
+                        <button
+                          key={val}
+                          type="button"
+                          onClick={() => setEaseOfUse(val)}
+                          className={`w-6 h-6 text-xs font-bold transition-all ${
+                            easeOfUse >= val 
+                              ? 'bg-[#1e293b] text-white' 
+                              : 'bg-white text-slate-400 border border-slate-200 hover:border-slate-400'
+                          }`}
+                        >
+                          {val}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Design Quality</span>
+                    <div className="flex gap-1">
+                      {[1, 2, 3, 4, 5].map((val) => (
+                        <button
+                          key={val}
+                          type="button"
+                          onClick={() => setDesignRating(val)}
+                          className={`w-6 h-6 text-xs font-bold transition-all ${
+                            designRating >= val 
+                              ? 'bg-[#1e293b] text-white' 
+                              : 'bg-white text-slate-400 border border-slate-200 hover:border-slate-400'
+                          }`}
+                        >
+                          {val}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Feature Usefulness</span>
+                    <div className="flex gap-1">
+                      {[1, 2, 3, 4, 5].map((val) => (
+                        <button
+                          key={val}
+                          type="button"
+                          onClick={() => setUsefulness(val)}
+                          className={`w-6 h-6 text-xs font-bold transition-all ${
+                            usefulness >= val 
+                              ? 'bg-[#1e293b] text-white' 
+                              : 'bg-white text-slate-400 border border-slate-200 hover:border-slate-400'
+                          }`}
+                        >
+                          {val}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Feature details */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <label className="block text-[9px] font-bold uppercase tracking-wider text-slate-500">Most Useful Feature</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. Importer, PDF cards"
+                      value={mostUseful}
+                      onChange={(e) => setMostUseful(e.target.value)}
+                      className="w-full bg-slate-50 border border-slate-200 px-3 py-2 text-xs focus:outline-none focus:border-slate-400 text-slate-700"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="block text-[9px] font-bold uppercase tracking-wider text-slate-500">Confusing Features</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. Score approvals"
+                      value={confusing}
+                      onChange={(e) => setConfusing(e.target.value)}
+                      className="w-full bg-slate-50 border border-slate-200 px-3 py-2 text-xs focus:outline-none focus:border-slate-400 text-slate-700"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="block text-[9px] font-bold uppercase tracking-wider text-slate-500">Your Suggestions</label>
+                  <textarea
+                    rows={2}
+                    required
+                    placeholder="What can we improve or add to make the app more valuable?"
+                    value={suggestions}
+                    onChange={(e) => setSuggestions(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-200 px-3 py-2 text-xs focus:outline-none focus:border-slate-400 text-slate-700 resize-none"
+                  />
+                </div>
+
+                {/* Yes/No block */}
+                <div className="grid grid-cols-2 gap-3 pt-1">
+                  <div className="space-y-1">
+                    <label className="block text-[9px] font-bold uppercase tracking-wider text-slate-500">Would adopt in school?</label>
+                    <select
+                      value={wouldUse}
+                      onChange={(e) => setWouldUse(e.target.value)}
+                      className="w-full bg-slate-50 border border-slate-200 px-3 py-2 text-xs focus:outline-none focus:border-slate-400 text-slate-700"
+                    >
+                      <option value="YES">Yes, definitely</option>
+                      <option value="MAYBE">Maybe in future</option>
+                      <option value="NO">No, unlikely</option>
+                    </select>
+                  </div>
+                  <div className="space-y-1">
+                    <label className="block text-[9px] font-bold uppercase tracking-wider text-slate-500">Would pay for service?</label>
+                    <select
+                      value={wouldPay}
+                      onChange={(e) => setWouldPay(e.target.value)}
+                      className="w-full bg-slate-50 border border-slate-200 px-3 py-2 text-xs focus:outline-none focus:border-slate-400 text-slate-700"
+                    >
+                      <option value="YES">Yes, willing to pay</option>
+                      <option value="MAYBE">Maybe / Depends on price</option>
+                      <option value="NO">No, only free version</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="flex gap-3 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setFeedbackOpen(false)}
+                    className="flex-1 py-2.5 border border-slate-300 hover:bg-slate-50 text-slate-600 text-xs font-bold uppercase tracking-widest transition-colors"
+                  >
+                    Later
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={feedbackLoading}
+                    className="flex-2 py-2.5 bg-[#1e293b] hover:bg-[#0f172a] text-white text-xs font-bold uppercase tracking-widest transition-colors shadow-md flex justify-center items-center gap-1.5"
+                  >
+                    {feedbackLoading ? 'Submitting...' : 'Submit Feedback'}
+                  </button>
+                </div>
+              </form>
+            )}
+          </div>
+        </div>
+      )}
     </div>
 
     </div>

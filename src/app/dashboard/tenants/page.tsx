@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { 
   School, Plus, Shield, Users, FileSpreadsheet, CheckCircle, 
   AlertCircle, RefreshCw, Mail, Phone, MapPin, Sparkles, X, Check,
@@ -932,105 +933,24 @@ The NachoEd Support Team
 
           {/* TAB 4: LEADS REGISTRATIONS */}
           {activeTab === 'leads' && (
-            <div className="bg-white border border-slate-200/80 rounded-3xl shadow-sm p-6 space-y-4 animate-fadeIn">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-100 pb-3 gap-3">
-                <div>
-                  <h3 className="text-xs font-black uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
-                    <Mail className="w-4 h-4 text-emerald-600" /> Platform Lead Registrations & Trial Signups
-                  </h3>
-                  <span className="text-[10px] text-slate-400 font-medium font-sans">
-                    View registrations submitted via homepage trial buttons and Contact Us inquiries.
-                  </span>
-                </div>
-                
-                {/* Search Bar */}
-                <div className="relative max-w-xs w-full">
-                  <span className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-slate-400">
-                    <Search className="w-3.5 h-3.5" />
-                  </span>
-                  <input
-                    type="text"
-                    placeholder="Search name or school..."
-                    value={searchLeadQuery}
-                    onChange={(e) => setSearchLeadQuery(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-3 py-1.5 text-xs focus:outline-none focus:border-slate-350 font-semibold text-slate-700 hover:border-slate-250 transition-colors"
-                  />
-                </div>
+            <div className="bg-white border border-slate-200/80 rounded-3xl shadow-sm p-8 text-center space-y-6 max-w-xl mx-auto my-6 animate-fadeIn">
+              <div className="w-16 h-16 bg-emerald-50 text-emerald-600 rounded-full flex items-center justify-center mx-auto shadow-inner">
+                <Mail className="w-8 h-8" />
               </div>
-
-              <div className="overflow-x-auto rounded-2xl border border-slate-200/60 shadow-sm">
-                <table className="w-full border-collapse text-left text-xs font-semibold text-slate-650">
-                  <thead>
-                    <tr className="bg-slate-50 border-b border-slate-200 text-[10px] font-black uppercase tracking-wider text-slate-400">
-                      <th className="p-4">Reference</th>
-                      <th className="p-4">Name</th>
-                      <th className="p-4">Email</th>
-                      <th className="p-4">School</th>
-                      <th className="p-4">Phone</th>
-                      <th className="p-4">Message / Source</th>
-                      <th className="p-4">Registered On</th>
-                      <th className="p-4 text-center">Action</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100 font-semibold">
-                    {leads.filter(l => 
-                      l.name.toLowerCase().includes(searchLeadQuery.toLowerCase()) ||
-                      l.schoolName.toLowerCase().includes(searchLeadQuery.toLowerCase()) ||
-                      l.email.toLowerCase().includes(searchLeadQuery.toLowerCase())
-                    ).length === 0 ? (
-                      <tr>
-                        <td colSpan={8} className="p-12 text-center text-slate-400 font-bold italic">
-                          No registered leads match your filter.
-                        </td>
-                      </tr>
-                    ) : (
-                      leads.filter(l => 
-                        l.name.toLowerCase().includes(searchLeadQuery.toLowerCase()) ||
-                        l.schoolName.toLowerCase().includes(searchLeadQuery.toLowerCase()) ||
-                        l.email.toLowerCase().includes(searchLeadQuery.toLowerCase())
-                      ).map((l) => (
-                        <tr key={l.id} className="hover:bg-slate-50/40">
-                          <td className="p-4 font-mono text-[9px] text-slate-400 uppercase">#{l.id.split('-')[0]}</td>
-                          <td className="p-4 text-slate-800 font-extrabold">{l.name}</td>
-                          <td className="p-4 font-mono text-slate-600">{l.email}</td>
-                          <td className="p-4 text-slate-800 font-extrabold">{l.schoolName}</td>
-                          <td className="p-4 text-slate-500 font-mono">{l.phone || 'N/A'}</td>
-                          <td className="p-4 max-w-[200px] truncate">
-                            {l.message ? (
-                              <span className="text-slate-700 bg-blue-50 text-[10px] px-2 py-0.5 rounded border border-blue-100 font-bold block overflow-hidden text-ellipsis whitespace-nowrap" title={l.message}>
-                                💬 {l.message}
-                              </span>
-                            ) : (
-                              <span className="text-emerald-700 bg-emerald-50 text-[10px] px-2 py-0.5 rounded border border-emerald-100 font-bold">
-                                🚀 Free Trial Request
-                              </span>
-                            )}
-                          </td>
-                          <td className="p-4 text-[10px] text-slate-400 font-mono">
-                            {new Date(l.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                          </td>
-                          <td className="p-4 text-center">
-                            <button
-                              type="button"
-                              disabled={resendingLeadId === l.id}
-                              onClick={() => handleResendWelcomeEmail(l)}
-                              className="px-3 py-1 bg-slate-100 hover:bg-emerald-50 hover:text-emerald-700 border border-slate-200 hover:border-emerald-200 text-slate-500 text-[10px] font-black uppercase tracking-wider transition-colors inline-flex items-center gap-1 cursor-pointer"
-                            >
-                              {resendingLeadId === l.id ? (
-                                <>
-                                  <Loader2 className="w-3 h-3 animate-spin" />
-                                  <span>Resending...</span>
-                                </>
-                              ) : (
-                                <span>Resend Email</span>
-                              )}
-                            </button>
-                          </td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
+              <div className="space-y-2">
+                <h3 className="text-lg font-black uppercase tracking-wider text-slate-800">Upgraded Leads CRM Cockpit</h3>
+                <p className="text-xs text-slate-500 leading-relaxed max-w-md mx-auto">
+                  We have upgraded the lead registry system to a comprehensive CRM Funnel. You can now track active sandbox usage logs, monitor real-time heartbeats, read tester feedback, and perform one-click activations.
+                </p>
+              </div>
+              <div className="pt-2">
+                <Link
+                  href="/dashboard/tenants/leads"
+                  className="px-6 py-3 bg-[#1e293b] hover:bg-[#0f172a] text-white font-bold text-xs uppercase tracking-widest transition-all shadow-md inline-flex items-center gap-2"
+                >
+                  <span>Open Leads CRM Funnel</span>
+                  <ArrowRightLeft className="w-4 h-4" />
+                </Link>
               </div>
             </div>
           )}

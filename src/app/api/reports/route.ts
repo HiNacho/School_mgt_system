@@ -19,6 +19,26 @@ export async function GET(req: NextRequest) {
 
     // Role-based release validation
     const session = await requireAuth(req);
+    
+    // Telemetry: increment report generation and results viewed count if it's a tester
+    try {
+      if (session && session.userId) {
+        const testerActivity = await prisma.testerActivity.findUnique({
+          where: { userId: session.userId }
+        });
+        if (testerActivity) {
+          await prisma.testerActivity.update({
+            where: { id: testerActivity.id },
+            data: { 
+              reportCardsGeneratedCount: { increment: 1 },
+              resultsViewedCount: { increment: 1 }
+            }
+          });
+        }
+      }
+    } catch (telemetryErr) {
+      console.error('[Telemetry] Error recording report telemetry:', telemetryErr);
+    }
     if (session.role === 'PARENT' || session.role === 'STUDENT') {
       const statusRecord = await prisma.classReportStatus.findUnique({
         where: {

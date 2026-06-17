@@ -8,6 +8,10 @@ export async function GET(req: NextRequest) {
     requireRole(session, ['SUPER_ADMIN']);
 
     const leads = await prisma.lead.findMany({
+      include: {
+        feedback: true,
+        testerActivity: true,
+      },
       orderBy: { createdAt: 'desc' }
     });
 

@@ -280,6 +280,25 @@ export async function POST(req: NextRequest) {
       }
     });
 
+    // Telemetry: increment attendanceSessionsCount if it's a tester
+    try {
+      if (markedBy) {
+        const testerActivity = await prisma.testerActivity.findUnique({
+          where: { userId: markedBy }
+        });
+        if (testerActivity) {
+          await prisma.testerActivity.update({
+            where: { id: testerActivity.id },
+            data: { 
+              attendanceSessionsCount: { increment: 1 }
+            }
+          });
+        }
+      }
+    } catch (telemetryErr) {
+      console.error('[Telemetry] Error recording attendance telemetry:', telemetryErr);
+    }
+
     return NextResponse.json({ 
       success: true, 
       message: 'Daily classroom attendance successfully recorded & card summaries updated!' 
