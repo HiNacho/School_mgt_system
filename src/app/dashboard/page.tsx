@@ -107,11 +107,14 @@ export default function DashboardHome() {
       const role = sess.user.role;
       let currentTermId = '';
 
+      const token = localStorage.getItem('report_auth_token') || '';
+      const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+
       if (role === 'SUPER_ADMIN') {
         // Fetch global platform-wide statistics for Super Admin
         const [schoolsRes, leadsRes] = await Promise.all([
-          fetch('/api/schools', { cache: 'no-store' }),
-          fetch('/api/superadmin/leads', { cache: 'no-store' })
+          fetch('/api/schools', { cache: 'no-store', headers }),
+          fetch('/api/superadmin/leads', { cache: 'no-store', headers })
         ]);
 
         let allSchools: any[] = [];
@@ -154,14 +157,14 @@ export default function DashboardHome() {
 
       // 1. Parallel loading of primary configurations
       const [setupRes, studentsRes, parentsRes, staffRes, eventsRes, announcementsRes, subjectsRes, weeklyAttendanceRes] = await Promise.all([
-        fetch(`/api/setup?schoolId=${schoolId}`, { cache: 'no-store' }),
-        fetch(`/api/students?schoolId=${schoolId}&status=ALL`, { cache: 'no-store' }),
-        fetch(`/api/parents?schoolId=${schoolId}`, { cache: 'no-store' }),
-        fetch(`/api/staff?schoolId=${schoolId}`, { cache: 'no-store' }),
-        fetch(`/api/events?schoolId=${schoolId}`, { cache: 'no-store' }),
-        fetch(`/api/announcements?schoolId=${schoolId}`, { cache: 'no-store' }),
-        fetch(`/api/subjects?schoolId=${schoolId}`, { cache: 'no-store' }),
-        fetch(`/api/attendance?schoolId=${schoolId}&weekly=true`, { cache: 'no-store' })
+        fetch(`/api/setup?schoolId=${schoolId}`, { cache: 'no-store', headers }),
+        fetch(`/api/students?schoolId=${schoolId}&status=ALL`, { cache: 'no-store', headers }),
+        fetch(`/api/parents?schoolId=${schoolId}`, { cache: 'no-store', headers }),
+        fetch(`/api/staff?schoolId=${schoolId}`, { cache: 'no-store', headers }),
+        fetch(`/api/events?schoolId=${schoolId}`, { cache: 'no-store', headers }),
+        fetch(`/api/announcements?schoolId=${schoolId}`, { cache: 'no-store', headers }),
+        fetch(`/api/subjects?schoolId=${schoolId}`, { cache: 'no-store', headers }),
+        fetch(`/api/attendance?schoolId=${schoolId}&weekly=true`, { cache: 'no-store', headers })
       ]);
 
       if (setupRes.ok) {
@@ -201,7 +204,7 @@ export default function DashboardHome() {
       // Fetch class statuses if admin
       if ((role === 'SCHOOL_ADMIN' || role === 'SUPER_ADMIN') && currentTermId) {
         try {
-          const statusRes = await fetch(`/api/reports/status?schoolId=${schoolId}&termId=${currentTermId}&all=true`, { cache: 'no-store' });
+          const statusRes = await fetch(`/api/reports/status?schoolId=${schoolId}&termId=${currentTermId}&all=true`, { cache: 'no-store', headers });
           if (statusRes.ok) {
             const statusJson = await statusRes.json();
             if (statusJson.success && statusJson.data) {
@@ -216,21 +219,21 @@ export default function DashboardHome() {
       // 2. Fetch notifications and submissions for teachers
       if (role === 'CLASS_TEACHER' || role === 'SUBJECT_TEACHER') {
         try {
-          const notificationsRes = await fetch(`/api/notifications?schoolId=${schoolId}&userId=${sess.user.id}`, { cache: 'no-store' });
+          const notificationsRes = await fetch(`/api/notifications?schoolId=${schoolId}&userId=${sess.user.id}`, { cache: 'no-store', headers });
           if (notificationsRes.ok) {
             const notJson = await notificationsRes.json();
             setNotifications(notJson.data.notifications || []);
             setUnreadNotificationsCount(notJson.data.unreadCount || 0);
           }
 
-          const submissionsRes = await fetch(`/api/submissions?schoolId=${schoolId}&teacherId=${sess.user.id}`, { cache: 'no-store' });
+          const submissionsRes = await fetch(`/api/submissions?schoolId=${schoolId}&teacherId=${sess.user.id}`, { cache: 'no-store', headers });
           if (submissionsRes.ok) {
             const subJson = await submissionsRes.json();
             setMySubmissions(subJson.data || []);
           }
 
           if (role === 'CLASS_TEACHER') {
-            const pendingRes = await fetch(`/api/submissions?schoolId=${schoolId}&classTeacherId=${sess.user.id}`, { cache: 'no-store' });
+            const pendingRes = await fetch(`/api/submissions?schoolId=${schoolId}&classTeacherId=${sess.user.id}`, { cache: 'no-store', headers });
             if (pendingRes.ok) {
               const penJson = await pendingRes.json();
               setPendingSubmissions(penJson.data || []);
@@ -502,22 +505,26 @@ export default function DashboardHome() {
   const selectedDateEvents = events.filter(e => e.date === selectedDateStr);
   const selectedDateAnnouncements = announcements.filter(a => a.date === selectedDateStr);
 
-  // Fallbacks for charts
+  // Dynamic metrics for charts
   const boysCount = activeStudents.filter(s => s.gender === 'MALE').length;
   const girlsCount = activeStudents.filter(s => s.gender === 'FEMALE').length;
   const totalBoysGirls = boysCount + girlsCount;
-  const genderDonutData = [
-    { name: 'Boys', value: boysCount > 0 ? boysCount : 35, color: '#38bdf8' }, // Sky-400
-    { name: 'Girls', value: girlsCount > 0 ? girlsCount : 25, color: '#f472b6' }  // Pink-400
-  ];
+  const genderDonutData = totalBoysGirls > 0 
+    ? [
+        { name: 'Boys', value: boysCount, color: '#38bdf8' },
+        { name: 'Girls', value: girlsCount, color: '#f472b6' }
+      ]
+    : [
+        { name: 'No Students Enrolled', value: 1, color: '#e2e8f0' }
+      ];
 
   // Grouped Weekly Attendance (Mon-Fri)
   const attendanceBarData = weeklyAttendance.length > 0 ? weeklyAttendance : [
-    { day: 'Mon', Present: Math.round(activeStudents.length * 0.95) || 48, Absent: Math.round(activeStudents.length * 0.05) || 2 },
-    { day: 'Tue', Present: Math.round(activeStudents.length * 0.96) || 49, Absent: Math.round(activeStudents.length * 0.04) || 1 },
-    { day: 'Wed', Present: Math.round(activeStudents.length * 0.92) || 47, Absent: Math.round(activeStudents.length * 0.08) || 3 },
-    { day: 'Thu', Present: Math.round(activeStudents.length * 0.94) || 48, Absent: Math.round(activeStudents.length * 0.06) || 2 },
-    { day: 'Fri', Present: Math.round(activeStudents.length * 0.88) || 45, Absent: Math.round(activeStudents.length * 0.12) || 5 },
+    { day: 'Mon', Present: Math.round(activeStudents.length * 0.95), Absent: Math.round(activeStudents.length * 0.05) },
+    { day: 'Tue', Present: Math.round(activeStudents.length * 0.96), Absent: Math.round(activeStudents.length * 0.04) },
+    { day: 'Wed', Present: Math.round(activeStudents.length * 0.92), Absent: Math.round(activeStudents.length * 0.08) },
+    { day: 'Thu', Present: Math.round(activeStudents.length * 0.94), Absent: Math.round(activeStudents.length * 0.06) },
+    { day: 'Fri', Present: Math.round(activeStudents.length * 0.88), Absent: Math.round(activeStudents.length * 0.12) },
   ];
 
   const kpiCountAdmins = staff.filter(s => s.role === 'SCHOOL_ADMIN').length;
