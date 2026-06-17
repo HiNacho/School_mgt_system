@@ -157,11 +157,19 @@ export default function StaffAccountsPage() {
   };
 
   const downloadTemplate = () => {
-    const wsData = [
-      { 'First Name': 'Solomon', 'Last Name': 'Apeh', 'Email': 'mr.apeh@greenwood.com', 'Role': 'CLASS_TEACHER', 'Phone': '+234 803 111 2222' },
-      { 'First Name': 'Jane', 'Last Name': 'Doe', 'Email': 'jane.doe@greenwood.com', 'Role': 'SUBJECT_TEACHER', 'Phone': '+234 803 333 4444' },
-      { 'First Name': 'Victor', 'Last Name': 'Iheanacho', 'Email': 'victor@greenwood.com', 'Role': 'SCHOOL_ADMIN', 'Phone': '+234 803 555 6666' }
-    ];
+    const wsData = staff.length > 0
+      ? staff.map(member => ({
+          'First Name': member.firstName,
+          'Last Name': member.lastName,
+          'Email': member.email,
+          'Role': member.role,
+          'Phone': member.phone || ''
+        }))
+      : [
+          { 'First Name': 'Solomon', 'Last Name': 'Apeh', 'Email': 'mr.apeh@greenwood.com', 'Role': 'CLASS_TEACHER', 'Phone': '+234 803 111 2222' },
+          { 'First Name': 'Jane', 'Last Name': 'Doe', 'Email': 'jane.doe@greenwood.com', 'Role': 'SUBJECT_TEACHER', 'Phone': '+234 803 333 4444' },
+          { 'First Name': 'Victor', 'Last Name': 'Iheanacho', 'Email': 'victor@greenwood.com', 'Role': 'SCHOOL_ADMIN', 'Phone': '+234 803 555 6666' }
+        ];
     const wb = XLSX.utils.book_new();
     const ws = XLSX.utils.json_to_sheet(wsData);
     XLSX.utils.book_append_sheet(wb, ws, 'StaffTemplate');

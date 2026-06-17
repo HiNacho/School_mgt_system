@@ -45,11 +45,20 @@ export default function ParentsRegistryPage() {
   const [dragActive, setDragActive] = useState(false);
 
   const downloadTemplate = () => {
-    const wsData = [
-      { 'First Name': 'Babatunde', 'Last Name': 'Ojo', 'Email': 'babatunde.ojo@gmail.com', 'Phone': '+234 803 111 2222', 'Address': '12 Toyin Street, Ikeja, Lagos', 'Wards': 'ADM-001, ADM-002' },
-      { 'First Name': 'Amara', 'Last Name': 'Chukwuma', 'Email': 'amara.chukwuma@yahoo.com', 'Phone': '+234 803 333 4444', 'Address': '45 Lekki Phase 1, Lagos', 'Wards': 'Sarah Chukwuma' },
-      { 'First Name': 'Fatima', 'Last Name': 'Yusuf', 'Email': 'fatima.yusuf@outlook.com', 'Phone': '+234 803 555 6666', 'Address': '78 Wuse 2, Abuja', 'Wards': 'Fatima Yusuf' }
-    ];
+    const wsData = parents.length > 0
+      ? parents.map(member => ({
+          'First Name': member.firstName,
+          'Last Name': member.lastName,
+          'Email': member.email,
+          'Phone': member.phone || '',
+          'Address': member.address || '',
+          'Wards': member.students?.map(s => s.admissionNumber).join(', ') || ''
+        }))
+      : [
+          { 'First Name': 'Babatunde', 'Last Name': 'Ojo', 'Email': 'babatunde.ojo@gmail.com', 'Phone': '+234 803 111 2222', 'Address': '12 Toyin Street, Ikeja, Lagos', 'Wards': 'ADM-001, ADM-002' },
+          { 'First Name': 'Amara', 'Last Name': 'Chukwuma', 'Email': 'amara.chukwuma@yahoo.com', 'Phone': '+234 803 333 4444', 'Address': '45 Lekki Phase 1, Lagos', 'Wards': 'Sarah Chukwuma' },
+          { 'First Name': 'Fatima', 'Last Name': 'Yusuf', 'Email': 'fatima.yusuf@outlook.com', 'Phone': '+234 803 555 6666', 'Address': '78 Wuse 2, Abuja', 'Wards': 'Fatima Yusuf' }
+        ];
     const wb = XLSX.utils.book_new();
     const ws = XLSX.utils.json_to_sheet(wsData);
     XLSX.utils.book_append_sheet(wb, ws, 'ParentsTemplate');

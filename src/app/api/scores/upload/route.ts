@@ -138,10 +138,89 @@ export async function POST(req: NextRequest) {
       });
     }
 
+    // Fetch existing score submission if any to prevent wiping out existing data
+    const existingSubmission = await prisma.scoreSubmission.findUnique({
+      where: {
+        schoolId_subjectId_classId_armId_termId: {
+          schoolId,
+          subjectId,
+          classId,
+          armId,
+          termId
+        }
+      }
+    });
+
+    const existingScoresMap = new Map<string, any>();
+    if (existingSubmission && typeof existingSubmission.payload === 'string') {
+      try {
+        const parsedPayload = JSON.parse(existingSubmission.payload);
+        if (Array.isArray(parsedPayload)) {
+          parsedPayload.forEach((scoreObj: any) => {
+            if (scoreObj && scoreObj.studentId) {
+              existingScoresMap.set(scoreObj.studentId, scoreObj);
+            }
+          });
+        }
+      } catch (e) {
+        console.error('Failed to parse existing scores payload:', e);
+      }
+    }
+
     // Merge database students roster with uploaded successes to ensure a complete sheet payload
     const finalScoresList = dbStudents.map(student => {
       const match = successLogs.find(x => x.studentId === student.id);
-      if (match) return match;
+      const existing = existingScoresMap.get(student.id);
+
+      if (match) {
+        // Merge uploaded scores with existing ones if fields are empty in the upload
+        const mergedCa1 = match.ca1 !== null ? match.ca1 : (existing && existing.ca1 !== undefined ? existing.ca1 : null);
+        const mergedCa2 = match.ca2 !== null ? match.ca2 : (existing && existing.ca2 !== undefined ? existing.ca2 : null);
+        const mergedAsg = match.assignment !== null ? match.assignment : (existing && existing.assignment !== undefined ? existing.assignment : null);
+        const mergedEx = match.exam !== null ? match.exam : (existing && existing.exam !== undefined ? existing.exam : null);
+
+        const hasRecord = mergedCa1 !== null || mergedCa2 !== null || mergedAsg !== null || mergedEx !== null;
+        let total = null;
+        let grade = null;
+        let remarks = null;
+        if (hasRecord) {
+          const details = calculateScoreDetails(mergedCa1, mergedCa2, mergedAsg, mergedEx, gradingRules);
+          total = details.total;
+          grade = details.grade;
+          remarks = details.remarks;
+        }
+
+        return {
+          studentId: student.id,
+          admissionNumber: student.admissionNumber,
+          firstName: student.firstName,
+          lastName: student.lastName,
+          ca1: mergedCa1,
+          ca2: mergedCa2,
+          assignment: mergedAsg,
+          exam: mergedEx,
+          total,
+          grade,
+          remarks
+        };
+      }
+
+      if (existing) {
+        return {
+          studentId: student.id,
+          admissionNumber: student.admissionNumber,
+          firstName: student.firstName,
+          lastName: student.lastName,
+          ca1: existing.ca1 ?? null,
+          ca2: existing.ca2 ?? null,
+          assignment: existing.assignment ?? null,
+          exam: existing.exam ?? null,
+          total: existing.total ?? null,
+          grade: existing.grade ?? null,
+          remarks: existing.remarks ?? null
+        };
+      }
+
       return {
         studentId: student.id,
         admissionNumber: student.admissionNumber,

@@ -73,67 +73,98 @@ export async function POST(req: NextRequest) {
           }
         });
 
+        let resultStudent;
+        let username = '';
+        let tempPassword = '';
+
         if (conflict) {
-          results.failCount++;
-          results.failures.push({
-            name: displayName,
-            admissionNumber: cleanAdmissionNumber,
-            error: `Admission number "${cleanAdmissionNumber}" is already registered to ${conflict.lastName}, ${conflict.firstName}.`
+          resultStudent = await prisma.$transaction(async (tx) => {
+            // 1. Update existing student record
+            const student = await tx.student.update({
+              where: { id: conflict.id },
+              data: {
+                firstName: cleanFirstName,
+                lastName: cleanLastName || 'Student',
+                middleName: cleanMiddleName,
+                gender: cleanGender,
+                classId,
+                armId,
+                status: 'ACTIVE'
+              }
+            });
+
+            // 2. Find and update linked User
+            const linkedUser = await tx.user.findFirst({
+              where: { studentId: conflict.id }
+            });
+            if (linkedUser) {
+              await tx.user.update({
+                where: { id: linkedUser.id },
+                data: {
+                  firstName: cleanFirstName,
+                  lastName: cleanLastName || 'Student',
+                  status: 'ACTIVE',
+                  isActive: true
+                }
+              });
+              username = linkedUser.username;
+            }
+
+            return student;
           });
-          continue;
+        } else {
+          // Auto-generate credentials for student user
+          tempPassword = generateTempPassword();
+          const salt = await bcrypt.genSalt(10);
+          const passwordHash = await bcrypt.hash(tempPassword, salt);
+          username = await generateUniqueUsername(cleanLastName || 'student');
+          const email = `${username}@student.local`;
+
+          resultStudent = await prisma.$transaction(async (tx) => {
+            // 1. Create student record
+            const student = await tx.student.create({
+              data: {
+                schoolId,
+                firstName: cleanFirstName,
+                lastName: cleanLastName || 'Student',
+                middleName: cleanMiddleName,
+                admissionNumber: cleanAdmissionNumber,
+                gender: cleanGender,
+                classId,
+                armId,
+                status: 'ACTIVE'
+              }
+            });
+
+            // 2. Create linked User credentials
+            await tx.user.create({
+              data: {
+                schoolId,
+                username,
+                email,
+                passwordHash,
+                firstName: cleanFirstName,
+                lastName: cleanLastName || 'Student',
+                role: 'STUDENT',
+                studentId: student.id,
+                isFirstLogin: true,
+                status: 'ACTIVE',
+                isActive: true
+              }
+            });
+
+            return student;
+          });
         }
-
-        // Auto-generate credentials for student user
-        const tempPassword = generateTempPassword();
-        const salt = await bcrypt.genSalt(10);
-        const passwordHash = await bcrypt.hash(tempPassword, salt);
-        const username = await generateUniqueUsername(cleanLastName || 'student');
-        const email = `${username}@student.local`;
-
-        const newStudent = await prisma.$transaction(async (tx) => {
-          // 1. Create student record
-          const student = await tx.student.create({
-            data: {
-              schoolId,
-              firstName: cleanFirstName,
-              lastName: cleanLastName || 'Student',
-              middleName: cleanMiddleName,
-              admissionNumber: cleanAdmissionNumber,
-              gender: cleanGender,
-              classId,
-              armId,
-              status: 'ACTIVE'
-            }
-          });
-
-          // 2. Create linked User credentials
-          await tx.user.create({
-            data: {
-              schoolId,
-              username,
-              email,
-              passwordHash,
-              firstName: cleanFirstName,
-              lastName: cleanLastName || 'Student',
-              role: 'STUDENT',
-              studentId: student.id,
-              isFirstLogin: true,
-              status: 'ACTIVE',
-              isActive: true
-            }
-          });
-
-          return student;
-        });
 
         results.successCount++;
         results.createdStudents.push({
-          id: newStudent.id,
-          firstName: newStudent.firstName,
-          lastName: newStudent.lastName,
-          admissionNumber: newStudent.admissionNumber,
+          id: resultStudent.id,
+          firstName: resultStudent.firstName,
+          lastName: resultStudent.lastName,
+          admissionNumber: resultStudent.admissionNumber,
           username,
-          temporaryPassword: tempPassword
+          temporaryPassword: tempPassword || 'Preserved'
         });
       } catch (err: any) {
         console.error('Error inserting uploaded student:', err);

@@ -65,33 +65,48 @@ export async function POST(req: NextRequest) {
           where: { email: cleanEmail }
         });
 
+        let user;
         if (conflict) {
-          results.failCount++;
-          results.failures.push({
-            name: displayName,
-            email: cleanEmail,
-            error: `Email "${cleanEmail}" is already registered to ${conflict.lastName}, ${conflict.firstName}.`
+          if (conflict.schoolId === schoolId) {
+            // Upsert / update existing staff member in the same school
+            user = await prisma.user.update({
+              where: { id: conflict.id },
+              data: {
+                firstName: cleanFirstName,
+                lastName: cleanLastName,
+                role: cleanRole,
+                phone: cleanPhone,
+                status: 'ACTIVE'
+              }
+            });
+          } else {
+            results.failCount++;
+            results.failures.push({
+              name: displayName,
+              email: cleanEmail,
+              error: `Email "${cleanEmail}" is registered to another school tenant.`
+            });
+            continue;
+          }
+        } else {
+          // Create new staff user credentials
+          user = await prisma.user.create({
+            data: {
+              schoolId,
+              email: cleanEmail,
+              username: cleanEmail,
+              firstName: cleanFirstName,
+              lastName: cleanLastName,
+              role: cleanRole,
+              phone: cleanPhone,
+              status: 'ACTIVE',
+              passwordHash: defaultPasswordHash // Default demo password
+            }
           });
-          continue;
         }
 
-        // Create the staff member account
-        const newUser = await prisma.user.create({
-          data: {
-            schoolId,
-            email: cleanEmail,
-            username: cleanEmail,
-            firstName: cleanFirstName,
-            lastName: cleanLastName,
-            role: cleanRole,
-            phone: cleanPhone,
-            status: 'ACTIVE',
-            passwordHash: defaultPasswordHash // Default demo password
-          }
-        });
-
         results.successCount++;
-        results.createdStaff.push(newUser);
+        results.createdStaff.push(user);
       } catch (err: any) {
         console.error('Error inserting uploaded staff member:', err);
         results.failCount++;

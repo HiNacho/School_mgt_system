@@ -174,11 +174,21 @@ export default function StudentsManagerPage() {
   };
 
   const downloadTemplate = () => {
-    const wsData = [
-      { 'Student Name': 'Nwachukwu, Emeka', 'Admission Number': 'GW-2025-001', 'Gender': 'MALE' },
-      { 'Student Name': 'Alabi, Yetunde', 'Admission Number': 'GW-2025-002', 'Gender': 'FEMALE' },
-      { 'Student Name': 'Bello, Zainab', 'Admission Number': 'GW-2025-003', 'Gender': 'FEMALE' }
-    ];
+    const classSpecificStudents = students.filter(
+      s => s.classId === targetClassId && s.armId === targetArmId
+    );
+
+    const wsData = classSpecificStudents.length > 0
+      ? classSpecificStudents.map(s => ({
+          'Student Name': s.lastName ? `${s.lastName}, ${s.firstName}` : s.firstName,
+          'Admission Number': s.admissionNumber,
+          'Gender': s.gender
+        }))
+      : [
+          { 'Student Name': 'Nwachukwu, Emeka', 'Admission Number': 'GW-2025-001', 'Gender': 'MALE' },
+          { 'Student Name': 'Alabi, Yetunde', 'Admission Number': 'GW-2025-002', 'Gender': 'FEMALE' },
+          { 'Student Name': 'Bello, Zainab', 'Admission Number': 'GW-2025-003', 'Gender': 'FEMALE' }
+        ];
     const wb = XLSX.utils.book_new();
     const ws = XLSX.utils.json_to_sheet(wsData);
     XLSX.utils.book_append_sheet(wb, ws, 'StudentTemplate');

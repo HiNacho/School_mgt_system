@@ -40,11 +40,19 @@ export default function TeachersDirectoryPage() {
   const [dragActive, setDragActive] = useState(false);
 
   const downloadTemplate = () => {
-    const wsData = [
-      { 'First Name': 'Sarah', 'Last Name': 'Okon', 'Email': 'sarah.okon@school.com', 'Role': 'CLASS_TEACHER', 'Phone': '+234 803 111 2222' },
-      { 'First Name': 'David', 'Last Name': 'Alabi', 'Email': 'david.alabi@school.com', 'Role': 'SUBJECT_TEACHER', 'Phone': '+234 803 333 4444' },
-      { 'First Name': 'Grace', 'Last Name': 'Adenike', 'Email': 'grace.adenike@school.com', 'Role': 'HEAD_TEACHER', 'Phone': '+234 803 555 6666' }
-    ];
+    const wsData = teachers.length > 0
+      ? teachers.map(member => ({
+          'First Name': member.firstName,
+          'Last Name': member.lastName,
+          'Email': member.email,
+          'Role': member.role,
+          'Phone': member.phone || ''
+        }))
+      : [
+          { 'First Name': 'Sarah', 'Last Name': 'Okon', 'Email': 'sarah.okon@school.com', 'Role': 'CLASS_TEACHER', 'Phone': '+234 803 111 2222' },
+          { 'First Name': 'David', 'Last Name': 'Alabi', 'Email': 'david.alabi@school.com', 'Role': 'SUBJECT_TEACHER', 'Phone': '+234 803 333 4444' },
+          { 'First Name': 'Grace', 'Last Name': 'Adenike', 'Email': 'grace.adenike@school.com', 'Role': 'HEAD_TEACHER', 'Phone': '+234 803 555 6666' }
+        ];
     const wb = XLSX.utils.book_new();
     const ws = XLSX.utils.json_to_sheet(wsData);
     XLSX.utils.book_append_sheet(wb, ws, 'TeachersTemplate');
