@@ -18,6 +18,7 @@ export default function SettingsPage() {
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
   const [gradingType, setGradingType] = useState('SECONDARY');
+  const [enforceUniquePasswords, setEnforceUniquePasswords] = useState(false);
 
   // User Local preferences (All roles)
   const [themeMode, setThemeMode] = useState('light');
@@ -68,6 +69,7 @@ export default function SettingsPage() {
           setPhone(sessionObj.school.phone || '');
           setEmail(sessionObj.school.email || '');
           setGradingType(sessionObj.school.gradingType || 'SECONDARY');
+          setEnforceUniquePasswords(sessionObj.school.enforceUniquePasswords || false);
         }
 
         // Populate local user preference configurations
@@ -108,7 +110,8 @@ export default function SettingsPage() {
           address,
           phone,
           email,
-          gradingType
+          gradingType,
+          enforceUniquePasswords
         })
       });
 
@@ -125,7 +128,8 @@ export default function SettingsPage() {
         address,
         phone,
         email,
-        gradingType
+        gradingType,
+        enforceUniquePasswords
       };
 
       localStorage.setItem('report_user_session', JSON.stringify({
@@ -366,6 +370,20 @@ export default function SettingsPage() {
                     <option value="PRIMARY">PRIMARY (Grade Scale A, B, C, D)</option>
                     <option value="SECONDARY">SECONDARY (WAEC Scale A1 - F9)</option>
                   </select>
+                </div>
+
+                {/* Security Passwords Policy */}
+                <div className="flex flex-col justify-end pb-1.5">
+                  <div className="flex items-center justify-between bg-slate-50 border border-slate-200 rounded-xl px-3 py-3 h-[46px]">
+                    <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wide">Enforce Unique Passwords</span>
+                    <input
+                      type="checkbox"
+                      checked={enforceUniquePasswords}
+                      onChange={(e) => setEnforceUniquePasswords(e.target.checked)}
+                      className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 w-4 h-4 cursor-pointer"
+                      disabled={saving}
+                    />
+                  </div>
                 </div>
 
                 {/* Logo URL & File Upload */}

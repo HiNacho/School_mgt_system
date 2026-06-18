@@ -16,6 +16,7 @@ model School {
   phone       String?
   email       String?
   gradingType String   @default("SECONDARY") // PRIMARY or SECONDARY
+  enforceUniquePasswords Boolean @default(false)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 

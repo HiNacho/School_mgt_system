@@ -257,7 +257,8 @@ export async function PATCH(req: NextRequest) {
     const body = await req.json();
     const { 
       schoolId, name, address, phone, email, gradingType, logoUrl,
-      subscriptionPlan, subscriptionStatus, subscriptionStart, subscriptionEnd, gracePeriodEnd
+      subscriptionPlan, subscriptionStatus, subscriptionStart, subscriptionEnd, gracePeriodEnd,
+      enforceUniquePasswords
     } = body;
 
     if (!schoolId) {
@@ -278,6 +279,7 @@ export async function PATCH(req: NextRequest) {
         subscriptionStart: subscriptionStart !== undefined ? (subscriptionStart ? new Date(subscriptionStart) : null) : undefined,
         subscriptionEnd: subscriptionEnd !== undefined ? (subscriptionEnd ? new Date(subscriptionEnd) : null) : undefined,
         gracePeriodEnd: gracePeriodEnd !== undefined ? (gracePeriodEnd ? new Date(gracePeriodEnd) : null) : undefined,
+        enforceUniquePasswords: enforceUniquePasswords !== undefined ? enforceUniquePasswords : undefined,
       }
     });
 
