@@ -41,6 +41,7 @@ export default function DashboardHome() {
   const [rosterStudents, setRosterStudents] = useState<any[]>([]);
   const [classStatuses, setClassStatuses] = useState<any[]>([]);
   const [activeReportStatus, setActiveReportStatus] = useState<string>('DRAFT');
+  const [activeStudentDetail, setActiveStudentDetail] = useState<any>(null);
 
   // Parent specific states
   const [selectedChildId, setSelectedChildId] = useState<string>('');
@@ -70,12 +71,28 @@ export default function DashboardHome() {
     if (!session) return;
     const role = session.user?.role;
     const termId = setupData?.terms?.find((t: any) => t.isCurrent)?.id || setupData?.terms?.[0]?.id || '';
-    if (!termId) return;
+
+    const token = localStorage.getItem('report_auth_token') || '';
+    const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+
+    const fetchStudentDetail = async (studentId: string) => {
+      try {
+        const detailRes = await fetch(`/api/students?studentId=${studentId}`, { cache: 'no-store', headers });
+        if (detailRes.ok) {
+          const detailJson = await detailRes.json();
+          setActiveStudentDetail(detailJson.data);
+        }
+      } catch (err) {
+        console.error('Error fetching student details', err);
+      }
+    };
 
     const fetchActiveStatus = async (classId: string, armId: string) => {
+      if (!termId) return;
       try {
         const statusRes = await fetch(
-          `/api/reports/status?schoolId=${session.school?.id}&classId=${classId}&armId=${armId}&termId=${termId}`
+          `/api/reports/status?schoolId=${session.school?.id}&classId=${classId}&armId=${armId}&termId=${termId}`,
+          { headers }
         );
         if (statusRes.ok) {
           const statusJson = await statusRes.json();
@@ -91,9 +108,13 @@ export default function DashboardHome() {
       }
     };
 
-    if (role === 'STUDENT' && session.user?.student) {
-      fetchActiveStatus(session.user.student.classId, session.user.student.armId);
+    if (role === 'STUDENT' && session.user?.studentId) {
+      fetchStudentDetail(session.user.studentId);
+      if (session.user?.student) {
+        fetchActiveStatus(session.user.student.classId, session.user.student.armId);
+      }
     } else if (role === 'PARENT' && selectedChildId && session.user?.parent?.students) {
+      fetchStudentDetail(selectedChildId);
       const kid = session.user.parent.students.find((k: any) => k.id === selectedChildId);
       if (kid) {
         fetchActiveStatus(kid.classId, kid.armId);
@@ -531,6 +552,23 @@ export default function DashboardHome() {
   const kpiCountTeachers = staff.filter(s => ['CLASS_TEACHER', 'SUBJECT_TEACHER', 'HEAD_TEACHER'].includes(s.role)).length;
   const kpiCountStudents = students.length;
   const kpiCountParents = parents.length;
+
+  // Ward / Student dynamic attendance calculation
+  const currentTermId = setupData?.terms?.find((t: any) => t.isCurrent)?.id || setupData?.terms?.[0]?.id || '';
+  const termAttendance = activeStudentDetail?.attendance?.find((a: any) => a.termId === currentTermId);
+  const studentDaysPresent = termAttendance?.daysPresent ?? 0;
+  const studentDaysAbsent = termAttendance?.daysAbsent ?? 0;
+  const studentTotalDays = studentDaysPresent + studentDaysAbsent;
+  const studentAttendanceRate = studentTotalDays > 0 ? Math.round((studentDaysPresent / studentTotalDays) * 100) : 100;
+  
+  let attendanceStatusLabel = 'EXCELLENT';
+  if (studentTotalDays > 5) {
+    if (studentAttendanceRate < 70) attendanceStatusLabel = 'POOR';
+    else if (studentAttendanceRate < 85) attendanceStatusLabel = 'AVERAGE';
+    else if (studentAttendanceRate < 95) attendanceStatusLabel = 'GOOD';
+  } else if (studentTotalDays === 0) {
+    attendanceStatusLabel = 'N/A';
+  }
 
   return (
     <div className="space-y-6">
@@ -1220,19 +1258,19 @@ export default function DashboardHome() {
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                 <div className="p-3.5 bg-green-50 border border-green-100 rounded-2xl text-center">
                   <span className="block text-[10px] font-extrabold text-green-600 uppercase tracking-widest">Present Days</span>
-                  <span className="block text-2xl font-black text-green-800 mt-1">48</span>
+                  <span className="block text-2xl font-black text-green-800 mt-1">{studentDaysPresent}</span>
                 </div>
                 <div className="p-3.5 bg-red-50 border border-red-100 rounded-2xl text-center">
                   <span className="block text-[10px] font-extrabold text-red-600 uppercase tracking-widest">Absent Days</span>
-                  <span className="block text-2xl font-black text-red-800 mt-1">2</span>
+                  <span className="block text-2xl font-black text-red-800 mt-1">{studentDaysAbsent}</span>
                 </div>
                 <div className="p-3.5 bg-blue-50 border border-blue-100 rounded-2xl text-center">
                   <span className="block text-[10px] font-extrabold text-blue-600 uppercase tracking-widest">Rate</span>
-                  <span className="block text-2xl font-black text-blue-800 mt-1">96%</span>
+                  <span className="block text-2xl font-black text-blue-800 mt-1">{studentAttendanceRate}%</span>
                 </div>
                 <div className="p-3.5 bg-slate-50 border border-slate-100 rounded-2xl text-center">
                   <span className="block text-[10px] font-extrabold text-slate-500 uppercase tracking-widest">Status</span>
-                  <span className="block text-[11px] font-black text-slate-700 mt-3 uppercase tracking-wider">EXCELLENT</span>
+                  <span className="block text-[11px] font-black text-slate-700 mt-3 uppercase tracking-wider">{attendanceStatusLabel}</span>
                 </div>
               </div>
             </div>
@@ -1448,15 +1486,15 @@ export default function DashboardHome() {
                     <div className="grid grid-cols-3 gap-4">
                       <div className="p-3 bg-slate-50 border border-slate-100 rounded-2xl text-center">
                         <span className="block text-[9px] font-extrabold text-slate-400 uppercase">Days Present</span>
-                        <span className="block text-xl font-black text-slate-700 mt-1">48</span>
+                        <span className="block text-xl font-black text-slate-700 mt-1">{studentDaysPresent}</span>
                       </div>
                       <div className="p-3 bg-slate-50 border border-slate-100 rounded-2xl text-center">
                         <span className="block text-[9px] font-extrabold text-slate-400 uppercase">Days Absent</span>
-                        <span className="block text-xl font-black text-slate-700 mt-1">2</span>
+                        <span className="block text-xl font-black text-slate-700 mt-1">{studentDaysAbsent}</span>
                       </div>
                       <div className="p-3 bg-blue-50 border border-blue-100 rounded-2xl text-center">
                         <span className="block text-[9px] font-extrabold text-blue-600 uppercase">Rate Ratio</span>
-                        <span className="block text-xl font-black text-blue-700 mt-1">96%</span>
+                        <span className="block text-xl font-black text-blue-700 mt-1">{studentAttendanceRate}%</span>
                       </div>
                     </div>
                   </div>
