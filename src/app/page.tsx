@@ -962,64 +962,43 @@ export default function LandingPage() {
                 </div>
                 
                 <div className="space-y-1">
-                  <h3 className="text-base font-extrabold text-[#1e293b] uppercase tracking-wider">Registration Successful!</h3>
-                  <p className="text-xs text-slate-400 font-semibold">Your trial school environment has been initialized.</p>
+                  <h3 className="text-base font-extrabold text-[#1e293b] uppercase tracking-wider">Free Trial Initiated!</h3>
+                  <p className="text-xs text-slate-400 font-semibold">Your 1-Month Free Trial setup request has been registered.</p>
                 </div>
 
-                <div className="bg-[#f8f9fa] border border-[#e2e8f0] p-4 rounded-2xl text-left space-y-3.5 max-w-md mx-auto shadow-sm">
+                <div className="bg-[#f8f9fa] border border-[#e2e8f0] p-4.5 rounded-2xl text-left space-y-3.5 max-w-md mx-auto shadow-sm">
                   <div className="flex items-center gap-2 text-emerald-600">
-                    <Key className="w-4 h-4" />
-                    <span className="text-[10px] font-extrabold uppercase tracking-wider">Demo Access Credentials</span>
+                    <Sparkles className="w-4 h-4" />
+                    <span className="text-[10px] font-extrabold uppercase tracking-wider">Custom Pilot Workspace</span>
                   </div>
                   <p className="text-xs text-[#475569] leading-relaxed font-semibold">
-                    You can explore our pre-populated <strong>demo school environment</strong> right away using these credentials:
+                    Our onboarding team is spinning up your dedicated school workspace. Your custom administrator access credentials and portal links will be emailed to you within 24 hours at:
                   </p>
                   
-                  <div className="space-y-2 text-xs">
-                    <div className="bg-white border border-[#e2e8f0] p-2.5 rounded-xl">
-                      <div className="font-bold text-[#1e293b] mb-1 flex items-center gap-1.5">
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> School Admin
-                      </div>
-                      <div className="flex justify-between text-slate-500 font-mono text-[11px] font-semibold">
-                        <span>Email: admin@greenwood.com</span>
-                        <span>Pass: password</span>
-                      </div>
-                    </div>
-                    
-                    <div className="bg-white border border-[#e2e8f0] p-2.5 rounded-xl">
-                      <div className="font-bold text-[#1e293b] mb-1 flex items-center gap-1.5">
-                        <span className="w-1.5 h-1.5 rounded-full bg-indigo-500"></span> Class Teacher
-                      </div>
-                      <div className="flex justify-between text-slate-500 font-mono text-[11px] font-semibold">
-                        <span>Email: classteacher@greenwood.com</span>
-                        <span>Pass: password</span>
-                      </div>
-                    </div>
-
-                    <div className="bg-white border border-[#e2e8f0] p-2.5 rounded-xl">
-                      <div className="font-bold text-[#1e293b] mb-1 flex items-center gap-1.5">
-                        <span className="w-1.5 h-1.5 rounded-full bg-purple-500"></span> Parent Portal
-                      </div>
-                      <div className="flex justify-between text-slate-500 font-mono text-[11px] font-semibold">
-                        <span>Email: parent@greenwood.com</span>
-                        <span>Pass: password</span>
-                      </div>
-                    </div>
+                  <div className="bg-white border border-[#e2e8f0] px-3.5 py-2.5 rounded-xl text-center">
+                    <strong className="text-[#1e293b] font-bold text-xs">{regEmail}</strong>
                   </div>
 
-                  <p className="text-[10px] text-slate-500 font-medium leading-normal border-t border-[#e2e8f0] pt-2.5">
-                    📧 We have also dispatched a welcome email containing these credentials to <strong>{regEmail}</strong>.
-                  </p>
+                  <div className="border-t border-[#e2e8f0] pt-3.5 space-y-2">
+                    <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">Want an instant preview?</span>
+                    <p className="text-xs text-slate-500 font-medium leading-relaxed">
+                      While your custom workspace compiles, you can explore our fully pre-populated demo school sandbox environment right away.
+                    </p>
+                  </div>
                 </div>
 
                 <div className="flex flex-col sm:flex-row gap-2.5 justify-center pt-2">
-                  <Link
-                    href="/login"
-                    onClick={() => { setRegModalOpen(false); resetRegForm(); }}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setRegModalOpen(false);
+                      resetRegForm();
+                      setTryModalOpen(true);
+                    }}
                     className="flex-1 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold uppercase tracking-wider transition-colors rounded-xl shadow-md text-center flex items-center justify-center gap-2"
                   >
-                    Go to Login <ArrowRight className="w-3.5 h-3.5" />
-                  </Link>
+                    Try Sandbox Demo <ArrowRight className="w-3.5 h-3.5" />
+                  </button>
                   <button
                     type="button"
                     onClick={() => { setRegModalOpen(false); resetRegForm(); }}
