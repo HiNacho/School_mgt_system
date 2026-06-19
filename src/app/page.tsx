@@ -797,7 +797,7 @@ export default function LandingPage() {
                 <div className="p-2.5 bg-slate-50 border border-[#cbd5e1] text-[#64748b]">
                   <MessageSquare className="w-4 h-4" />
                 </div>
-                <span>+234 813 831 6164 (WhatsApp)</span>
+                <span>+23490 373 970 84 (WhatsApp)</span>
               </div>
               <div className="flex items-center gap-3">
                 <div className="p-2.5 bg-slate-50 border border-[#cbd5e1] text-[#64748b]">
@@ -1311,7 +1311,7 @@ export default function LandingPage() {
             </p>
 
             <a
-              href="https://wa.me/2348138316164"
+              href="https://wa.me/2349037397084"
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center justify-center gap-2 w-full py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl text-xs font-bold uppercase tracking-wider transition-colors shadow-sm"
