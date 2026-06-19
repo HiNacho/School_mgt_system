@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/db';
 import { sendEmail } from '@/lib/mailer';
+import { sendSlackNotification } from '@/lib/slack';
 
 // Helper to escape HTML to prevent injection and rendering errors
 function escapeHtml(text: string): string {
@@ -177,6 +178,14 @@ export async function POST(req: NextRequest) {
         subject: 'We received your inquiry - NachoEd Support',
         body: visitorEmailHtml,
       });
+
+      // Send Slack notification
+      const slackMessage = `🔔 *New NachoEd Contact Inquiry*\n` +
+        `• *Name:* ${resolvedContactName}\n` +
+        `• *Email:* ${email}\n` +
+        `• *School:* ${schoolName}\n` +
+        `• *Message:* ${message}`;
+      await sendSlackNotification(slackMessage);
 
       return NextResponse.json({
         success: true,
@@ -397,6 +406,18 @@ export async function POST(req: NextRequest) {
         subject: 'Welcome to NachoEd - Early Access & Demo Credentials',
         body: visitorWelcomeHtml,
       });
+
+      // Send Slack notification
+      const slackMessage = `🚀 *New Early Access Registration*\n` +
+        `• *School:* ${schoolName}\n` +
+        `• *Type:* ${schoolType || 'N/A'}\n` +
+        `• *Ownership:* ${ownershipType || 'N/A'}\n` +
+        `• *Contact:* ${resolvedContactName} (${position || 'N/A'})\n` +
+        `• *Email:* ${email}\n` +
+        `• *Phone:* ${phone || 'N/A'}\n` +
+        `• *Size:* ${studentCount || 'N/A'} students, ${teacherCount || 'N/A'} teachers\n` +
+        `• *Challenge:* ${biggestChallenge || 'N/A'}`;
+      await sendSlackNotification(slackMessage);
 
       return NextResponse.json({ 
         success: true, 
