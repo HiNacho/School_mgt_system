@@ -129,7 +129,7 @@ export async function GET(req: NextRequest) {
     }
   } catch (error: any) {
     console.error('Messages GET Error:', error);
-    return NextResponse.json({ error: 'Failed to retrieve messages' }, { status: 500 });
+    return NextResponse.json({ error: `Failed to retrieve messages: ${error.message || error}` }, { status: 500 });
   }
 }
 

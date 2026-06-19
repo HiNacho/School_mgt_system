@@ -795,21 +795,21 @@ export default function LandingPage() {
             <div className="space-y-4 text-xs font-semibold text-[#475569]">
               <div className="flex items-center gap-3">
                 <div className="p-2.5 bg-slate-50 border border-[#cbd5e1] text-[#64748b]">
-                  <Phone className="w-4 h-4" />
+                  <MessageSquare className="w-4 h-4" />
                 </div>
-                <span>+234 818 333 4455</span>
+                <span>+234 813 831 6164 (WhatsApp)</span>
               </div>
               <div className="flex items-center gap-3">
                 <div className="p-2.5 bg-slate-50 border border-[#cbd5e1] text-[#64748b]">
                   <Mail className="w-4 h-4" />
                 </div>
-                <span>support@nachoed.com</span>
+                <span>hellotonachoai@gmail.com</span>
               </div>
               <div className="flex items-center gap-3">
                 <div className="p-2.5 bg-slate-50 border border-[#cbd5e1] text-[#64748b]">
                   <MapPin className="w-4 h-4" />
                 </div>
-                <span>King Street, No 25567, Lekki, Lagos</span>
+                <span>Lagos, Nigeria</span>
               </div>
             </div>
 
@@ -1311,7 +1311,7 @@ export default function LandingPage() {
             </p>
 
             <a
-              href="https://wa.me/2349037397084"
+              href="https://wa.me/2348138316164"
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center justify-center gap-2 w-full py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl text-xs font-bold uppercase tracking-wider transition-colors shadow-sm"
