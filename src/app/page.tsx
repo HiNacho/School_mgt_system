@@ -1389,7 +1389,7 @@ export default function LandingPage() {
                     role: 'SCHOOL_ADMIN',
                     name: 'School Admin',
                     desc: 'Manage classrooms, teachers, schedules, and ranking configurations.',
-                    email: 'auntyalice@gmail.com',
+                    email: 'admin@nacho.com',
                     icon: Award,
                     color: 'text-blue-600 border-blue-150 bg-blue-50/10'
                   },
@@ -1397,7 +1397,7 @@ export default function LandingPage() {
                     role: 'CLASS_TEACHER',
                     name: 'Class Teacher',
                     desc: 'Evaluate classroom gradesheets, compile reports, and record registers.',
-                    email: 'aminat.bello@school.com',
+                    email: 'classteacher@nacho.com',
                     icon: Users,
                     color: 'text-indigo-600 border-indigo-150 bg-indigo-50/10'
                   },
@@ -1405,7 +1405,7 @@ export default function LandingPage() {
                     role: 'PARENT',
                     name: 'Parent Portal',
                     desc: 'Access terminal score sheets, download PDF report cards, and track attendance.',
-                    email: 'aliyu.bello80@example.com',
+                    email: 'parent@nacho.com',
                     icon: Heart,
                     color: 'text-pink-600 border-pink-150 bg-pink-50/10'
                   },
@@ -1413,7 +1413,7 @@ export default function LandingPage() {
                     role: 'STUDENT',
                     name: 'Student View',
                     desc: 'Track score metrics, view academic grades, and check school events.',
-                    email: 'briggs001@student.local',
+                    email: 'student@nacho.com',
                     icon: GraduationCap,
                     color: 'text-violet-600 border-violet-150 bg-violet-50/10'
                   }
@@ -1446,7 +1446,7 @@ export default function LandingPage() {
                             const res = await fetch('/api/auth', {
                               method: 'POST',
                               headers: { 'Content-Type': 'application/json' },
-                              body: JSON.stringify({ bypassRole: persona.role, schoolSlug: 'greenwood-secondary' }),
+                              body: JSON.stringify({ bypassRole: persona.role, schoolSlug: 'nacho-secondary' }),
                             });
                             const resData = await res.json();
                             if (res.ok) {

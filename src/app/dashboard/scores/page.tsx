@@ -517,7 +517,7 @@ export default function ScoresManagerPage() {
     }
   }, [selectedClass, selectedArm, availableSubjects, isTeacher, selectedSubject]);
 
-  const isGreenwood = session?.school?.slug === 'greenwood-secondary';
+  const isGreenwood = session?.school?.slug === 'nacho-secondary';
   const themeAccentColor = isGreenwood ? 'text-emerald-600' : 'text-indigo-600';
   const themeBgAccent = isGreenwood ? 'bg-emerald-600 text-white hover:bg-emerald-700 active:bg-emerald-800' : 'bg-indigo-600 text-white hover:bg-indigo-700 active:bg-indigo-800';
 

@@ -370,19 +370,19 @@ export async function POST(req: NextRequest) {
                 
                 <div class="credential-item">
                   <span class="credential-label">School Admin:</span><br/>
-                  Email: <span class="credential-value">admin@greenwood.com</span><br/>
+                  Email: <span class="credential-value">admin@nacho.com</span><br/>
                   Password: <span class="credential-value">password</span>
                 </div>
                 
                 <div class="credential-item" style="margin-top: 12px;">
                   <span class="credential-label">Class Teacher:</span><br/>
-                  Email: <span class="credential-value">classteacher@greenwood.com</span><br/>
+                  Email: <span class="credential-value">classteacher@nacho.com</span><br/>
                   Password: <span class="credential-value">password</span>
                 </div>
                 
                 <div class="credential-item" style="margin-top: 12px;">
                   <span class="credential-label">Parent Portal:</span><br/>
-                  Email: <span class="credential-value">parent@greenwood.com</span><br/>
+                  Email: <span class="credential-value">parent@nacho.com</span><br/>
                   Password: <span class="credential-value">password</span>
                 </div>
               </div>

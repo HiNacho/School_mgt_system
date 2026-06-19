@@ -292,7 +292,7 @@ export default function AttendanceSheetsPage() {
   };
 
   // Multi-tenant styling parameters
-  const isGreenwood = school?.slug === 'greenwood-secondary';
+  const isGreenwood = school?.slug === 'nacho-secondary';
   const accentText = isGreenwood ? 'text-emerald-500' : 'text-indigo-500';
   const accentBg = isGreenwood ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-indigo-50 text-indigo-600 border border-indigo-100';
   const buttonPrimary = isGreenwood ? 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-200' : 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-indigo-200';

@@ -172,7 +172,7 @@ export default function GradingScalesPage() {
   };
 
   // Multi-tenant styling parameters
-  const isGreenwood = school?.slug === 'greenwood-secondary';
+  const isGreenwood = school?.slug === 'nacho-secondary';
   const accentText = isGreenwood ? 'text-emerald-400' : 'text-indigo-400';
   const accentBg = isGreenwood ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/15' : 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/15';
   const buttonPrimary = isGreenwood ? 'bg-emerald-500 hover:bg-emerald-400 text-slate-950 shadow-emerald-950/20' : 'bg-indigo-500 hover:bg-indigo-400 text-white shadow-indigo-950/20';

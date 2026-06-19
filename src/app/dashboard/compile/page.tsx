@@ -339,7 +339,7 @@ export default function ReportCardCompilerPage() {
     return lowestName;
   };
 
-  const isGreenwood = session?.school?.slug === 'greenwood-secondary';
+  const isGreenwood = session?.school?.slug === 'nacho-secondary';
   const themeAccentColor = isGreenwood ? 'text-emerald-600' : 'text-indigo-600';
   const themeBgAccent = isGreenwood ? 'bg-emerald-600 text-white hover:bg-emerald-700' : 'bg-indigo-600 text-white hover:bg-indigo-700';
   const themeAccentBorder = isGreenwood ? 'border-emerald-250' : 'border-indigo-250';
@@ -948,8 +948,8 @@ export default function ReportCardCompilerPage() {
                     <div className="relative flex justify-center items-center">
                       <div className="w-12 h-12 rounded-full border-2 border-dashed border-red-500/40 text-red-500/40 text-[7px] font-bold flex flex-col items-center justify-center transform -rotate-12 scale-90">
                         <span>APPROVED</span>
-                        <span className="text-[5px] uppercase truncate max-w-[42px]" title={compiledSchool?.name || 'GREENWOOD ACAD.'}>
-                          {compiledSchool?.name || 'GREENWOOD ACAD.'}
+                        <span className="text-[5px] uppercase truncate max-w-[42px]" title={compiledSchool?.name || 'NACHO ACAD.'}>
+                          {compiledSchool?.name || 'NACHO ACAD.'}
                         </span>
                         <span className="text-[5px]">LAGOS</span>
                       </div>
@@ -1193,8 +1193,8 @@ export default function ReportCardCompilerPage() {
                 <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
                   <div style={{ width: '40px', height: '40px', borderRadius: '50%', border: '2px dashed rgba(239, 68, 68, 0.4)', color: 'rgba(239, 68, 68, 0.4)', fontSize: '6px', fontWeight: 'bold', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', transform: 'rotate(-12deg)' }}>
                     <span>APPROVED</span>
-                    <span style={{ fontSize: '4px', textTransform: 'uppercase', display: 'inline-block', maxWidth: '34px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={compiledSchool?.name || 'GREENWOOD ACAD.'}>
-                      {compiledSchool?.name || 'GREENWOOD ACAD.'}
+                    <span style={{ fontSize: '4px', textTransform: 'uppercase', display: 'inline-block', maxWidth: '34px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={compiledSchool?.name || 'NACHO ACAD.'}>
+                      {compiledSchool?.name || 'NACHO ACAD.'}
                     </span>
                   </div>
                 </div>

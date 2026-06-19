@@ -369,7 +369,7 @@ export default function ChangePasswordPage() {
               type="submit"
               disabled={loading || success || strengthScore < 5}
               className={`w-full py-3.5 px-4 rounded-xl font-bold text-xs tracking-wider uppercase transition-all flex justify-center items-center gap-2 ${
-                school?.slug === 'greenwood-secondary'
+                school?.slug === 'nacho-secondary'
                   ? 'bg-emerald-500 text-slate-950 hover:bg-emerald-400 shadow-md shadow-emerald-500/10 disabled:bg-emerald-800 disabled:text-slate-500'
                   : 'bg-[#1e293b] text-white hover:bg-[#0f172a] shadow-md shadow-slate-500/10 disabled:bg-slate-300 disabled:text-slate-400'
               } cursor-pointer`}

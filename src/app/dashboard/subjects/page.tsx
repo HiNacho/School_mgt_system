@@ -278,7 +278,7 @@ export default function SubjectRegistryPage() {
   };
 
   // Multi-tenant styling parameters
-  const isGreenwood = school?.slug === 'greenwood-secondary';
+  const isGreenwood = school?.slug === 'nacho-secondary';
   const themeAccentColor = isGreenwood ? 'text-emerald-600' : 'text-indigo-600';
   const themeBgAccent = isGreenwood ? 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-600/10' : 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-indigo-600/10';
 

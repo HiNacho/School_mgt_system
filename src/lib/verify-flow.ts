@@ -7,10 +7,10 @@ async function runVerification() {
   try {
     // 1. Fetch school
     const school = await prisma.school.findFirst({
-      where: { slug: 'greenwood-secondary' }
+      where: { slug: 'nacho-secondary' }
     });
     if (!school) {
-      throw new Error('School greenwood-secondary not found');
+      throw new Error('School nacho-secondary not found');
     }
     console.log(`✓ Found school: ${school.name} (${school.id})`);
 

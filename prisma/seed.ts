@@ -35,12 +35,12 @@ async function main() {
   // --- 2. CREATE TENANT SCHOOLS ---
   const greenwood = await prisma.school.create({
     data: {
-      name: 'Greenwood Secondary Academy',
-      slug: 'greenwood-secondary',
+      name: 'Nacho Secondary Academy',
+      slug: 'nacho-secondary',
       logoUrl: 'https://images.unsplash.com/photo-1546410531-bb4caa6b424d?w=100&auto=format&fit=crop',
       address: 'Plot 12, Admiralty Way, Lekki Phase 1, Lagos, Nigeria',
       phone: '+234 803 111 2222',
-      email: 'info@greenwood.edu.ng',
+      email: 'info@nacho.edu.ng',
       gradingType: 'SECONDARY', // uses A1 - F9
     },
   });
@@ -184,7 +184,7 @@ async function main() {
     data: {
       schoolId: greenwood.id,
       username: 'schooladmin',
-      email: 'admin@greenwood.com',
+      email: 'admin@nacho.com',
       passwordHash,
       firstName: 'Kola',
       lastName: 'Adekunle',
@@ -199,7 +199,7 @@ async function main() {
     data: {
       schoolId: greenwood.id,
       username: 'classteacher',
-      email: 'classteacher@greenwood.com',
+      email: 'classteacher@nacho.com',
       passwordHash,
       firstName: 'Apeh',
       lastName: 'Solomon',
@@ -215,7 +215,7 @@ async function main() {
     data: {
       schoolId: greenwood.id,
       username: 'subjectteacher',
-      email: 'subjectteacher@greenwood.com',
+      email: 'subjectteacher@nacho.com',
       passwordHash,
       firstName: 'Tunde',
       lastName: 'Bello',
@@ -479,7 +479,7 @@ async function main() {
   const parentGreenwood = await prisma.parent.create({
     data: {
       schoolId: greenwood.id,
-      email: 'parent@greenwood.com',
+      email: 'parent@nacho.com',
       passwordHash,
       firstName: 'Alice',
       lastName: 'Bennett',
@@ -492,8 +492,8 @@ async function main() {
   const parentGreenwoodUser = await prisma.user.create({
     data: {
       schoolId: greenwood.id,
-      username: 'greenwood_parent',
-      email: 'parent@greenwood.com',
+      username: 'nacho_parent',
+      email: 'parent@nacho.com',
       passwordHash,
       firstName: 'Alice',
       lastName: 'Bennett',
@@ -562,8 +562,8 @@ async function main() {
     await prisma.user.create({
       data: {
         schoolId: greenwood.id,
-        username: 'greenwood_student',
-        email: 'student@greenwood.com',
+        username: 'nacho_student',
+        email: 'student@nacho.com',
         passwordHash,
         firstName: zainab.firstName,
         lastName: zainab.lastName,

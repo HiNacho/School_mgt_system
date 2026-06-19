@@ -48,7 +48,7 @@ export async function POST(req: NextRequest) {
         });
       } else {
         const school = await prisma.school.findFirst({
-          where: { slug: schoolSlug || 'greenwood-secondary' },
+          where: { slug: schoolSlug || 'nacho-secondary' },
         });
 
         if (!school) {

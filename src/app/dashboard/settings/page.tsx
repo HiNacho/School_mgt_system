@@ -177,7 +177,7 @@ export default function SettingsPage() {
 
   const isAdmin = user?.role === 'SUPER_ADMIN' || user?.role === 'SCHOOL_ADMIN' || user?.role === 'HEAD_TEACHER';
   const isSchoolAdmin = user?.role === 'SCHOOL_ADMIN' || user?.role === 'HEAD_TEACHER';
-  const isGreenwood = school?.slug === 'greenwood-secondary';
+  const isGreenwood = school?.slug === 'nacho-secondary';
 
   const accentText = isGreenwood ? 'text-emerald-500' : 'text-indigo-500';
   const accentBg = isGreenwood ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-indigo-50 text-indigo-600 border border-indigo-100';

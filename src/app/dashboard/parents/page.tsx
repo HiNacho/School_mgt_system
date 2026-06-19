@@ -378,8 +378,8 @@ export default function ParentsRegistryPage() {
     }
   };
 
-  const themeAccentColor = school?.slug === 'greenwood-secondary' ? 'text-emerald-600' : 'text-indigo-600';
-  const themeBgAccent = school?.slug === 'greenwood-secondary' ? 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-600/10' : 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-indigo-600/10';
+  const themeAccentColor = school?.slug === 'nacho-secondary' ? 'text-emerald-600' : 'text-indigo-600';
+  const themeBgAccent = school?.slug === 'nacho-secondary' ? 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-600/10' : 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-indigo-600/10';
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto pb-12">
@@ -1000,11 +1000,11 @@ export default function ParentsRegistryPage() {
             
             {/* Modal Header bar */}
             <div className={`px-6 py-5 flex items-center justify-between border-b border-slate-50 ${
-              school?.slug === 'greenwood-secondary' ? 'bg-emerald-50/30' : 'bg-indigo-50/30'
+              school?.slug === 'nacho-secondary' ? 'bg-emerald-50/30' : 'bg-indigo-50/30'
             }`}>
               <div className="flex items-center gap-3">
                 <div className={`w-8 h-8 rounded-xl flex items-center justify-center text-white ${
-                  school?.slug === 'greenwood-secondary' ? 'bg-emerald-600' : 'bg-indigo-600'
+                  school?.slug === 'nacho-secondary' ? 'bg-emerald-600' : 'bg-indigo-600'
                 }`}>
                   <GraduationCap className="w-4 h-4" />
                 </div>

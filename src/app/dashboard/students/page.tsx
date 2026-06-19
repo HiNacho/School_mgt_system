@@ -543,7 +543,7 @@ export default function StudentsManagerPage() {
     setEditModalOpen(true);
   };
 
-  const isGreenwood = session?.school?.slug === 'greenwood-secondary';
+  const isGreenwood = session?.school?.slug === 'nacho-secondary';
   const role = session?.user?.role;
   const isClassTeacher = role === 'CLASS_TEACHER';
   const assignedArm = isClassTeacher ? setup?.arms?.find((arm: any) => arm.classTeacherId === session?.user?.id) : null;

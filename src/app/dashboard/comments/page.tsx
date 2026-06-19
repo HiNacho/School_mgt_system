@@ -228,7 +228,7 @@ export default function AICommentsPage() {
     }
   };
 
-  const isGreenwood = session?.school?.slug === 'greenwood-secondary';
+  const isGreenwood = session?.school?.slug === 'nacho-secondary';
   const themeAccentColor = isGreenwood ? 'text-emerald-400' : 'text-indigo-400';
   const themeBgAccent = isGreenwood ? 'bg-emerald-500 text-slate-950 hover:bg-emerald-400' : 'bg-indigo-500 text-white hover:bg-indigo-400';
   const themeAccentHover = isGreenwood ? 'hover:border-emerald-500/40' : 'hover:border-indigo-500/40';

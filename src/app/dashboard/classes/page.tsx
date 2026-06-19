@@ -439,7 +439,7 @@ export default function ClassesAndArmsPage() {
   };
 
   // Multi-tenant styling parameters
-  const isGreenwood = school?.slug === 'greenwood-secondary';
+  const isGreenwood = school?.slug === 'nacho-secondary';
   
   // Theme Color Configurations (NachoEd Premium Light Mode Aesthetic)
   const accentText = isGreenwood ? 'text-emerald-600' : 'text-indigo-600';
