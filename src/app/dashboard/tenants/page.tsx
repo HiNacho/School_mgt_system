@@ -89,15 +89,24 @@ export default function SchoolTenantsPage() {
     loadAllSaaSData();
   }, []);
 
+  const getAuthHeaders = (contentType: string | null = 'application/json') => {
+    const token = typeof window !== 'undefined' ? localStorage.getItem('report_auth_token') || '' : '';
+    return {
+      ...(contentType ? { 'Content-Type': contentType } : {}),
+      ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+    };
+  };
+
   const loadAllSaaSData = async () => {
     setLoading(true);
     setErrorMsg('');
     try {
+      const headers = getAuthHeaders(null);
       const [schoolsRes, paymentsRes, usageRes, leadsRes] = await Promise.all([
-        fetch('/api/schools', { cache: 'no-store' }),
-        fetch('/api/superadmin/payments', { cache: 'no-store' }),
-        fetch('/api/superadmin/usage', { cache: 'no-store' }),
-        fetch('/api/superadmin/leads', { cache: 'no-store' })
+        fetch('/api/schools', { cache: 'no-store', headers }),
+        fetch('/api/superadmin/payments', { cache: 'no-store', headers }),
+        fetch('/api/superadmin/usage', { cache: 'no-store', headers }),
+        fetch('/api/superadmin/leads', { cache: 'no-store', headers })
       ]);
 
       const schoolsJson = await schoolsRes.json();
@@ -224,7 +233,7 @@ The NachoEd Support Team
     try {
       const res = await fetch('/api/schools', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders(),
         body: JSON.stringify({
           name: schoolName,
           slug: schoolSlug,
@@ -241,7 +250,7 @@ The NachoEd Support Team
       // Write usage log trace
       await fetch('/api/superadmin/usage', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders(),
         body: JSON.stringify({
           schoolId: json.data.id,
           activityType: 'School Tenant Initialized'
@@ -278,7 +287,7 @@ The NachoEd Support Team
     try {
       const res = await fetch('/api/superadmin/payments', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders(),
         body: JSON.stringify({
           schoolId: billingSchool.id,
           amount: billingAmount,
@@ -294,7 +303,7 @@ The NachoEd Support Team
       // Write usage log trace
       await fetch('/api/superadmin/usage', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders(),
         body: JSON.stringify({
           schoolId: billingSchool.id,
           activityType: `Manual Payment Logged: ₦${parseFloat(billingAmount).toLocaleString()} (${billingPlan})`
@@ -323,7 +332,7 @@ The NachoEd Support Team
     try {
       const res = await fetch('/api/superadmin/actions', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders(),
         body: JSON.stringify({
           action: 'reset_admin_password',
           schoolId: tenant.id
@@ -353,7 +362,7 @@ The NachoEd Support Team
     try {
       const res = await fetch('/api/schools', {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders(),
         body: JSON.stringify({
           schoolId: tenant.id,
           subscriptionStatus: nextStatus
@@ -366,7 +375,7 @@ The NachoEd Support Team
       // Log usage trace
       await fetch('/api/superadmin/usage', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders(),
         body: JSON.stringify({
           schoolId: tenant.id,
           activityType: `Subscription Status Updated: ${nextStatus.toUpperCase()}`
@@ -394,7 +403,7 @@ The NachoEd Support Team
     try {
       const res = await fetch('/api/schools', {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders(),
         body: JSON.stringify({
           schoolId: tenant.id,
           subscriptionStatus: 'archived'
@@ -425,6 +434,7 @@ The NachoEd Support Team
     try {
       const res = await fetch(`/api/schools?schoolId=${tenant.id}`, {
         method: 'DELETE',
+        headers: getAuthHeaders(null)
       });
 
       const json = await res.json();
@@ -444,7 +454,7 @@ The NachoEd Support Team
     try {
       const res = await fetch('/api/superadmin/actions', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders(),
         body: JSON.stringify({
           action: 'get_impersonation_session',
           schoolId: tenant.id
@@ -477,7 +487,7 @@ The NachoEd Support Team
       // Log usage trace
       await fetch('/api/superadmin/usage', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders(),
         body: JSON.stringify({
           schoolId: tenant.id,
           activityType: 'Super Admin Impersonation Session Active'
@@ -1019,7 +1029,7 @@ The NachoEd Support Team
                         try {
                           const res = await fetch('/api/schools', {
                             method: 'PATCH',
-                            headers: { 'Content-Type': 'application/json' },
+                            headers: getAuthHeaders(),
                             body: JSON.stringify({
                               schoolId: viewingTenant.id,
                               maxStudents: newCapacity
