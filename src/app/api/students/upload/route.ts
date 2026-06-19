@@ -30,6 +30,47 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Selected target class level or arm stream not found' }, { status: 404 });
     }
 
+    // Capacity limit enforcement
+    const existingStudents = await prisma.student.findMany({
+      where: { schoolId },
+      select: { admissionNumber: true, status: true }
+    });
+    const existingMap = new Map<string, string>();
+    for (const est of existingStudents) {
+      existingMap.set(est.admissionNumber, est.status);
+    }
+
+    let activeIncreaseCount = 0;
+    const uniqueUploadedAdmissions = new Set<string>();
+    for (const s of students) {
+      const cleanAdmissionNumber = String(s.admissionNumber || '').trim();
+      if (!cleanAdmissionNumber) continue;
+      if (uniqueUploadedAdmissions.has(cleanAdmissionNumber)) continue;
+      uniqueUploadedAdmissions.add(cleanAdmissionNumber);
+
+      const existingStatus = existingMap.get(cleanAdmissionNumber);
+      if (!existingStatus) {
+        activeIncreaseCount++;
+      } else if (existingStatus !== 'ACTIVE') {
+        activeIncreaseCount++;
+      }
+    }
+
+    const schoolObj = await prisma.school.findUnique({
+      where: { id: schoolId },
+      select: { maxStudents: true }
+    });
+    const currentActiveCount = await prisma.student.count({
+      where: { schoolId, status: 'ACTIVE' }
+    });
+    const studentLimit = schoolObj?.maxStudents ?? 100;
+
+    if (currentActiveCount + activeIncreaseCount > studentLimit) {
+      return NextResponse.json({
+        error: `Prepaid student limit reached. Uploading would register/activate ${activeIncreaseCount} new students, exceeding your capacity of ${studentLimit} (current active: ${currentActiveCount}). Please upgrade your subscription plan.`,
+      }, { status: 403 });
+    }
+
     const results = {
       successCount: 0,
       failCount: 0,

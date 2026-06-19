@@ -25,6 +25,7 @@ model School {
   subscriptionStart   DateTime?
   subscriptionEnd     DateTime?
   gracePeriodEnd      DateTime?
+  maxStudents         Int       @default(100)
 
   payments            Payment[]
   usageLogs           UsageLog[]

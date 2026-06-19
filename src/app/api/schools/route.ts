@@ -108,6 +108,7 @@ export async function GET(req: NextRequest) {
         subscriptionStart: s.subscriptionStart,
         subscriptionEnd: s.subscriptionEnd,
         gracePeriodEnd: s.gracePeriodEnd,
+        maxStudents: s.maxStudents,
         totalRevenue: totalPaid,
         lastActive: lastActiveLog ? lastActiveLog.createdAt : null,
       };
@@ -175,7 +176,7 @@ export async function POST(req: NextRequest) {
           phone: phone || null,
           email: adminEmail,
           gradingType: gradingType || 'SECONDARY',
-          subscriptionPlan: 'Basic',
+          subscriptionPlan: 'Tier 1 (Up to 100 Students)',
           subscriptionStatus: 'trial',
           subscriptionStart: trialStart,
           subscriptionEnd: trialEnd,
@@ -258,7 +259,7 @@ export async function PATCH(req: NextRequest) {
     const { 
       schoolId, name, address, phone, email, gradingType, logoUrl,
       subscriptionPlan, subscriptionStatus, subscriptionStart, subscriptionEnd, gracePeriodEnd,
-      enforceUniquePasswords
+      enforceUniquePasswords, maxStudents
     } = body;
 
     if (!schoolId) {
@@ -280,6 +281,7 @@ export async function PATCH(req: NextRequest) {
         subscriptionEnd: subscriptionEnd !== undefined ? (subscriptionEnd ? new Date(subscriptionEnd) : null) : undefined,
         gracePeriodEnd: gracePeriodEnd !== undefined ? (gracePeriodEnd ? new Date(gracePeriodEnd) : null) : undefined,
         enforceUniquePasswords: enforceUniquePasswords !== undefined ? enforceUniquePasswords : undefined,
+        maxStudents: maxStudents !== undefined ? (maxStudents === null ? 100 : parseInt(String(maxStudents), 10)) : undefined,
       }
     });
 

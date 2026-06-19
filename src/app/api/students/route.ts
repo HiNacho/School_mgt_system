@@ -159,6 +159,21 @@ export async function POST(req: NextRequest) {
       }, { status: 409 });
     }
 
+    // Capacity limit enforcement
+    const schoolObj = await prisma.school.findUnique({
+      where: { id: schoolId },
+      select: { maxStudents: true }
+    });
+    const activeStudentsCount = await prisma.student.count({
+      where: { schoolId, status: 'ACTIVE' }
+    });
+    const studentLimit = schoolObj?.maxStudents ?? 100;
+    if (activeStudentsCount >= studentLimit) {
+      return NextResponse.json({
+        error: `Prepaid student limit reached. Your school has registered ${activeStudentsCount} of ${studentLimit} allowed students. Please upgrade your subscription plan to register more students.`,
+      }, { status: 403 });
+    }
+
     // Auto-generate unique username and bcrypt-hashed password
     const tempPassword = generateTempPassword();
     const salt = await bcrypt.genSalt(10);

@@ -69,6 +69,18 @@ export async function POST(req: NextRequest) {
         const end = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000); // 1 year subscription
         const grace = new Date(end.getTime() + 14 * 24 * 60 * 60 * 1000); // 14 days grace period
 
+        // Map plan to max students capacity limit
+        let maxStudents = 100;
+        if (plan === 'Basic' || plan.includes('100') || plan.includes('Tier 1')) {
+          maxStudents = 100;
+        } else if (plan === 'Standard' || plan.includes('250') || plan.includes('Tier 2')) {
+          maxStudents = 250;
+        } else if (plan === 'Premium' || plan.includes('500') || plan.includes('Tier 3')) {
+          maxStudents = 500;
+        } else if (plan.includes('Unlimited') || plan.includes('Tier 4') || plan.includes('Enterprise') || plan.includes('Custom')) {
+          maxStudents = 999999;
+        }
+
         await tx.school.update({
           where: { id: schoolId },
           data: {
@@ -76,7 +88,8 @@ export async function POST(req: NextRequest) {
             subscriptionPlan: plan,
             subscriptionStart: start,
             subscriptionEnd: end,
-            gracePeriodEnd: grace
+            gracePeriodEnd: grace,
+            maxStudents: maxStudents
           }
         });
       }

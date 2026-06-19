@@ -20,11 +20,12 @@ interface SchoolTenant {
   studentCount: number;
   staffCount: number;
   scoresRecorded: number;
-  subscriptionPlan: 'Basic' | 'Standard' | 'Premium';
+  subscriptionPlan: string;
   subscriptionStatus: 'active' | 'trial' | 'expired' | 'suspended' | 'archived';
   subscriptionStart: string | null;
   subscriptionEnd: string | null;
   gracePeriodEnd: string | null;
+  maxStudents?: number;
   totalRevenue: number;
   lastActive: string | null;
 }
@@ -73,7 +74,7 @@ export default function SchoolTenantsPage() {
   const [billingSchool, setBillingSchool] = useState<SchoolTenant | null>(null);
   const [billingAmount, setBillingAmount] = useState('250000');
   const [billingMethod, setBillingMethod] = useState('Bank Transfer');
-  const [billingPlan, setBillingPlan] = useState<'Basic' | 'Standard' | 'Premium'>('Standard');
+  const [billingPlan, setBillingPlan] = useState<string>('Tier 2 (Up to 250 Students)');
   const [billingStatus, setBillingStatus] = useState<'paid' | 'pending'>('paid');
   const [submittingBilling, setSubmittingBilling] = useState(false);
 
@@ -730,7 +731,15 @@ The NachoEd Support Team
 
                           {/* Enrollment counts */}
                           <td className="p-4 text-center space-y-0.5">
-                            <span className="text-slate-800 font-extrabold text-xs block font-mono">{row.studentCount}</span>
+                            <span className={`font-extrabold text-xs block font-mono ${
+                              row.maxStudents && row.studentCount >= row.maxStudents 
+                                ? 'text-red-500 font-black' 
+                                : row.maxStudents && row.studentCount >= row.maxStudents * 0.9 
+                                ? 'text-amber-500' 
+                                : 'text-slate-800'
+                            }`}>
+                              {row.studentCount} / {row.maxStudents || 100}
+                            </span>
                             <span className="text-[9px] text-slate-400 block font-bold uppercase tracking-wider">{row.staffCount} staff</span>
                           </td>
 
@@ -987,6 +996,53 @@ The NachoEd Support Team
                 <p className="flex justify-between"><span className="text-slate-400">Access Status:</span> <strong className={`uppercase ${viewingTenant.subscriptionStatus === 'active' ? 'text-green-600' : 'text-red-500'}`}>{viewingTenant.subscriptionStatus}</strong></p>
                 <p className="flex justify-between"><span className="text-slate-400">Subscription End:</span> <strong className="text-slate-700">{viewingTenant.subscriptionEnd ? new Date(viewingTenant.subscriptionEnd).toLocaleDateString() : 'N/A'}</strong></p>
                 <p className="flex justify-between"><span className="text-slate-400">Grace Expiry:</span> <strong className="text-slate-700">{viewingTenant.gracePeriodEnd ? new Date(viewingTenant.gracePeriodEnd).toLocaleDateString() : 'N/A'}</strong></p>
+                <div className="flex justify-between items-center bg-slate-50/70 p-2 rounded-xl border border-slate-100 mt-1">
+                  <span className="text-slate-400">Capacity Limit:</span>
+                  <div className="flex items-center gap-1.5">
+                    <input
+                      type="number"
+                      min="1"
+                      className="w-20 bg-white border border-slate-200 rounded-lg px-2 py-1 text-center font-extrabold font-mono text-xs focus:outline-none focus:border-slate-400 text-slate-850"
+                      defaultValue={viewingTenant.maxStudents || 100}
+                      id={`max-capacity-${viewingTenant.id}`}
+                    />
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        const inputEl = document.getElementById(`max-capacity-${viewingTenant.id}`) as HTMLInputElement;
+                        if (!inputEl) return;
+                        const newCapacity = parseInt(inputEl.value, 10);
+                        if (isNaN(newCapacity) || newCapacity < 1) {
+                          alert('Please enter a valid capacity number >= 1');
+                          return;
+                        }
+                        try {
+                          const res = await fetch('/api/schools', {
+                            method: 'PATCH',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                              schoolId: viewingTenant.id,
+                              maxStudents: newCapacity
+                            })
+                          });
+                          const data = await res.json();
+                          if (data.success) {
+                            alert('Capacity limit updated successfully!');
+                            setTenants(prev => prev.map(t => t.id === viewingTenant.id ? { ...t, maxStudents: newCapacity } : t));
+                            setViewingTenant(prev => prev ? { ...prev, maxStudents: newCapacity } : null);
+                          } else {
+                            alert(data.error || 'Failed to update capacity limit');
+                          }
+                        } catch (err: any) {
+                          alert(err.message || 'An error occurred while updating limit');
+                        }
+                      }}
+                      className="bg-slate-900 hover:bg-slate-850 text-white font-extrabold text-[10px] px-2.5 py-1 rounded-lg shadow-sm transition-all active:scale-95 cursor-pointer uppercase tracking-wider"
+                    >
+                      Apply
+                    </button>
+                  </div>
+                </div>
               </div>
 
               <div className="border-t border-slate-100 pt-3 space-y-2">
@@ -1206,12 +1262,13 @@ The NachoEd Support Team
                   <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">Billing Cycle Plan</label>
                   <select
                     value={billingPlan}
-                    onChange={(e) => setBillingPlan(e.target.value as 'Basic' | 'Standard' | 'Premium')}
+                    onChange={(e) => setBillingPlan(e.target.value)}
                     className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2.5 text-xs focus:outline-none focus:border-slate-350 text-slate-700 font-bold transition-colors cursor-pointer"
                   >
-                    <option value="Basic">Basic (Results only)</option>
-                    <option value="Standard">Standard (Results + attendance)</option>
-                    <option value="Premium">Premium (Full system)</option>
+                    <option value="Tier 1 (Up to 100 Students)">Tier 1 (Up to 100 Students)</option>
+                    <option value="Tier 2 (Up to 250 Students)">Tier 2 (Up to 250 Students)</option>
+                    <option value="Tier 3 (Up to 500 Students)">Tier 3 (Up to 500 Students)</option>
+                    <option value="Tier 4 (Unlimited Students)">Tier 4 (Unlimited Students)</option>
                   </select>
                 </div>
 
