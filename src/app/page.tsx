@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { 
   Shield, Sparkles, BookOpen, Layers, BarChart3, ArrowRight, 
   CheckCircle, Smartphone, HelpCircle, MessageSquare, Phone, 
-  Mail, MapPin, Menu, X, Compass, Target, Award, Users, Heart, Loader2, GraduationCap
+  Mail, MapPin, Menu, X, Compass, Target, Award, Users, Heart, Loader2, GraduationCap, Key
 } from 'lucide-react';
 
 export default function LandingPage() {
@@ -956,39 +956,78 @@ export default function LandingPage() {
             </button>
 
             {regSuccess ? (
-              <div className="text-center space-y-6 py-6">
-                <div className="w-16 h-16 bg-emerald-50 text-emerald-600 rounded-full flex items-center justify-center mx-auto shadow-inner animate-pulse">
-                  <CheckCircle className="w-8 h-8" />
+              <div className="text-center space-y-5 py-4">
+                <div className="w-14 h-14 bg-emerald-50 text-emerald-600 rounded-full flex items-center justify-center mx-auto shadow-inner animate-pulse">
+                  <CheckCircle className="w-7 h-7" />
                 </div>
                 
                 <div className="space-y-1">
-                  <h3 className="text-lg font-bold text-[#1e293b] uppercase tracking-wider">Registration Successful</h3>
-                  <p className="text-xs text-slate-400 font-semibold">Your trial environment setup request was received.</p>
+                  <h3 className="text-base font-extrabold text-[#1e293b] uppercase tracking-wider">Registration Successful!</h3>
+                  <p className="text-xs text-slate-400 font-semibold">Your trial school environment has been initialized.</p>
                 </div>
 
-                <div className="bg-[#f8f9fa] border border-[#e2e8f0] p-5 rounded-2xl text-left space-y-3 max-w-md mx-auto shadow-sm">
+                <div className="bg-[#f8f9fa] border border-[#e2e8f0] p-4 rounded-2xl text-left space-y-3.5 max-w-md mx-auto shadow-sm">
                   <div className="flex items-center gap-2 text-emerald-600">
-                    <Mail className="w-4 h-4" />
-                    <span className="text-[10px] font-extrabold uppercase tracking-wider">Check Your Email</span>
+                    <Key className="w-4 h-4" />
+                    <span className="text-[10px] font-extrabold uppercase tracking-wider">Demo Access Credentials</span>
                   </div>
                   <p className="text-xs text-[#475569] leading-relaxed font-semibold">
-                    We have sent your **demo login credentials** (email and password) to:
+                    You can explore our pre-populated <strong>demo school environment</strong> right away using these credentials:
                   </p>
-                  <div className="bg-white border border-[#e2e8f0] px-3.5 py-2.5 rounded-xl text-center">
-                    <strong className="text-[#1e293b] font-bold text-xs">{regEmail}</strong>
+                  
+                  <div className="space-y-2 text-xs">
+                    <div className="bg-white border border-[#e2e8f0] p-2.5 rounded-xl">
+                      <div className="font-bold text-[#1e293b] mb-1 flex items-center gap-1.5">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> School Admin
+                      </div>
+                      <div className="flex justify-between text-slate-500 font-mono text-[11px] font-semibold">
+                        <span>Email: admin@greenwood.com</span>
+                        <span>Pass: password</span>
+                      </div>
+                    </div>
+                    
+                    <div className="bg-white border border-[#e2e8f0] p-2.5 rounded-xl">
+                      <div className="font-bold text-[#1e293b] mb-1 flex items-center gap-1.5">
+                        <span className="w-1.5 h-1.5 rounded-full bg-indigo-500"></span> Class Teacher
+                      </div>
+                      <div className="flex justify-between text-slate-500 font-mono text-[11px] font-semibold">
+                        <span>Email: classteacher@greenwood.com</span>
+                        <span>Pass: password</span>
+                      </div>
+                    </div>
+
+                    <div className="bg-white border border-[#e2e8f0] p-2.5 rounded-xl">
+                      <div className="font-bold text-[#1e293b] mb-1 flex items-center gap-1.5">
+                        <span className="w-1.5 h-1.5 rounded-full bg-purple-500"></span> Parent Portal
+                      </div>
+                      <div className="flex justify-between text-slate-500 font-mono text-[11px] font-semibold">
+                        <span>Email: parent@greenwood.com</span>
+                        <span>Pass: password</span>
+                      </div>
+                    </div>
                   </div>
-                  <p className="text-[10px] text-amber-600 font-bold leading-normal bg-amber-50/50 border border-amber-100 p-2.5 rounded-xl">
-                    ⚠️ IMPORTANT: Please check your Spam, Junk, or Promotions folder if you do not see the email in your primary inbox within 1 minute.
+
+                  <p className="text-[10px] text-slate-500 font-medium leading-normal border-t border-[#e2e8f0] pt-2.5">
+                    📧 We have also dispatched a welcome email containing these credentials to <strong>{regEmail}</strong>.
                   </p>
                 </div>
 
-                <button
-                  type="button"
-                  onClick={() => { setRegModalOpen(false); resetRegForm(); }}
-                  className="w-full sm:w-auto px-8 py-3 bg-[#1e293b] text-white hover:bg-[#0f172a] text-xs font-bold uppercase tracking-widest transition-colors rounded-xl shadow-md"
-                >
-                  Got it, close
-                </button>
+                <div className="flex flex-col sm:flex-row gap-2.5 justify-center pt-2">
+                  <Link
+                    href="/login"
+                    onClick={() => { setRegModalOpen(false); resetRegForm(); }}
+                    className="flex-1 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold uppercase tracking-wider transition-colors rounded-xl shadow-md text-center flex items-center justify-center gap-2"
+                  >
+                    Go to Login <ArrowRight className="w-3.5 h-3.5" />
+                  </Link>
+                  <button
+                    type="button"
+                    onClick={() => { setRegModalOpen(false); resetRegForm(); }}
+                    className="flex-1 px-5 py-2.5 bg-[#1e293b] hover:bg-[#0f172a] text-white text-xs font-bold uppercase tracking-wider transition-colors rounded-xl shadow-md"
+                  >
+                    Close Window
+                  </button>
+                </div>
               </div>
             ) : (
               <div className="space-y-6">
