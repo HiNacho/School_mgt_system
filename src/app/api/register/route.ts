@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/db';
 import { sendEmail } from '@/lib/mailer';
 import { sendSlackNotification } from '@/lib/slack';
+import bcrypt from 'bcryptjs';
 
 // Helper to escape HTML to prevent injection and rendering errors
 function escapeHtml(text: string): string {
@@ -60,6 +61,34 @@ export async function POST(req: NextRequest) {
     });
 
     let lead = existingLead;
+    let provisionedCredentials: any = null;
+
+    if (!message) {
+      // Check if school already exists for this email
+      const existingSchool = await prisma.school.findFirst({
+        where: { email }
+      });
+      if (existingSchool) {
+        const existingAdmin = await prisma.user.findFirst({
+          where: { schoolId: existingSchool.id, role: 'SCHOOL_ADMIN' }
+        });
+        if (existingAdmin) {
+          return NextResponse.json({
+            success: true,
+            message: 'This email is already registered. Here are your credentials.',
+            credentials: {
+              email: existingAdmin.email,
+              username: existingAdmin.username,
+              password: 'password',
+              schoolName: existingSchool.name,
+              schoolSlug: existingSchool.slug,
+              isExisting: true
+            },
+            data: lead
+          }, { status: 200 });
+        }
+      }
+    }
 
     if (!lead) {
       // Parse integers if they come as strings
@@ -92,12 +121,141 @@ export async function POST(req: NextRequest) {
           leadStatus: 'NEW',
         }
       });
-    } else if (!message) {
-      // If the email exists and it is NOT a message submission, block as duplicate registration
-      return NextResponse.json(
-        { error: 'This email address has already been registered for early access.' },
-        { status: 400 }
-      );
+    }
+
+    // Provision school automatically for early access registrations (Scenario B)
+    if (!message) {
+      // Generate unique slug
+      const cleanSlug = schoolName
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/(^-|-$)/g, '');
+      const randomSuffix = Math.random().toString(36).substring(2, 6);
+      const slug = `${cleanSlug}-live-${randomSuffix}`;
+
+      // Hash default password
+      const salt = await bcrypt.genSalt(10);
+      const passwordHash = await bcrypt.hash('password', salt);
+
+      // Create clean school (no student mock records)
+      const liveSchool = await prisma.school.create({
+        data: {
+          name: schoolName,
+          slug: slug,
+          logoUrl: 'https://images.unsplash.com/photo-1546410531-bb4caa6b424d?w=100&auto=format&fit=crop',
+          address: 'Main School Campus',
+          phone: phone || null,
+          email: email,
+          gradingType: schoolType === 'PRIMARY' ? 'PRIMARY' : 'SECONDARY',
+          subscriptionPlan: 'Standard',
+          subscriptionStatus: 'trial',
+          subscriptionStart: new Date(),
+          subscriptionEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
+        },
+      });
+
+      const schoolId = liveSchool.id;
+
+      // Seed standard rules for the live school
+      const isPrimary = schoolType === 'PRIMARY';
+      if (isPrimary) {
+        const primaryRules = [
+          { minScore: 80, maxScore: 100, grade: 'A', interpretation: 'Excellent' },
+          { minScore: 60, maxScore: 79.9, grade: 'B', interpretation: 'Good' },
+          { minScore: 40, maxScore: 59.9, grade: 'C', interpretation: 'Pass' },
+          { minScore: 0, maxScore: 39.9, grade: 'D', interpretation: 'Needs Improvement' },
+        ];
+        await prisma.gradingRule.createMany({
+          data: primaryRules.map(r => ({ schoolId, ...r })),
+        });
+      } else {
+        const secondaryRules = [
+          { minScore: 75, maxScore: 100, grade: 'A1', interpretation: 'Excellent' },
+          { minScore: 70, maxScore: 74.9, grade: 'B2', interpretation: 'Very Good' },
+          { minScore: 65, maxScore: 69.9, grade: 'B3', interpretation: 'Good' },
+          { minScore: 60, maxScore: 64.9, grade: 'C4', interpretation: 'Credit' },
+          { minScore: 55, maxScore: 59.9, grade: 'C5', interpretation: 'Credit' },
+          { minScore: 50, maxScore: 54.9, grade: 'C6', interpretation: 'Credit' },
+          { minScore: 45, maxScore: 49.9, grade: 'D7', interpretation: 'Pass' },
+          { minScore: 40, maxScore: 44.9, grade: 'E8', interpretation: 'Pass' },
+          { minScore: 0, maxScore: 39.9, grade: 'F9', interpretation: 'Fail' },
+        ];
+        await prisma.gradingRule.createMany({
+          data: secondaryRules.map(r => ({ schoolId, ...r })),
+        });
+      }
+
+      // Create Session & Term
+      const session = await prisma.academicSession.create({
+        data: {
+          schoolId,
+          name: '2025/2026',
+          isCurrent: true,
+        },
+      });
+
+      await prisma.term.create({
+        data: {
+          schoolId,
+          sessionId: session.id,
+          name: 'First Term',
+          isCurrent: true,
+        },
+      });
+
+      // Seed default subjects
+      const subjectsData = [
+        { name: 'Mathematics', code: 'MTH', category: 'COMPULSORY', color: 'blue' },
+        { name: 'English Language', code: 'ENG', category: 'COMPULSORY', color: 'purple' },
+        { name: 'Basic Science', code: 'BSC', category: 'COMPULSORY', color: 'emerald' },
+      ];
+      await prisma.subject.createMany({
+        data: subjectsData.map(s => ({ schoolId, ...s })),
+      });
+
+      // Create live admin user
+      const adminUsername = `admin_${randomSuffix}`;
+      const adminUser = await prisma.user.create({
+        data: {
+          schoolId,
+          username: adminUsername,
+          email: email,
+          passwordHash,
+          firstName: resolvedContactName ? resolvedContactName.split(' ')[0] : 'School',
+          lastName: resolvedContactName && resolvedContactName.split(' ').length > 1 ? resolvedContactName.split(' ').slice(1).join(' ') : 'Admin',
+          role: 'SCHOOL_ADMIN',
+          status: 'ACTIVE',
+          isActive: true,
+          isFirstLogin: true, // Force reset/profile setup on first login
+        },
+      });
+
+      // Update lead status and associate demoSchoolId
+      lead = await prisma.lead.update({
+        where: { id: lead.id },
+        data: {
+          demoSchoolId: liveSchool.id,
+          leadStatus: 'PILOT_SCHOOL',
+        },
+      });
+
+      // Create TesterActivity telemetry tracker
+      await prisma.testerActivity.create({
+        data: {
+          userId: adminUser.id,
+          leadId: lead.id,
+          loginCount: 0,
+          timeSpent: 0,
+        },
+      });
+
+      provisionedCredentials = {
+        email: email,
+        username: adminUsername,
+        password: 'password',
+        schoolName: schoolName,
+        schoolSlug: slug
+      };
     }
 
     const adminEmailAddress = 'hellotonachoai@gmail.com';
@@ -357,34 +515,23 @@ export async function POST(req: NextRequest) {
               <h2>Hello ${escapeHtml(resolvedContactName)},</h2>
               <p>Thank you for registering interest in NachoEd! We are thrilled to help simplify academic operations at <strong>${escapeHtml(schoolName)}</strong>.</p>
               
-              <p>Your early access application is now in our queue. Our team is currently reviewing your profile to spin up a custom sandbox environment for your school size of <strong>${studentCount || 'unknown'} students</strong>.</p>
-              
-              <p>In the meantime, you can explore our pre-populated <strong>demo school environment</strong> right away using the credentials below:</p>
+              <p>Your custom 1-month trial sandbox environment has been successfully prepared!</p>
               
               <div style="text-align: center;">
-                <a href="http://localhost:3000/login" class="btn">Go to Demo Login</a>
+                <a href="http://localhost:3000/login" class="btn">Go to Login Portal</a>
               </div>
 
               <div class="credentials-section">
-                <h3>🔑 Demo Login Credentials</h3>
+                <h3>🔑 Your Administrator Credentials</h3>
                 
                 <div class="credential-item">
-                  <span class="credential-label">School Admin:</span><br/>
-                  Email: <span class="credential-value">admin@nacho.com</span><br/>
-                  Password: <span class="credential-value">password</span>
+                  <strong>School Name:</strong> ${escapeHtml(schoolName)}<br/>
+                  <strong>Portal ID (Slug):</strong> ${escapeHtml(provisionedCredentials?.schoolSlug || '')}<br/>
+                  <strong>Login Email:</strong> <span class="credential-value">${escapeHtml(email)}</span><br/>
+                  <strong>Admin Username:</strong> <span class="credential-value">${escapeHtml(provisionedCredentials?.username || '')}</span><br/>
+                  <strong>Temporary Password:</strong> <span class="credential-value">password</span>
                 </div>
-                
-                <div class="credential-item" style="margin-top: 12px;">
-                  <span class="credential-label">Class Teacher:</span><br/>
-                  Email: <span class="credential-value">classteacher@nacho.com</span><br/>
-                  Password: <span class="credential-value">password</span>
-                </div>
-                
-                <div class="credential-item" style="margin-top: 12px;">
-                  <span class="credential-label">Parent Portal:</span><br/>
-                  Email: <span class="credential-value">parent@nacho.com</span><br/>
-                  Password: <span class="credential-value">password</span>
-                </div>
+                <p style="font-size: 11px; color: #ef4444; font-weight: bold; margin-top: 10px; margin-bottom: 0;">⚠️ You will be prompted to update this temporary password upon first login.</p>
               </div>
 
               <p>If you have any questions or would like to expedite your pilot program request, please feel free to reply directly to this email.</p>
@@ -421,7 +568,8 @@ export async function POST(req: NextRequest) {
 
       return NextResponse.json({ 
         success: true, 
-        message: 'Registration successful! An automated welcome email has been sent.',
+        message: 'Registration successful! Your 1-month free trial school portal has been provisioned.',
+        credentials: provisionedCredentials,
         data: lead 
       }, { status: 201 });
     }

@@ -34,6 +34,7 @@ export default function LandingPage() {
   const [regLoading, setRegLoading] = useState(false);
   const [regError, setRegError] = useState('');
   const [regSuccess, setRegSuccess] = useState(false);
+  const [registeredCredentials, setRegisteredCredentials] = useState<any>(null);
 
   // Helper to reset registration form
   const resetRegForm = () => {
@@ -54,6 +55,7 @@ export default function LandingPage() {
     setRegFeatures([]);
     setRegSuccess(false);
     setRegError('');
+    setRegisteredCredentials(null);
   };
 
   // Contact Form State
@@ -115,10 +117,9 @@ export default function LandingPage() {
         throw new Error(data.error || 'Failed to submit registration.');
       }
 
-      setRegSuccess(true);
-      // Clear fields
-      resetRegForm();
-      // Keep regSuccess as true to show successful screen
+      if (data.credentials) {
+        setRegisteredCredentials(data.credentials);
+      }
       setRegSuccess(true);
     } catch (err: any) {
       setRegError(err.message || 'Connection error. Please try again.');
@@ -954,7 +955,6 @@ export default function LandingPage() {
             >
               <X className="w-4 h-4" />
             </button>
-
             {regSuccess ? (
               <div className="text-center space-y-5 py-4">
                 <div className="w-14 h-14 bg-emerald-50 text-emerald-600 rounded-full flex items-center justify-center mx-auto shadow-inner animate-pulse">
@@ -962,43 +962,71 @@ export default function LandingPage() {
                 </div>
                 
                 <div className="space-y-1">
-                  <h3 className="text-base font-extrabold text-[#1e293b] uppercase tracking-wider">Free Trial Initiated!</h3>
-                  <p className="text-xs text-slate-400 font-semibold">Your 1-Month Free Trial setup request has been registered.</p>
+                  <h3 className="text-base font-extrabold text-[#1e293b] uppercase tracking-wider">Free Trial Activated!</h3>
+                  <p className="text-xs text-slate-400 font-semibold">Your 1-Month Free Trial school portal is ready for use.</p>
                 </div>
 
                 <div className="bg-[#f8f9fa] border border-[#e2e8f0] p-4.5 rounded-2xl text-left space-y-3.5 max-w-md mx-auto shadow-sm">
                   <div className="flex items-center gap-2 text-emerald-600">
                     <Sparkles className="w-4 h-4" />
-                    <span className="text-[10px] font-extrabold uppercase tracking-wider">Custom Pilot Workspace</span>
+                    <span className="text-[10px] font-extrabold uppercase tracking-wider">Your School Portal Credentials</span>
                   </div>
-                  <p className="text-xs text-[#475569] leading-relaxed font-semibold">
-                    Our onboarding team is spinning up your dedicated school workspace. Your custom administrator access credentials and portal links will be emailed to you within 24 hours at:
-                  </p>
                   
-                  <div className="bg-white border border-[#e2e8f0] px-3.5 py-2.5 rounded-xl text-center">
-                    <strong className="text-[#1e293b] font-bold text-xs">{regEmail}</strong>
-                  </div>
-
-                  <div className="border-t border-[#e2e8f0] pt-3.5 space-y-2">
-                    <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">Want an instant preview?</span>
-                    <p className="text-xs text-slate-500 font-medium leading-relaxed">
-                      While your custom workspace compiles, you can explore our fully pre-populated demo school sandbox environment right away.
-                    </p>
-                  </div>
+                  {registeredCredentials ? (
+                    <div className="space-y-3">
+                      <div className="bg-white border border-[#e2e8f0] p-3.5 rounded-xl space-y-2">
+                        <div className="flex justify-between text-xs border-b border-slate-100 pb-1.5">
+                          <span className="font-semibold text-slate-400">School Name</span>
+                          <span className="font-bold text-[#1e293b]">{registeredCredentials.schoolName}</span>
+                        </div>
+                        <div className="flex justify-between text-xs border-b border-slate-100 pb-1.5">
+                          <span className="font-semibold text-slate-400">Portal ID (Slug)</span>
+                          <span className="font-mono font-bold text-[#1e293b]">{registeredCredentials.schoolSlug}</span>
+                        </div>
+                        <div className="flex justify-between text-xs border-b border-slate-100 pb-1.5">
+                          <span className="font-semibold text-slate-400">Login Email</span>
+                          <span className="font-mono font-bold text-[#1e293b]">{registeredCredentials.email}</span>
+                        </div>
+                        <div className="flex justify-between text-xs border-b border-slate-100 pb-1.5">
+                          <span className="font-semibold text-slate-400">Admin Username</span>
+                          <span className="font-mono font-bold text-[#1e293b]">{registeredCredentials.username}</span>
+                        </div>
+                        <div className="flex justify-between text-xs">
+                          <span className="font-semibold text-slate-400">Default Password</span>
+                          <span className="font-mono font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md">{registeredCredentials.password}</span>
+                        </div>
+                      </div>
+                      
+                      <div className="p-2.5 bg-amber-50/50 border border-amber-150 rounded-xl">
+                        <p className="text-[10px] text-amber-700 font-semibold leading-relaxed">
+                          ⚠️ For security, you will be prompted to update this temporary password upon your first login.
+                        </p>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      <p className="text-xs text-[#475569] leading-relaxed font-semibold">
+                        Our onboarding team is spinning up your dedicated school workspace. Your custom administrator access credentials and portal links will be emailed to you within 24 hours at:
+                      </p>
+                      
+                      <div className="bg-white border border-[#e2e8f0] px-3.5 py-2.5 rounded-xl text-center">
+                        <strong className="text-[#1e293b] font-bold text-xs">{regEmail}</strong>
+                      </div>
+                    </>
+                  )}
                 </div>
 
                 <div className="flex flex-col sm:flex-row gap-2.5 justify-center pt-2">
-                  <button
-                    type="button"
+                  <a
+                    href="/login"
                     onClick={() => {
                       setRegModalOpen(false);
                       resetRegForm();
-                      setTryModalOpen(true);
                     }}
-                    className="flex-1 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold uppercase tracking-wider transition-colors rounded-xl shadow-md text-center flex items-center justify-center gap-2"
+                    className="flex-1 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold uppercase tracking-wider transition-colors rounded-xl shadow-md text-center flex items-center justify-center gap-2 cursor-pointer"
                   >
-                    Try Sandbox Demo <ArrowRight className="w-3.5 h-3.5" />
-                  </button>
+                    Go to Sign In <ArrowRight className="w-3.5 h-3.5" />
+                  </a>
                   <button
                     type="button"
                     onClick={() => { setRegModalOpen(false); resetRegForm(); }}
