@@ -72,6 +72,13 @@ export default function LandingPage() {
       setScrolled(window.scrollY > 20);
     };
     window.addEventListener('scroll', handleScroll);
+
+    // Auto-open Try App modal if URL contains ?try=true
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('try') === 'true') {
+      setTryModalOpen(true);
+    }
+
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 

@@ -246,12 +246,28 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   };
 
   const handleLogout = () => {
+    const userSessionStr = localStorage.getItem('report_user_session');
+    let isDemoUser = false;
+    if (userSessionStr) {
+      try {
+        const sessionObj = JSON.parse(userSessionStr);
+        if (sessionObj.user?.email?.endsWith('@nacho.com') || sessionObj.school?.slug === 'nacho-secondary') {
+          isDemoUser = true;
+        }
+      } catch (e) {}
+    }
+
     localStorage.removeItem('report_auth_token');
     localStorage.removeItem('report_user_session');
     localStorage.removeItem('report_super_session_backup');
     localStorage.removeItem('report_super_token_backup');
     document.cookie = 'report_auth_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
-    router.push('/login');
+    
+    if (isDemoUser) {
+      window.location.href = '/?try=true';
+    } else {
+      router.push('/login');
+    }
   };
 
 
