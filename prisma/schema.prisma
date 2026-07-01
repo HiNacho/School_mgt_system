@@ -52,6 +52,7 @@ model School {
   events             Event[]
   classReportStatuses ClassReportStatus[]
   announcements      Announcement[]
+  behaviorRatings    BehaviorRating[]
 }
 
 model User {
@@ -136,6 +137,7 @@ model Term {
   subjectAssignments SubjectAssignment[]
   scoreSubmissions   ScoreSubmission[]
   classReportStatuses ClassReportStatus[]
+  behaviorRatings     BehaviorRating[]
 }
 
 model Class {
@@ -204,6 +206,7 @@ model Student {
   parentId       String?
   parent         Parent?             @relation(fields: [parentId], references: [id], onDelete: SetNull)
   user           User?               @relation("StudentUser")
+  behaviorRatings BehaviorRating[]
 
   @@unique([schoolId, admissionNumber])
 }
@@ -346,6 +349,23 @@ model ReportCardComment {
   arm     Arm     @relation(fields: [armId], references: [id], onDelete: Cascade)
 
   @@unique([schoolId, studentId, termId])
+}
+
+model BehaviorRating {
+  id        String   @id @default(uuid())
+  schoolId  String
+  studentId String
+  termId    String
+  category  String   // e.g. "punctuality", "neatness", "honesty", "politeness", "selfControl", "attentiveness", "reliability", "sportsmanship"
+  rating    Int      // 1 to 5 scale
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  school    School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  student   Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  term      Term     @relation(fields: [termId], references: [id], onDelete: Cascade)
+
+  @@unique([studentId, termId, category])
 }
 
 model ScoreSubmission {

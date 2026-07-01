@@ -5,6 +5,28 @@ import {
   MessageSquarePlus, CheckCircle, AlertCircle, Sparkles, Save, RefreshCw, UserCheck, HelpCircle
 } from 'lucide-react';
 
+const CATEGORIES = [
+  'punctuality',
+  'neatness',
+  'honesty',
+  'politeness',
+  'selfControl',
+  'attentiveness',
+  'reliability',
+  'sportsmanship'
+];
+
+const getRatingLabel = (val: number) => {
+  switch (val) {
+    case 5: return 'Excellent';
+    case 4: return 'Very Good';
+    case 3: return 'Good';
+    case 2: return 'Fair';
+    case 1: return 'Poor';
+    default: return '';
+  }
+};
+
 interface CommentRow {
   studentId: string;
   admissionNumber: string;
@@ -15,6 +37,7 @@ interface CommentRow {
   headTeacherComment: string | null;
   isAIGenerated: boolean;
   published: boolean;
+  ratings: Record<string, number>;
 }
 
 export default function AICommentsPage() {
@@ -31,6 +54,7 @@ export default function AICommentsPage() {
   // Comments state
   const [comments, setComments] = useState<CommentRow[]>([]);
   const [modifiedIds, setModifiedIds] = useState<Set<string>>(new Set());
+  const [activeTab, setActiveTab] = useState<Record<string, 'academic' | 'conduct'>>({});
 
   // Indicators & Statuses
   const [savingStatus, setSavingStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
@@ -82,12 +106,35 @@ export default function AICommentsPage() {
     setSavingStatus('idle');
 
     try {
-      const res = await fetch(
-        `/api/comments?schoolId=${session.school.id}&classId=${selectedClass}&armId=${selectedArm}&termId=${selectedTerm}`
-      );
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.error || 'Failed to fetch comments');
-      setComments(json.data || []);
+      const [commentsRes, behaviorRes] = await Promise.all([
+        fetch(`/api/comments?schoolId=${session.school.id}&classId=${selectedClass}&armId=${selectedArm}&termId=${selectedTerm}`),
+        fetch(`/api/behavior?schoolId=${session.school.id}&classId=${selectedClass}&armId=${selectedArm}&termId=${selectedTerm}`)
+      ]);
+
+      const commentsJson = await commentsRes.json();
+      const behaviorJson = await behaviorRes.json();
+
+      if (!commentsRes.ok) throw new Error(commentsJson.error || 'Failed to fetch comments');
+      if (!behaviorRes.ok) throw new Error(behaviorJson.error || 'Failed to fetch behavior ratings');
+
+      const merged = (commentsJson.data || []).map((c: any) => {
+        const b = (behaviorJson.data || []).find((x: any) => x.studentId === c.studentId);
+        return {
+          ...c,
+          ratings: b ? b.ratings : {
+            punctuality: 4,
+            neatness: 4,
+            honesty: 4,
+            politeness: 4,
+            selfControl: 4,
+            attentiveness: 4,
+            reliability: 4,
+            sportsmanship: 4
+          }
+        };
+      });
+
+      setComments(merged);
     } catch (e: any) {
       setErrorMsg(e.message || 'Failed to load comments');
     } finally {
@@ -99,6 +146,26 @@ export default function AICommentsPage() {
     setComments(prev => prev.map(c => {
       if (c.studentId === studentId) {
         return { ...c, teacherComment: text };
+      }
+      return c;
+    }));
+    setModifiedIds(prev => {
+      const next = new Set(prev);
+      next.add(studentId);
+      return next;
+    });
+  };
+
+  const handleRatingChange = (studentId: string, category: string, value: number) => {
+    setComments(prev => prev.map(c => {
+      if (c.studentId === studentId) {
+        return {
+          ...c,
+          ratings: {
+            ...c.ratings,
+            [category]: value
+          }
+        };
       }
       return c;
     }));
@@ -182,10 +249,10 @@ export default function AICommentsPage() {
     }
   };
 
-  // Save all modified comments
+  // Save all modified comments and behavior ratings in parallel
   const handleSaveComments = async () => {
     if (modifiedIds.size === 0) {
-      setSuccessMsg('All comments are already saved and up to date.');
+      setSuccessMsg('All comments and ratings are already saved and up to date.');
       return;
     }
 
@@ -194,37 +261,65 @@ export default function AICommentsPage() {
     setSuccessMsg('');
 
     // Filter comments that have been modified
-    const commentsToSave = comments
-      .filter(c => modifiedIds.has(c.studentId))
-      .map(c => ({
-        studentId: c.studentId,
-        teacherComment: c.teacherComment,
-        headTeacherComment: c.headTeacherComment,
-        published: c.published
-      }));
+    const modifiedComments = comments.filter(c => modifiedIds.has(c.studentId));
+
+    const commentsToSave = modifiedComments.map(c => ({
+      studentId: c.studentId,
+      teacherComment: c.teacherComment,
+      headTeacherComment: c.headTeacherComment,
+      published: c.published
+    }));
+
+    // Flatten ratings for batch save
+    const ratingsToSave: any[] = [];
+    modifiedComments.forEach(c => {
+      if (c.ratings) {
+        Object.entries(c.ratings).forEach(([category, rating]) => {
+          ratingsToSave.push({
+            studentId: c.studentId,
+            category,
+            rating
+          });
+        });
+      }
+    });
 
     try {
-      const res = await fetch('/api/comments', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          schoolId: session.school.id,
-          termId: selectedTerm,
-          classId: selectedClass,
-          armId: selectedArm,
-          comments: commentsToSave,
+      const [commentsRes, behaviorRes] = await Promise.all([
+        fetch('/api/comments', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            schoolId: session.school.id,
+            termId: selectedTerm,
+            classId: selectedClass,
+            armId: selectedArm,
+            comments: commentsToSave,
+          }),
         }),
-      });
+        fetch('/api/behavior', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            schoolId: session.school.id,
+            termId: selectedTerm,
+            ratings: ratingsToSave,
+          }),
+        })
+      ]);
 
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.error || 'Failed to save comments matrix');
+      const commentsJson = await commentsRes.json();
+      const behaviorJson = await behaviorRes.json();
+
+      if (!commentsRes.ok) throw new Error(commentsJson.error || 'Failed to save comments matrix');
+      if (!behaviorRes.ok) throw new Error(behaviorJson.error || 'Failed to save behavior ratings');
 
       setSavingStatus('saved');
-      setSuccessMsg(`Successfully saved remarks matrix for ${commentsToSave.length} students!`);
+      setSuccessMsg(`Successfully saved remarks and behavioral ratings for ${modifiedComments.length} students!`);
       setModifiedIds(new Set());
     } catch (e: any) {
       setSavingStatus('error');
-      setErrorMsg(e.message || 'Failed to save comments matrix to database.');
+      setErrorMsg(e.message || 'Failed to save comments and ratings matrix to database.');
     }
   };
 
@@ -468,22 +563,93 @@ export default function AICommentsPage() {
                     </div>
                   </div>
 
-                  {/* Comment Field Column */}
-                  <div className="lg:col-span-9 space-y-2">
-                    <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500">Teacher's Academic Remark</label>
-                    <textarea
-                      value={row.teacherComment || ''}
-                      onChange={(e) => handleCommentChange(row.studentId, e.target.value)}
-                      placeholder={`Provide a detailed performance remark or click "Draft AI Remark" to automatically evaluate strengths and areas of improvements...`}
-                      rows={3}
-                      className="w-full bg-slate-950 border border-slate-850/80 hover:border-slate-700 rounded-xl px-4 py-3 text-xs leading-relaxed text-slate-200 focus:outline-none focus:border-slate-500 transition-colors placeholder:text-slate-700 font-medium"
-                    />
-                    <div className="flex items-center justify-between text-[10px] text-slate-500 font-mono">
-                      <span>Remarks length: {row.teacherComment?.length || 0} characters</span>
-                      {row.teacherComment && row.teacherComment.length > 250 && (
-                        <span className="text-amber-500">Remark is quite descriptive. Excel Template boundaries verified.</span>
-                      )}
+                  {/* Comment & Conduct Columns */}
+                  <div className="lg:col-span-9 space-y-4">
+                    {/* Tab Switcher */}
+                    <div className="flex border-b border-slate-800">
+                      <button
+                        type="button"
+                        onClick={() => setActiveTab(prev => ({ ...prev, [row.studentId]: 'academic' }))}
+                        className={`px-4 py-2 text-xs font-bold border-b-2 transition-all flex items-center gap-1.5 -mb-px ${
+                          (activeTab[row.studentId] || 'academic') === 'academic'
+                            ? 'border-sky-500 text-sky-400'
+                            : 'border-transparent text-slate-400 hover:text-slate-200'
+                        }`}
+                      >
+                        <MessageSquarePlus className="w-3.5 h-3.5" />
+                        Academic Comments
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setActiveTab(prev => ({ ...prev, [row.studentId]: 'conduct' }))}
+                        className={`px-4 py-2 text-xs font-bold border-b-2 transition-all flex items-center gap-1.5 -mb-px ${
+                          activeTab[row.studentId] === 'conduct'
+                            ? 'border-sky-500 text-sky-400'
+                            : 'border-transparent text-slate-400 hover:text-slate-200'
+                        }`}
+                      >
+                        <UserCheck className="w-3.5 h-3.5" />
+                        Conduct & Behaviour
+                      </button>
                     </div>
+
+                    {(activeTab[row.studentId] || 'academic') === 'academic' ? (
+                      <div className="space-y-2">
+                        <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500">Teacher's Academic Remark</label>
+                        <textarea
+                          value={row.teacherComment || ''}
+                          onChange={(e) => handleCommentChange(row.studentId, e.target.value)}
+                          placeholder={`Provide a detailed performance remark or click "Draft AI Remark" to automatically evaluate strengths and areas of improvements...`}
+                          rows={3}
+                          className="w-full bg-slate-950 border border-slate-850/80 hover:border-slate-700 rounded-xl px-4 py-3 text-xs leading-relaxed text-slate-200 focus:outline-none focus:border-slate-500 transition-colors placeholder:text-slate-700 font-medium"
+                        />
+                        <div className="flex items-center justify-between text-[10px] text-slate-500 font-mono">
+                          <span>Remarks length: {row.teacherComment?.length || 0} characters</span>
+                          {row.teacherComment && row.teacherComment.length > 250 && (
+                            <span className="text-amber-500">Remark is quite descriptive. Excel Template boundaries verified.</span>
+                          )}
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        <div className="flex justify-between items-center">
+                          <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500">Cognitive & Affective Domain Evaluation (1 - 5)</label>
+                          <span className="text-[10px] text-slate-500 italic">Values automatically save along with comments.</span>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                          {CATEGORIES.map(cat => {
+                            const val = row.ratings?.[cat] !== undefined ? row.ratings[cat] : 4;
+                            return (
+                              <div key={cat} className="p-3 rounded-xl bg-slate-950/60 border border-slate-850/80 hover:border-slate-800 transition-all space-y-2">
+                                <div className="flex justify-between items-center">
+                                  <span className="text-[11px] font-bold text-slate-300 capitalize">
+                                    {cat.replace(/([A-Z])/g, ' $1')}
+                                  </span>
+                                  <span className={`text-[9px] font-bold px-2 py-0.5 rounded font-mono ${
+                                    val === 5 ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' :
+                                    val === 4 ? 'bg-sky-500/10 text-sky-400 border border-sky-500/20' :
+                                    val === 3 ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20' :
+                                    val === 2 ? 'bg-orange-500/10 text-orange-400 border border-orange-500/20' :
+                                    'bg-red-500/10 text-red-400 border border-red-500/20'
+                                  }`}>
+                                    {val} - {getRatingLabel(val)}
+                                  </span>
+                                </div>
+                                <input
+                                  type="range"
+                                  min="1"
+                                  max="5"
+                                  step="1"
+                                  value={val}
+                                  onChange={(e) => handleRatingChange(row.studentId, cat, parseInt(e.target.value))}
+                                  className="w-full h-1 bg-slate-850 rounded-lg appearance-none cursor-pointer accent-sky-500"
+                                />
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                 </div>

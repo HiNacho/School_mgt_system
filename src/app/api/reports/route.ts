@@ -134,6 +134,14 @@ export async function GET(req: NextRequest) {
     const allStudentsInArm = await prisma.student.findMany({
       where: { schoolId, classId, armId, status: 'ACTIVE' },
     });
+
+    const behaviorRatings = await prisma.behaviorRating.findMany({
+      where: {
+        schoolId,
+        termId,
+        studentId: { in: allStudentsInArm.map(s => s.id) }
+      }
+    });
     
     const compiledReports = compileClassResults(allStudentsInArm, subjects, scores, gradingRules);
 
@@ -148,22 +156,27 @@ export async function GET(req: NextRequest) {
       const studAttendance = attendance.find(a => a.studentId === report.studentId);
       const studComment = comments.find(c => c.studentId === report.studentId);
 
-      // Generate realistic evaluation traits based on academic standing
-      const scoreWeight = report.averageScore / 100;
-      const getTraitRating = (base: number) => {
+      // Get DB behavior ratings if they exist, fallback to simulated
+      const studentBehaviors = behaviorRatings.filter(b => b.studentId === report.studentId);
+      
+      const getBehaviorValue = (category: string, base: number) => {
+        const found = studentBehaviors.find(b => b.category === category);
+        if (found) return found.rating;
+        // Fallback to simulated heuristic
+        const scoreWeight = report.averageScore / 100;
         const jitter = Math.floor(Math.sin(report.averageScore) * 1.5);
         return Math.min(5, Math.max(1, Math.round(base * scoreWeight + 2 + jitter)));
       };
 
       const traits = {
-        punctuality: getTraitRating(3),
-        neatness: getTraitRating(3.5),
-        honesty: getTraitRating(4),
-        politeness: getTraitRating(4),
-        selfControl: getTraitRating(3),
-        attentiveness: getTraitRating(3),
-        reliability: getTraitRating(3.2),
-        sportsmanship: getTraitRating(2.5),
+        punctuality: getBehaviorValue('punctuality', 3),
+        neatness: getBehaviorValue('neatness', 3.5),
+        honesty: getBehaviorValue('honesty', 4),
+        politeness: getBehaviorValue('politeness', 4),
+        selfControl: getBehaviorValue('selfControl', 3),
+        attentiveness: getBehaviorValue('attentiveness', 3),
+        reliability: getBehaviorValue('reliability', 3.2),
+        sportsmanship: getBehaviorValue('sportsmanship', 2.5),
       };
 
       return {
