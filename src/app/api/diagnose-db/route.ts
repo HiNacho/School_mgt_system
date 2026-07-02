@@ -8,7 +8,7 @@ export async function GET(req: NextRequest) {
   try {
     const rawUrl = process.env.DATABASE_URL || '';
     
-    // Mask password for display
+    // Mask password and inspect characters safely
     let maskedUrl = 'empty';
     if (rawUrl) {
       try {
@@ -20,8 +20,16 @@ export async function GET(req: NextRequest) {
       }
     }
 
+    const first15 = rawUrl.slice(0, 15);
+    const last15 = rawUrl.slice(-15);
+
     reports.env = {
       DATABASE_URL_exists: !!rawUrl,
+      DATABASE_URL_length: rawUrl.length,
+      DATABASE_URL_first15: first15,
+      DATABASE_URL_last15: last15,
+      DATABASE_URL_first15_codes: [...first15].map(c => c.charCodeAt(0)),
+      DATABASE_URL_last15_codes: [...last15].map(c => c.charCodeAt(0)),
       DATABASE_URL_masked: maskedUrl,
       NODE_ENV: process.env.NODE_ENV
     };
