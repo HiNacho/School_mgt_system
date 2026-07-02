@@ -90,16 +90,16 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    // Convert interestedFeatures to string if it's an array
+    const resolvedFeatures = Array.isArray(interestedFeatures)
+      ? interestedFeatures.join(', ')
+      : (interestedFeatures || null);
+
     if (!lead) {
       // Parse integers if they come as strings
       const parsedStudentCount = studentCount ? parseInt(studentCount, 10) : null;
       const parsedTeacherCount = teacherCount ? parseInt(teacherCount, 10) : null;
       const parsedClassCount = classCount ? parseInt(classCount, 10) : null;
-
-      // Convert interestedFeatures to string if it's an array
-      const resolvedFeatures = Array.isArray(interestedFeatures)
-        ? interestedFeatures.join(', ')
-        : (interestedFeatures || null);
 
       // Create new Lead record in the database
       lead = await prisma.lead.create({
@@ -385,7 +385,7 @@ export async function POST(req: NextRequest) {
             <div class="field"><span class="label">Current Result Method:</span> ${escapeHtml(currentResultMethod || 'N/A')}</div>
             <div class="field"><span class="label">Current Attendance Method:</span> ${escapeHtml(currentAttendanceMethod || 'N/A')}</div>
             <div class="field"><span class="label">Biggest Challenge:</span> ${escapeHtml(biggestChallenge || 'N/A')}</div>
-            <div class="field"><span class="label">Interested Features:</span> ${escapeHtml(interestedFeatures || 'N/A')}</div>
+            <div class="field"><span class="label">Interested Features:</span> ${escapeHtml(resolvedFeatures || 'N/A')}</div>
           </div>
         </body>
         </html>
