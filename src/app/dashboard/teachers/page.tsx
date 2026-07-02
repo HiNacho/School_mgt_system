@@ -41,20 +41,71 @@ export default function TeachersDirectoryPage() {
 
   const downloadTemplate = () => {
     const wsData = teachers.length > 0
-      ? teachers.map((s: any) => ({
-          'Title': s.title || '',
-          'First Name': s.firstName,
-          'Last Name': s.lastName,
-          'Email': s.email,
-          'Phone': s.phone || '',
-          'Role': s.role,
-          'Class Teacher For': s.classTeacherArms?.[0]?.name || '',
-          'Subject Allocations': s.subjectAssignments?.map((sa: any) => `${sa.subject?.name || sa.subjectId}:${sa.arm?.name || sa.armId}`).join(', ') || ''
-        }))
+      ? teachers.map((s: any) => {
+          const isClassTeacher = s.role === 'CLASS_TEACHER';
+          const isSubjectTeacher = s.role === 'SUBJECT_TEACHER' || (s.role === 'CLASS_TEACHER' && s.subjectAssignments?.length > 0);
+          
+          let roleStr = '';
+          if (isClassTeacher && isSubjectTeacher) {
+            roleStr = 'Class Teacher, Subject Teacher';
+          } else if (isClassTeacher) {
+            roleStr = 'Class Teacher';
+          } else if (isSubjectTeacher) {
+            roleStr = 'Subject Teacher';
+          } else {
+            roleStr = s.role === 'HEAD_TEACHER' ? 'Head Teacher' : s.role === 'SCHOOL_ADMIN' ? 'School Admin' : s.role;
+          }
+
+          // Group subjects and class arms
+          const uniqueSubjects = Array.from(new Set(s.subjectAssignments?.map((sa: any) => sa.subject?.name).filter(Boolean))) as string[];
+          const uniqueArms = Array.from(new Set(s.subjectAssignments?.map((sa: any) => sa.arm?.name).filter(Boolean))) as string[];
+
+          return {
+            'Title': s.title || '',
+            'First Name': s.firstName,
+            'Last Name': s.lastName,
+            'Staff Email Address': s.email,
+            'Contact Phone': s.phone || '',
+            'Role': roleStr,
+            'Class Teacher Class': s.classTeacherArms?.[0]?.name || '',
+            'Subject': uniqueSubjects.join(', '),
+            'Class Allocation': uniqueArms.join(', ')
+          };
+        })
       : [
-          { 'Title': 'Mrs.', 'First Name': 'Sarah', 'Last Name': 'Okon', 'Email': 'sarah.okon@school.com', 'Phone': '+234 803 111 2222', 'Role': 'CLASS_TEACHER', 'Class Teacher For': 'JSS 1A', 'Subject Allocations': 'Mathematics:JSS 1A' },
-          { 'Title': 'Mr.', 'First Name': 'David', 'Last Name': 'Alabi', 'Email': 'david.alabi@school.com', 'Phone': '+234 803 333 4444', 'Role': 'SUBJECT_TEACHER', 'Class Teacher For': '', 'Subject Allocations': 'Basic Science:JSS 1A, Civic Education:JSS 1B' },
-          { 'Title': 'Dr.', 'First Name': 'Grace', 'Last Name': 'Adenike', 'Email': 'grace.adenike@school.com', 'Phone': '+234 803 555 6666', 'Role': 'HEAD_TEACHER', 'Class Teacher For': '', 'Subject Allocations': '' }
+          { 
+            'Title': 'Mrs.', 
+            'First Name': 'Sarah', 
+            'Last Name': 'Okon', 
+            'Staff Email Address': 'sarah.okon@school.com', 
+            'Contact Phone': '+234 803 111 2222', 
+            'Role': 'Class Teacher, Subject Teacher', 
+            'Class Teacher Class': 'JSS 1A', 
+            'Subject': 'Mathematics', 
+            'Class Allocation': 'JSS 1A' 
+          },
+          { 
+            'Title': 'Mr.', 
+            'First Name': 'David', 
+            'Last Name': 'Alabi', 
+            'Staff Email Address': 'david.alabi@school.com', 
+            'Contact Phone': '+234 803 333 4444', 
+            'Role': 'Subject Teacher', 
+            'Class Teacher Class': '', 
+            'Subject': 'Basic Science, Civic Education', 
+            'Class Allocation': 'JSS 1A, JSS 1B' 
+          },
+          { 
+            'Title': 'Dr.', 
+            'First Name': 'Grace', 
+            'Last Name': 'Adenike', 
+            'Staff Email Address': 'grace.adenike@school.com', 
+            'Contact Phone': '+234 803 555 6666', 
+            'Role': 'Head Teacher', 
+            'Class Teacher Class': '', 
+            'Subject': '', 
+            'Class Allocation': '' 
+          }
         ];
     const wb = XLSX.utils.book_new();
     const wsSheet = XLSX.utils.json_to_sheet(wsData);
@@ -80,16 +131,12 @@ export default function TeachersDirectoryPage() {
           const title = String(r['Title'] || r['title'] || '').trim();
           const firstName = String(r['First Name'] || r['FirstName'] || r['Firstname'] || '').trim();
           const lastName = String(r['Last Name'] || r['LastName'] || r['Lastname'] || '').trim();
-          const email = String(r['Email'] || r['Email Address'] || r['email'] || '').trim();
-          const phone = String(r['Phone'] || r['Phone Number'] || r['phone'] || '').trim();
-          let role = String(r['Role'] || r['role'] || 'SUBJECT_TEACHER').trim().toUpperCase();
-          const classTeacherFor = String(r['Class Teacher For'] || r['ClassTeacherFor'] || '').trim();
-          const subjectAllocations = String(r['Subject Allocations'] || r['SubjectAllocations'] || '').trim();
-
-          // Limit and normalize to teacher roles
-          if (!['CLASS_TEACHER', 'SUBJECT_TEACHER', 'HEAD_TEACHER'].includes(role)) {
-            role = 'SUBJECT_TEACHER';
-          }
+          const email = String(r['Staff Email Address'] || r['Email Address'] || r['Email'] || r['email'] || '').trim();
+          const phone = String(r['Contact Phone'] || r['Phone'] || r['Phone Number'] || r['phone'] || '').trim();
+          const role = String(r['Role'] || r['role'] || '').trim();
+          const classTeacherClass = String(r['Class Teacher Class'] || r['Class Teacher For'] || r['ClassTeacherFor'] || '').trim();
+          const subject = String(r['Subject'] || r['subject'] || '').trim();
+          const classAllocation = String(r['Class Allocation'] || r['classAllocation'] || '').trim();
 
           if (!firstName || !lastName || !email) continue;
 
@@ -100,8 +147,9 @@ export default function TeachersDirectoryPage() {
             email,
             phone: phone || null,
             role,
-            classTeacherFor: classTeacherFor || null,
-            subjectAllocations: subjectAllocations || null
+            classTeacherClass: classTeacherClass || null,
+            subject: subject || null,
+            classAllocation: classAllocation || null
           });
         }
 

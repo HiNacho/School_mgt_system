@@ -27,18 +27,23 @@ export async function POST(req: NextRequest) {
 
     // Process staff records one by one
     for (const member of staff) {
-      const { firstName, lastName, email, role, phone, title, classTeacherFor, subjectAllocations } = member;
+      const { firstName, lastName, email, role, phone, title, classTeacherClass, subject, classAllocation } = member;
 
       const cleanFirstName = String(firstName || '').trim();
       const cleanLastName = String(lastName || '').trim();
       const cleanEmail = String(email || '').trim().toLowerCase();
       const cleanPhone = phone ? String(phone).trim() : null;
       const cleanTitle = title ? String(title).trim() : null;
-      let cleanRole = String(role || 'SUBJECT_TEACHER').trim().toUpperCase();
-
-      // Normalize role parameter values
-      if (!['SCHOOL_ADMIN', 'HEAD_TEACHER', 'CLASS_TEACHER', 'SUBJECT_TEACHER'].includes(cleanRole)) {
-        cleanRole = 'SUBJECT_TEACHER';
+      
+      // Parse flexible roles
+      const roleStr = String(role || '').toLowerCase();
+      let cleanRole = 'SUBJECT_TEACHER';
+      if (roleStr.includes('class teacher')) {
+        cleanRole = 'CLASS_TEACHER';
+      } else if (roleStr.includes('head teacher') || roleStr.includes('principal') || roleStr.includes('headmaster')) {
+        cleanRole = 'HEAD_TEACHER';
+      } else if (roleStr.includes('admin') || roleStr.includes('administrator')) {
+        cleanRole = 'SCHOOL_ADMIN';
       }
 
       const displayName = cleanLastName ? `${cleanLastName}, ${cleanFirstName}` : cleanFirstName;
@@ -110,9 +115,9 @@ export async function POST(req: NextRequest) {
           }
 
           // 2. Class Teacher Relationship
-          if (cleanRole === 'CLASS_TEACHER' && classTeacherFor) {
-            const cleanArmName = String(classTeacherFor).trim();
-            const arm = schoolArms.find(a => a.name.toLowerCase() === cleanArmName.toLowerCase());
+          if (cleanRole === 'CLASS_TEACHER' && classTeacherClass) {
+            const cleanArmName = String(classTeacherClass).trim().toLowerCase();
+            const arm = schoolArms.find(a => a.name.toLowerCase() === cleanArmName);
             if (arm) {
               await tx.arm.update({
                 where: { id: arm.id },
@@ -121,43 +126,45 @@ export async function POST(req: NextRequest) {
             }
           }
 
-          // 3. Subject Allocations
-          if (subjectAllocations && currentTerm) {
-            const allocations = String(subjectAllocations).split(',').map(s => s.trim());
-            for (const alloc of allocations) {
-              const parts = alloc.split(':');
-              if (parts.length < 2) continue;
-              const subjectNameOrCode = parts[0].trim().toLowerCase();
-              const armName = parts[1].trim().toLowerCase();
+          // 3. Subject & Class Allocations
+          if (subject && classAllocation && currentTerm) {
+            const subjectsList = String(subject).split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
+            const armsList = String(classAllocation).split(',').map(a => a.trim().toLowerCase()).filter(Boolean);
 
-              const subject = schoolSubjects.find(
-                s => s.name.toLowerCase() === subjectNameOrCode || s.code.toLowerCase() === subjectNameOrCode
+            for (const subQuery of subjectsList) {
+              const matchedSubject = schoolSubjects.find(
+                s => s.name.toLowerCase() === subQuery || s.code.toLowerCase() === subQuery
               );
-              const arm = schoolArms.find(a => a.name.toLowerCase() === armName);
+              
+              if (!matchedSubject) continue;
 
-              if (subject && arm) {
-                // Check if duplicate assignment exists
-                const duplicate = await tx.subjectAssignment.findFirst({
-                  where: {
-                    schoolId,
-                    subjectId: subject.id,
-                    armId: arm.id,
-                    teacherId: u.id,
-                    termId: currentTerm.id
-                  }
-                });
+              for (const armQuery of armsList) {
+                const matchedArm = schoolArms.find(a => a.name.toLowerCase() === armQuery);
 
-                if (!duplicate) {
-                  await tx.subjectAssignment.create({
-                    data: {
+                if (matchedArm) {
+                  // Check if duplicate assignment exists
+                  const duplicate = await tx.subjectAssignment.findFirst({
+                    where: {
                       schoolId,
-                      subjectId: subject.id,
-                      classId: arm.classId,
-                      armId: arm.id,
+                      subjectId: matchedSubject.id,
+                      armId: matchedArm.id,
                       teacherId: u.id,
                       termId: currentTerm.id
                     }
                   });
+
+                  if (!duplicate) {
+                    await tx.subjectAssignment.create({
+                      data: {
+                        schoolId,
+                        subjectId: matchedSubject.id,
+                        classId: matchedArm.classId,
+                        armId: matchedArm.id,
+                        teacherId: u.id,
+                        termId: currentTerm.id
+                      }
+                    });
+                  }
                 }
               }
             }
