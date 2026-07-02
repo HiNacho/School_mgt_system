@@ -828,21 +828,22 @@ export default function TeachersDirectoryPage() {
 
         {/* Batch Actions Bar */}
         {selectedTeacherIds.length > 0 && (
-          <div className="flex items-center justify-between bg-slate-900 border border-slate-800 rounded-2xl px-5 py-3 mb-4 shadow-lg shadow-slate-900/20 transition-all duration-300">
+          <div className="flex items-center justify-between bg-white border border-slate-200 rounded-2xl px-5 py-3 mb-4 shadow-sm transition-all duration-300">
             <div className="flex items-center gap-2.5">
               <span className="relative flex h-2 w-2">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
               </span>
-              <span className="text-xs font-extrabold text-slate-300 font-sans">
-                Selected <span className="text-blue-400 font-black text-sm px-0.5">{selectedTeacherIds.length}</span> teachers
+              <span className="text-xs font-extrabold text-slate-800 font-sans">
+                Selected <span className="text-blue-600 font-black text-sm px-0.5">{selectedTeacherIds.length}</span> teachers
               </span>
             </div>
             <div className="flex items-center gap-2">
               <button
                 type="button"
                 onClick={handleBatchArchive}
-                className="flex items-center gap-1.5 bg-slate-800 hover:bg-slate-700 active:scale-95 text-amber-400 border border-slate-700 px-4 py-2 rounded-xl text-xs font-black transition-all cursor-pointer shadow-md"
+                style={{ backgroundColor: '#1e293b', color: '#fbbf24' }}
+                className="flex items-center gap-1.5 border border-slate-800 px-4 py-2 rounded-xl text-xs font-black transition-all cursor-pointer shadow-sm font-sans active:scale-95"
               >
                 <Archive className="w-3.5 h-3.5" />
                 Archive Selected
@@ -850,7 +851,8 @@ export default function TeachersDirectoryPage() {
               <button
                 type="button"
                 onClick={handleBatchDelete}
-                className="flex items-center gap-1.5 bg-red-600 hover:bg-red-500 active:scale-95 text-white border border-red-500 px-4 py-2 rounded-xl text-xs font-black transition-all cursor-pointer shadow-md shadow-red-950/20"
+                style={{ backgroundColor: '#dc2626', color: '#ffffff' }}
+                className="flex items-center gap-1.5 border border-red-700 px-4 py-2 rounded-xl text-xs font-black transition-all cursor-pointer shadow-sm font-sans active:scale-95"
               >
                 <Trash2 className="w-3.5 h-3.5 text-white" />
                 Delete Selected

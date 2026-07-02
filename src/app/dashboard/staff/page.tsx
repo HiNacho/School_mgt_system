@@ -777,21 +777,22 @@ export default function StaffAccountsPage() {
 
           {/* Batch Actions Bar */}
           {selectedStaffIds.length > 0 && (
-            <div className="mx-5 mt-4 mb-2 flex items-center justify-between bg-slate-900 border border-slate-800 rounded-2xl px-5 py-3 shadow-lg shadow-slate-900/20 transition-all duration-300 animate-fadeIn">
+            <div className="mx-5 mt-4 mb-2 flex items-center justify-between bg-white border border-slate-200 rounded-2xl px-5 py-3 shadow-sm transition-all duration-300">
               <div className="flex items-center gap-2.5">
                 <span className="relative flex h-2 w-2">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
                   <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
                 </span>
-                <span className="text-xs font-extrabold text-slate-300 font-sans">
-                  Selected <span className="text-red-400 font-black text-sm px-0.5">{selectedStaffIds.length}</span> staff members
+                <span className="text-xs font-extrabold text-slate-800 font-sans">
+                  Selected <span className="text-red-600 font-black text-sm px-0.5">{selectedStaffIds.length}</span> staff members
                 </span>
               </div>
               <div className="flex items-center gap-2">
                 <button
                   type="button"
                   onClick={handleBulkDeleteStaff}
-                  className="flex items-center gap-1.5 bg-red-600 hover:bg-red-500 active:scale-95 text-white border border-red-500 px-4 py-2 rounded-xl text-xs font-black transition-all cursor-pointer shadow-md shadow-red-950/20 font-sans"
+                  style={{ backgroundColor: '#dc2626', color: '#ffffff' }}
+                  className="flex items-center gap-1.5 border border-red-700 px-4 py-2 rounded-xl text-xs font-black transition-all cursor-pointer shadow-sm font-sans hover:bg-red-700 active:scale-95"
                 >
                   <Trash2 className="w-3.5 h-3.5 text-white" />
                   Delete Selected
