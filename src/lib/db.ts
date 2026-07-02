@@ -10,6 +10,20 @@ const prismaClientSingleton = () => {
     url = `${url}${separator}connection_limit=2`;
   }
 
+  // Optimize connect_timeout to 30s to allow requests to wait rather than crash with 500
+  if (url.includes('connect_timeout=')) {
+    url = url.replace(/connect_timeout=\d+/, 'connect_timeout=30');
+  } else {
+    url = `${url}&connect_timeout=30`;
+  }
+
+  // Optimize pool_timeout to 30s to allow Prisma client queue to buffer concurrent requests
+  if (url.includes('pool_timeout=')) {
+    url = url.replace(/pool_timeout=\d+/, 'pool_timeout=30');
+  } else {
+    url = `${url}&pool_timeout=30`;
+  }
+
   return new PrismaClient({
     datasources: {
       db: {
