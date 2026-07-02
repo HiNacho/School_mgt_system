@@ -165,22 +165,86 @@ export default function StaffAccountsPage() {
   };
 
   const downloadTemplate = () => {
+    const getFullArmName = (arm: any) => {
+      if (!arm) return '';
+      if (!arm.class) return arm.name;
+      const className = arm.class.name;
+      const armName = arm.name;
+      if (armName.toLowerCase().startsWith(className.toLowerCase())) {
+        return armName;
+      }
+      return `${className} ${armName}`;
+    };
+
     const wsData = staff.length > 0
-      ? staff.map(member => ({
-          'First Name': member.firstName,
-          'Last Name': member.lastName,
-          'Email': member.email,
-          'Role': member.role,
-          'Phone': member.phone || ''
-        }))
+      ? staff.map((s: any) => {
+          const isClassTeacher = s.role === 'CLASS_TEACHER';
+          const isSubjectTeacher = s.role === 'SUBJECT_TEACHER' || (s.role === 'CLASS_TEACHER' && s.subjectAssignments?.length > 0);
+          
+          let roleStr = '';
+          if (isClassTeacher && isSubjectTeacher) {
+            roleStr = 'Class Teacher, Subject Teacher';
+          } else if (isClassTeacher) {
+            roleStr = 'Class Teacher';
+          } else if (isSubjectTeacher) {
+            roleStr = 'Subject Teacher';
+          } else {
+            roleStr = s.role === 'HEAD_TEACHER' ? 'Head Teacher' : s.role === 'SCHOOL_ADMIN' ? 'School Admin' : s.role;
+          }
+
+          const uniqueSubjects = Array.from(new Set(s.subjectAssignments?.map((sa: any) => sa.subject?.name).filter(Boolean))) as string[];
+          const uniqueArms = Array.from(new Set(s.subjectAssignments?.map((sa: any) => getFullArmName(sa.arm)).filter(Boolean))) as string[];
+
+          return {
+            'Title': s.title || '',
+            'First Name': s.firstName,
+            'Last Name': s.lastName,
+            'Staff Email Address': s.email,
+            'Contact Phone': s.phone || '',
+            'Role': roleStr,
+            'Class Teacher Class': getFullArmName(s.classTeacherArms?.[0]),
+            'Subject': uniqueSubjects.join(', '),
+            'Class Allocation': uniqueArms.join(', ')
+          };
+        })
       : [
-          { 'First Name': 'Solomon', 'Last Name': 'Apeh', 'Email': 'mr.apeh@greenwood.com', 'Role': 'CLASS_TEACHER', 'Phone': '+234 803 111 2222' },
-          { 'First Name': 'Jane', 'Last Name': 'Doe', 'Email': 'jane.doe@greenwood.com', 'Role': 'SUBJECT_TEACHER', 'Phone': '+234 803 333 4444' },
-          { 'First Name': 'Victor', 'Last Name': 'Iheanacho', 'Email': 'victor@greenwood.com', 'Role': 'SCHOOL_ADMIN', 'Phone': '+234 803 555 6666' }
+          { 
+            'Title': 'Mrs.', 
+            'First Name': 'Sarah', 
+            'Last Name': 'Okon', 
+            'Staff Email Address': 'sarah.okon@school.com', 
+            'Contact Phone': '+234 803 111 2222', 
+            'Role': 'Class Teacher, Subject Teacher', 
+            'Class Teacher Class': 'JSS 1A', 
+            'Subject': 'Mathematics', 
+            'Class Allocation': 'JSS 1A' 
+          },
+          { 
+            'Title': 'Mr.', 
+            'First Name': 'David', 
+            'Last Name': 'Alabi', 
+            'Staff Email Address': 'david.alabi@school.com', 
+            'Contact Phone': '+234 803 333 4444', 
+            'Role': 'Subject Teacher', 
+            'Class Teacher Class': '', 
+            'Subject': 'Basic Science, Civic Education', 
+            'Class Allocation': 'JSS 1A, JSS 1B' 
+          },
+          { 
+            'Title': 'Dr.', 
+            'First Name': 'Grace', 
+            'Last Name': 'Adenike', 
+            'Staff Email Address': 'grace.adenike@school.com', 
+            'Contact Phone': '+234 803 555 6666', 
+            'Role': 'Head Teacher', 
+            'Class Teacher Class': '', 
+            'Subject': '', 
+            'Class Allocation': '' 
+          }
         ];
     const wb = XLSX.utils.book_new();
-    const ws = XLSX.utils.json_to_sheet(wsData);
-    XLSX.utils.book_append_sheet(wb, ws, 'StaffTemplate');
+    const wsSheet = XLSX.utils.json_to_sheet(wsData);
+    XLSX.utils.book_append_sheet(wb, wsSheet, 'StaffTemplate');
     XLSX.writeFile(wb, 'Staff_Upload_Template.xlsx');
   };
 
@@ -199,20 +263,28 @@ export default function StaffAccountsPage() {
 
         const parsed: any[] = [];
         for (const r of rawRows) {
+          const title = String(r['Title'] || r['title'] || '').trim();
           const firstName = String(r['First Name'] || r['FirstName'] || r['Firstname'] || '').trim();
           const lastName = String(r['Last Name'] || r['LastName'] || r['Lastname'] || '').trim();
-          const email = String(r['Email'] || r['Email Address'] || r['email'] || '').trim();
-          const phone = String(r['Phone'] || r['Phone Number'] || r['phone'] || '').trim();
-          const role = String(r['Role'] || r['role'] || 'SUBJECT_TEACHER').trim().toUpperCase();
+          const email = String(r['Staff Email Address'] || r['Email Address'] || r['Email'] || r['email'] || '').trim();
+          const phone = String(r['Contact Phone'] || r['Phone'] || r['Phone Number'] || r['phone'] || '').trim();
+          const role = String(r['Role'] || r['role'] || '').trim();
+          const classTeacherClass = String(r['Class Teacher Class'] || r['Class Teacher For'] || r['ClassTeacherFor'] || '').trim();
+          const subject = String(r['Subject'] || r['subject'] || '').trim();
+          const classAllocation = String(r['Class Allocation'] || r['classAllocation'] || '').trim();
 
           if (!firstName || !lastName || !email) continue;
 
           parsed.push({
+            title: title || null,
             firstName,
             lastName,
             email,
             phone: phone || null,
-            role
+            role,
+            classTeacherClass: classTeacherClass || null,
+            subject: subject || null,
+            classAllocation: classAllocation || null
           });
         }
 
