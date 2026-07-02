@@ -40,6 +40,18 @@ export default function TeachersDirectoryPage() {
   const [dragActive, setDragActive] = useState(false);
 
   const downloadTemplate = () => {
+    const getFullArmName = (arm: any) => {
+      if (!arm) return '';
+      if (!arm.class) return arm.name;
+      const className = arm.class.name;
+      const armName = arm.name;
+      if (armName.toLowerCase().startsWith(className.toLowerCase())) {
+        return armName;
+      }
+      // Put a space between them if the class name does not end with letters/numbers or armName is short
+      return `${className} ${armName}`;
+    };
+
     const wsData = teachers.length > 0
       ? teachers.map((s: any) => {
           const isClassTeacher = s.role === 'CLASS_TEACHER';
@@ -58,7 +70,7 @@ export default function TeachersDirectoryPage() {
 
           // Group subjects and class arms
           const uniqueSubjects = Array.from(new Set(s.subjectAssignments?.map((sa: any) => sa.subject?.name).filter(Boolean))) as string[];
-          const uniqueArms = Array.from(new Set(s.subjectAssignments?.map((sa: any) => sa.arm?.name).filter(Boolean))) as string[];
+          const uniqueArms = Array.from(new Set(s.subjectAssignments?.map((sa: any) => getFullArmName(sa.arm)).filter(Boolean))) as string[];
 
           return {
             'Title': s.title || '',
@@ -67,7 +79,7 @@ export default function TeachersDirectoryPage() {
             'Staff Email Address': s.email,
             'Contact Phone': s.phone || '',
             'Role': roleStr,
-            'Class Teacher Class': s.classTeacherArms?.[0]?.name || '',
+            'Class Teacher Class': getFullArmName(s.classTeacherArms?.[0]),
             'Subject': uniqueSubjects.join(', '),
             'Class Allocation': uniqueArms.join(', ')
           };
