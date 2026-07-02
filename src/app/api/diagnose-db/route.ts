@@ -71,10 +71,35 @@ export async function GET(req: NextRequest) {
     console.log('[Diagnostic] Executing test query (User.count)...');
     const userCount = await prismaInstance.user.count();
     
+    console.log('[Diagnostic] Executing simulated staff query...');
+    const testSchoolId = '41f601f1-f54b-4e07-8aea-e39fbf3eb41a'; // Nacho Secondary Academy
+    const staffList = await prismaInstance.user.findMany({
+      where: {
+        schoolId: testSchoolId,
+        NOT: {
+          role: { in: ['PARENT', 'STUDENT'] }
+        }
+      },
+      include: {
+        classTeacherArms: true,
+        subjectAssignments: {
+          include: {
+            subject: {
+              select: { name: true, code: true }
+            },
+            arm: {
+              select: { name: true }
+            }
+          }
+        }
+      }
+    });
+
     reports.database = {
       connected: true,
       userCount,
-      message: 'Successfully established database connection and ran query!'
+      simulatedStaffCount: staffList.length,
+      message: 'Successfully established database connection and ran all queries!'
     };
 
     return NextResponse.json({ success: true, reports });
