@@ -777,7 +777,7 @@ export default function StaffAccountsPage() {
 
           {/* Batch Actions Bar */}
           {selectedStaffIds.length > 0 && (
-            <div className="mx-5 mt-4 flex items-center justify-between bg-blue-50/80 border border-blue-100 rounded-2xl px-6 py-3 animate-fade-in">
+            <div className="mx-5 mt-4 mb-2 flex items-center justify-between bg-blue-50/80 border border-blue-100 rounded-2xl px-6 py-3 transition-all duration-300">
               <div className="flex items-center gap-2">
                 <span className="w-2 h-2 rounded-full bg-blue-600 animate-pulse" />
                 <span className="text-xs font-bold text-blue-800 font-sans">

@@ -828,7 +828,7 @@ export default function TeachersDirectoryPage() {
 
         {/* Batch Actions Bar */}
         {selectedTeacherIds.length > 0 && (
-          <div className="flex items-center justify-between bg-blue-50/80 border border-blue-100 rounded-2xl px-6 py-3 mb-4 animate-fade-in">
+          <div className="flex items-center justify-between bg-blue-50/80 border border-blue-100 rounded-2xl px-6 py-3 mb-4 transition-all duration-300">
             <div className="flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-blue-600 animate-pulse" />
               <span className="text-xs font-bold text-blue-800">
