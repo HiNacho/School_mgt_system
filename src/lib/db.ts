@@ -24,6 +24,14 @@ const prismaClientSingleton = () => {
     url = `${url}&pool_timeout=30`;
   }
 
+  // Debug log (with password masked) to check if using Transaction (6543) or Session (5432) mode
+  try {
+    const parsedUrl = new URL(url);
+    console.log(`📡 [Prisma Init] Connecting to DB: ${parsedUrl.hostname}:${parsedUrl.port || '5432'} | Path: ${parsedUrl.pathname}`);
+  } catch (err) {
+    console.log('📡 [Prisma Init] Connecting with non-standard database URL');
+  }
+
   return new PrismaClient({
     datasources: {
       db: {
