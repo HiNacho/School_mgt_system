@@ -21,9 +21,22 @@ export async function POST(req: NextRequest) {
     };
 
     // Cache school arms and subjects for fast lookups
-    const schoolArms = await prisma.arm.findMany({ where: { schoolId } });
+    const schoolArms = await prisma.arm.findMany({
+      where: { schoolId },
+      include: { class: true }
+    });
     const schoolSubjects = await prisma.subject.findMany({ where: { schoolId } });
     const currentTerm = await prisma.term.findFirst({ where: { schoolId, isCurrent: true } });
+
+    const matchArm = (csvArmStr: string) => {
+      if (!csvArmStr) return undefined;
+      const cleanCsv = csvArmStr.trim().toLowerCase().replace(/\s+/g, '');
+      return schoolArms.find(a => {
+        const dbShort = a.name.toLowerCase().replace(/\s+/g, '');
+        const dbFull = `${a.class?.name || ''}${a.name}`.toLowerCase().replace(/\s+/g, '');
+        return dbShort === cleanCsv || dbFull === cleanCsv;
+      });
+    };
 
     // Process staff records one by one
     for (const member of staff) {
@@ -33,7 +46,17 @@ export async function POST(req: NextRequest) {
       const cleanLastName = String(lastName || '').trim();
       const cleanEmail = String(email || '').trim().toLowerCase();
       const cleanPhone = phone ? String(phone).trim() : null;
-      const cleanTitle = title ? String(title).trim() : null;
+      
+      let cleanTitle = title ? String(title).trim() : null;
+      if (cleanTitle) {
+        const baseTitle = cleanTitle.replace(/\./g, '').toLowerCase();
+        if (baseTitle === 'mr') cleanTitle = 'Mr.';
+        else if (baseTitle === 'mrs') cleanTitle = 'Mrs.';
+        else if (baseTitle === 'ms') cleanTitle = 'Ms.';
+        else if (baseTitle === 'dr') cleanTitle = 'Dr.';
+        else if (baseTitle === 'prof') cleanTitle = 'Prof.';
+        else if (baseTitle === 'rev') cleanTitle = 'Rev.';
+      }
       
       // Parse flexible roles
       const roleStr = String(role || '').toLowerCase();
@@ -116,8 +139,7 @@ export async function POST(req: NextRequest) {
 
           // 2. Class Teacher Relationship
           if (cleanRole === 'CLASS_TEACHER' && classTeacherClass) {
-            const cleanArmName = String(classTeacherClass).trim().toLowerCase().replace(/\s+/g, '');
-            const arm = schoolArms.find(a => a.name.toLowerCase().replace(/\s+/g, '') === cleanArmName);
+            const arm = matchArm(classTeacherClass);
             if (arm) {
               await tx.arm.update({
                 where: { id: arm.id },
@@ -167,8 +189,7 @@ export async function POST(req: NextRequest) {
               }
 
               for (const origArm of armsList) {
-                const armQuery = origArm.toLowerCase().replace(/\s+/g, '');
-                const matchedArm = schoolArms.find(a => a.name.toLowerCase().replace(/\s+/g, '') === armQuery);
+                const matchedArm = matchArm(origArm);
 
                 if (matchedArm) {
                   // Check if duplicate assignment exists
