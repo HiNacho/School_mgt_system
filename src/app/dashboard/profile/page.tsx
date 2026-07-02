@@ -18,6 +18,14 @@ export default function UserProfilePage() {
   const [phone, setPhone] = useState('');
   const [passportPhoto, setPassportPhoto] = useState<string | null>(null);
   
+  // Password change states
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [updatingPassword, setUpdatingPassword] = useState(false);
+  const [passwordSuccess, setPasswordSuccess] = useState('');
+  const [passwordError, setPasswordError] = useState('');
+  
   // UI states
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -123,6 +131,50 @@ export default function UserProfilePage() {
       setErrorMsg(err.message || 'Error communicating with SQL server.');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      setPasswordError('All password fields are required.');
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setPasswordError('New password and confirmation do not match.');
+      return;
+    }
+
+    setUpdatingPassword(true);
+    setPasswordError('');
+    setPasswordSuccess('');
+
+    try {
+      const token = localStorage.getItem('report_auth_token') || '';
+      const res = await fetch('/api/auth/change-password', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          currentPassword,
+          newPassword,
+          confirmPassword
+        })
+      });
+
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || 'Failed to update password.');
+
+      setPasswordSuccess('Your password has been successfully updated!');
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+    } catch (err: any) {
+      setPasswordError(err.message || 'Error updating password.');
+    } finally {
+      setUpdatingPassword(false);
     }
   };
 
@@ -272,84 +324,160 @@ export default function UserProfilePage() {
         </div>
 
         {/* Right Column: Form Fields */}
-        <form onSubmit={handleSaveProfile} className="md:col-span-2 bg-white rounded-2xl border border-slate-200/80 p-6 shadow-sm space-y-4">
-          <div className="flex items-center gap-2 pb-3 border-b border-slate-100">
-            <Shield className={`w-4.5 h-4.5 ${accentText}`} />
-            <h3 className="text-xs font-black uppercase text-slate-800 tracking-wider">Update Personal Details</h3>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs font-semibold">
-            {/* First Name */}
-            <div>
-              <label className="block text-[10px] font-extrabold uppercase tracking-wider text-slate-400 mb-1.5">First Name</label>
-              <input
-                type="text"
-                value={firstName}
-                onChange={(e) => setFirstName(e.target.value)}
-                placeholder="E.g., Solomon"
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-slate-800 font-bold focus:outline-none focus:border-slate-300"
-              />
+        <div className="md:col-span-2 space-y-6">
+          <form onSubmit={handleSaveProfile} className="bg-white rounded-2xl border border-slate-200/80 p-6 shadow-sm space-y-4">
+            <div className="flex items-center gap-2 pb-3 border-b border-slate-100">
+              <Shield className={`w-4.5 h-4.5 ${accentText}`} />
+              <h3 className="text-xs font-black uppercase text-slate-800 tracking-wider">Update Personal Details</h3>
             </div>
 
-            {/* Last Name */}
-            <div>
-              <label className="block text-[10px] font-extrabold uppercase tracking-wider text-slate-400 mb-1.5">Last Name (Surname)</label>
-              <input
-                type="text"
-                value={lastName}
-                onChange={(e) => setLastName(e.target.value)}
-                placeholder="E.g., Apeh"
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-slate-800 font-bold focus:outline-none focus:border-slate-300"
-              />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs font-semibold">
+              {/* First Name */}
+              <div>
+                <label className="block text-[10px] font-extrabold uppercase tracking-wider text-slate-400 mb-1.5">First Name</label>
+                <input
+                  type="text"
+                  value={firstName}
+                  onChange={(e) => setFirstName(e.target.value)}
+                  placeholder="E.g., Solomon"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-slate-800 font-bold focus:outline-none focus:border-slate-300"
+                />
+              </div>
+
+              {/* Last Name */}
+              <div>
+                <label className="block text-[10px] font-extrabold uppercase tracking-wider text-slate-400 mb-1.5">Last Name (Surname)</label>
+                <input
+                  type="text"
+                  value={lastName}
+                  onChange={(e) => setLastName(e.target.value)}
+                  placeholder="E.g., Apeh"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-slate-800 font-bold focus:outline-none focus:border-slate-300"
+                />
+              </div>
+
+              {/* Email Address */}
+              <div>
+                <label className="block text-[10px] font-extrabold uppercase tracking-wider text-slate-400 mb-1.5">Email Username</label>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="E.g., solomon@greenwood.com"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-slate-800 font-bold focus:outline-none focus:border-slate-300"
+                />
+              </div>
+
+              {/* Phone Coordinates */}
+              <div>
+                <label className="block text-[10px] font-extrabold uppercase tracking-wider text-slate-400 mb-1.5">Phone Coordinates</label>
+                <input
+                  type="text"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  placeholder="E.g., +234 803 999 8888"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-slate-800 font-bold focus:outline-none focus:border-slate-300"
+                />
+              </div>
             </div>
 
-            {/* Email Address */}
-            <div>
-              <label className="block text-[10px] font-extrabold uppercase tracking-wider text-slate-400 mb-1.5">Email Username</label>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="E.g., solomon@greenwood.com"
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-slate-800 font-bold focus:outline-none focus:border-slate-300"
-              />
+            <div className="p-4 bg-slate-50 border border-slate-200/60 rounded-xl text-xs font-semibold space-y-1 leading-normal flex gap-3 text-left">
+              <Shield className="w-5 h-5 text-slate-400 flex-shrink-0 mt-0.5" />
+              <div>
+                <span className="block text-slate-700 font-bold">System Role Safeguard</span>
+                <p className="text-slate-400 font-normal text-[11px] leading-relaxed">
+                  Contact your School IT Administrator to request role modifications. You can update your password coordinates below.
+                </p>
+              </div>
             </div>
 
-            {/* Phone Coordinates */}
-            <div>
-              <label className="block text-[10px] font-extrabold uppercase tracking-wider text-slate-400 mb-1.5">Phone Coordinates</label>
-              <input
-                type="text"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                placeholder="E.g., +234 803 999 8888"
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-slate-800 font-bold focus:outline-none focus:border-slate-300"
-              />
+            {/* Submit Button */}
+            <div className="pt-2 flex justify-end">
+              <button
+                type="submit"
+                disabled={saving}
+                className={`flex items-center gap-1.5 px-6 py-2.5 rounded-xl text-xs font-extrabold transition-all shadow-md disabled:opacity-50 ${buttonPrimary}`}
+              >
+                {saving ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                {saving ? 'Saving changes...' : 'Save Settings'}
+              </button>
             </div>
-          </div>
+          </form>
 
-          <div className="p-4 bg-slate-50 border border-slate-200/60 rounded-xl text-xs font-semibold space-y-1 leading-normal flex gap-3 text-left">
-            <Key className="w-5 h-5 text-slate-400 flex-shrink-0 mt-0.5" />
-            <div>
-              <span className="block text-slate-700 font-bold">Credential Credentials Safeguard</span>
-              <p className="text-slate-400 font-normal text-[11px] leading-relaxed">
-                Contact your School IT Administrator to request role modifications or to update account password coordinates.
+          {/* Change Password Form */}
+          <form onSubmit={handleChangePassword} className="bg-white rounded-2xl border border-slate-200/80 p-6 shadow-sm space-y-4">
+            <div className="flex items-center gap-2 pb-3 border-b border-slate-100">
+              <Key className={`w-4.5 h-4.5 ${accentText}`} />
+              <h3 className="text-xs font-black uppercase text-slate-800 tracking-wider">Change Password Coordinates</h3>
+            </div>
+
+            {passwordSuccess && (
+              <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-100 text-emerald-700 text-xs flex items-center gap-2">
+                <CheckCircle className="w-4 h-4 text-emerald-600" />
+                <span>{passwordSuccess}</span>
+              </div>
+            )}
+
+            {passwordError && (
+              <div className="p-3 rounded-xl bg-red-50 border border-red-100 text-red-700 text-xs flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 text-red-600" />
+                <span>{passwordError}</span>
+              </div>
+            )}
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs font-semibold">
+              {/* Current Password */}
+              <div>
+                <label className="block text-[10px] font-extrabold uppercase tracking-wider text-slate-400 mb-1.5">Current Password</label>
+                <input
+                  type="password"
+                  value={currentPassword}
+                  onChange={(e) => setCurrentPassword(e.target.value)}
+                  placeholder="••••••••"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-slate-800 font-bold focus:outline-none focus:border-slate-300"
+                />
+              </div>
+
+              {/* New Password */}
+              <div>
+                <label className="block text-[10px] font-extrabold uppercase tracking-wider text-slate-400 mb-1.5">New Password</label>
+                <input
+                  type="password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="••••••••"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-slate-800 font-bold focus:outline-none focus:border-slate-300"
+                />
+              </div>
+
+              {/* Confirm Password */}
+              <div>
+                <label className="block text-[10px] font-extrabold uppercase tracking-wider text-slate-400 mb-1.5">Confirm New Password</label>
+                <input
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  placeholder="••••••••"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-slate-800 font-bold focus:outline-none focus:border-slate-300"
+                />
+              </div>
+            </div>
+
+            <div className="pt-2 flex justify-between items-center flex-wrap gap-4">
+              <p className="text-[10px] text-slate-400 font-normal leading-relaxed max-w-sm">
+                <strong>Password Policy:</strong> Minimum 8 characters, at least 1 uppercase letter, 1 lowercase letter, 1 number, and 1 special symbol.
               </p>
+              <button
+                type="submit"
+                disabled={updatingPassword}
+                className={`flex items-center gap-1.5 px-6 py-2.5 rounded-xl text-xs font-extrabold transition-all shadow-md disabled:opacity-50 ${buttonPrimary}`}
+              >
+                {updatingPassword ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                {updatingPassword ? 'Updating...' : 'Update Password'}
+              </button>
             </div>
-          </div>
-
-          {/* Submit Button */}
-          <div className="pt-2 flex justify-end">
-            <button
-              type="submit"
-              disabled={saving}
-              className={`flex items-center gap-1.5 px-6 py-2.5 rounded-xl text-xs font-extrabold transition-all shadow-md disabled:opacity-50 ${buttonPrimary}`}
-            >
-              {saving ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-              {saving ? 'Saving changes...' : 'Save Settings'}
-            </button>
-          </div>
-        </form>
+          </form>
+        </div>
 
       </div>
 
