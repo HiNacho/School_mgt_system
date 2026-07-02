@@ -74,14 +74,20 @@ export async function GET(req: NextRequest) {
         }
       },
       include: {
-        classTeacherArms: true,
+        classTeacherArms: {
+          include: {
+            class: true
+          }
+        },
         subjectAssignments: {
           include: {
             subject: {
               select: { name: true, code: true }
             },
             arm: {
-              select: { name: true }
+              include: {
+                class: true
+              }
             }
           }
         }
