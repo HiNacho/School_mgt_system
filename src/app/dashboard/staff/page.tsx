@@ -77,6 +77,7 @@ export default function StaffAccountsPage() {
   const [deleteStaffId, setDeleteStaffId] = useState('');
   const [deleteStaffName, setDeleteStaffName] = useState('');
   const [deleting, setDeleting] = useState(false);
+  const [selectedStaffIds, setSelectedStaffIds] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   // Pagination States
   const [currentPage, setCurrentPage] = useState(1);
@@ -565,6 +566,32 @@ export default function StaffAccountsPage() {
     }
   };
 
+  const handleBulkDeleteStaff = async () => {
+    if (selectedStaffIds.length === 0) return;
+    const confirmAction = window.confirm(`WARNING: Are you sure you want to completely DELETE the ${selectedStaffIds.length} selected staff members? This will erase their schedules, assignments and cannot be undone!`);
+    if (!confirmAction) return;
+
+    setDeleting(true);
+    setErrorMsg('');
+    setSuccessMsg('');
+    try {
+      const res = await fetch(`/api/staff?schoolId=${school.id}&staffIds=${selectedStaffIds.join(',')}`, {
+        method: 'DELETE',
+        headers: getAuthHeaders()
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || 'Failed to delete staff accounts.');
+
+      setSuccessMsg(`Successfully deleted ${selectedStaffIds.length} staff accounts.`);
+      setSelectedStaffIds([]);
+      await loadStaffRoster(school.id);
+    } catch (err: any) {
+      setErrorMsg(err.message || 'Error communicating with database.');
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   const getRoleLabel = (r: string) => {
     switch(r) {
       case 'SCHOOL_ADMIN': return 'School Admin / Principal';
@@ -748,6 +775,28 @@ export default function StaffAccountsPage() {
             </div>
           </div>
 
+          {/* Batch Actions Bar */}
+          {selectedStaffIds.length > 0 && (
+            <div className="mx-5 mt-4 flex items-center justify-between bg-blue-50/80 border border-blue-100 rounded-2xl px-6 py-3 animate-fade-in">
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-blue-600 animate-pulse" />
+                <span className="text-xs font-bold text-blue-800 font-sans">
+                  Selected {selectedStaffIds.length} staff members
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleBulkDeleteStaff}
+                  className="flex items-center gap-1.5 bg-red-600 hover:bg-red-700 text-white px-3.5 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer shadow-sm font-sans"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  Delete Selected
+                </button>
+              </div>
+            </div>
+          )}
+
           {filteredStaff.length === 0 ? (
             <div className="p-12 text-center space-y-3 font-semibold text-xs text-slate-400">
               <Search className="w-8 h-8 text-slate-300 mx-auto" />
@@ -757,10 +806,29 @@ export default function StaffAccountsPage() {
               </span>
             </div>
           ) : (
-            <div className="overflow-x-auto font-semibold">
+            <div className="overflow-x-auto font-semibold animate-fadeIn">
               <table className="w-full border-collapse text-left text-xs">
               <thead>
                 <tr className="bg-slate-50 border-b border-slate-200/60 text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
+                  <th className="p-4 w-10 text-center">
+                    <input
+                      type="checkbox"
+                      className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 w-3.5 h-3.5 cursor-pointer"
+                      checked={currentStaff.length > 0 && currentStaff.every(t => selectedStaffIds.includes(t.id))}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          const newIds = [...selectedStaffIds];
+                          currentStaff.forEach(t => {
+                            if (!newIds.includes(t.id)) newIds.push(t.id);
+                          });
+                          setSelectedStaffIds(newIds);
+                        } else {
+                          const currentIds = currentStaff.map(t => t.id);
+                          setSelectedStaffIds(selectedStaffIds.filter(id => !currentIds.includes(id)));
+                        }
+                      }}
+                    />
+                  </th>
                   <th className="p-4">Staff Member</th>
                   <th className="p-4">Email Address</th>
                   <th className="p-4">Phone</th>
@@ -772,7 +840,22 @@ export default function StaffAccountsPage() {
               </thead>
               <tbody className="divide-y divide-slate-100 font-medium">
                 {currentStaff.map((row) => (
-                  <tr key={row.id} className="hover:bg-slate-50/50 transition-colors">
+                  <tr key={row.id} className={`hover:bg-slate-50/50 transition-colors ${selectedStaffIds.includes(row.id) ? 'bg-blue-50/20' : ''}`}>
+                    {/* Checkbox */}
+                    <td className="p-4 w-10 text-center">
+                      <input
+                        type="checkbox"
+                        className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 w-3.5 h-3.5 cursor-pointer"
+                        checked={selectedStaffIds.includes(row.id)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedStaffIds([...selectedStaffIds, row.id]);
+                          } else {
+                            setSelectedStaffIds(selectedStaffIds.filter(id => id !== row.id));
+                          }
+                        }}
+                      />
+                    </td>
                     {/* Details */}
                     <td className="p-4">
                       <div className="flex items-center gap-3">
