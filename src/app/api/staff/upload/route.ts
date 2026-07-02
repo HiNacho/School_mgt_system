@@ -116,8 +116,8 @@ export async function POST(req: NextRequest) {
 
           // 2. Class Teacher Relationship
           if (cleanRole === 'CLASS_TEACHER' && classTeacherClass) {
-            const cleanArmName = String(classTeacherClass).trim().toLowerCase();
-            const arm = schoolArms.find(a => a.name.toLowerCase() === cleanArmName);
+            const cleanArmName = String(classTeacherClass).trim().toLowerCase().replace(/\s+/g, '');
+            const arm = schoolArms.find(a => a.name.toLowerCase().replace(/\s+/g, '') === cleanArmName);
             if (arm) {
               await tx.arm.update({
                 where: { id: arm.id },
@@ -128,18 +128,47 @@ export async function POST(req: NextRequest) {
 
           // 3. Subject & Class Allocations
           if (subject && classAllocation && currentTerm) {
-            const subjectsList = String(subject).split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
-            const armsList = String(classAllocation).split(',').map(a => a.trim().toLowerCase()).filter(Boolean);
+            const subjectsList = String(subject).split(',').map(s => s.trim()).filter(Boolean);
+            const armsList = String(classAllocation).split(',').map(a => a.trim()).filter(Boolean);
 
-            for (const subQuery of subjectsList) {
-              const matchedSubject = schoolSubjects.find(
-                s => s.name.toLowerCase() === subQuery || s.code.toLowerCase() === subQuery
+            for (const origSub of subjectsList) {
+              const subQuery = origSub.toLowerCase().replace(/\s+/g, '');
+              let matchedSubject = schoolSubjects.find(
+                s => s.name.toLowerCase().replace(/\s+/g, '') === subQuery || s.code.toLowerCase().replace(/\s+/g, '') === subQuery
               );
-              
-              if (!matchedSubject) continue;
 
-              for (const armQuery of armsList) {
-                const matchedArm = schoolArms.find(a => a.name.toLowerCase() === armQuery);
+              // Auto-create subject if not found in database cache
+              if (!matchedSubject) {
+                const words = origSub.split(' ');
+                let code = '';
+                if (words.length >= 3) {
+                  code = (words[0][0] + words[1][0] + words[2][0]).toUpperCase();
+                } else if (words.length === 2) {
+                  code = (words[0][0] + words[1][0] + (words[1][1] || 'X')).toUpperCase();
+                } else {
+                  code = origSub.slice(0, 3).toUpperCase();
+                }
+
+                // Verify code uniqueness in cache
+                const codeCollision = schoolSubjects.some(s => s.code.toUpperCase() === code);
+                if (codeCollision) {
+                  code = (code + Math.floor(Math.random() * 10)).slice(0, 4);
+                }
+
+                matchedSubject = await tx.subject.create({
+                  data: {
+                    schoolId,
+                    name: origSub,
+                    code,
+                    category: 'COMPULSORY'
+                  }
+                });
+                schoolSubjects.push(matchedSubject);
+              }
+
+              for (const origArm of armsList) {
+                const armQuery = origArm.toLowerCase().replace(/\s+/g, '');
+                const matchedArm = schoolArms.find(a => a.name.toLowerCase().replace(/\s+/g, '') === armQuery);
 
                 if (matchedArm) {
                   // Check if duplicate assignment exists
