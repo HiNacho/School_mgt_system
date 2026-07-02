@@ -77,6 +77,8 @@ export default function LandingPage() {
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.get('try') === 'true') {
       setTryModalOpen(true);
+      // Clean up the URL parameter immediately so refreshes don't reopen the modal
+      window.history.replaceState({}, document.title, window.location.pathname);
     }
 
     return () => window.removeEventListener('scroll', handleScroll);
