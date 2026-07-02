@@ -12,7 +12,7 @@ export async function GET(req: NextRequest) {
   try {
     // Enforce auth, roles, and school scope
     const session = await requireAuth(req);
-    requireRole(session, ['SUPER_ADMIN', 'SCHOOL_ADMIN']);
+    requireRole(session, ['SUPER_ADMIN', 'SCHOOL_ADMIN', 'HEAD_TEACHER', 'CLASS_TEACHER', 'SUBJECT_TEACHER']);
 
     const { searchParams } = new URL(req.url);
     const schoolId = searchParams.get('schoolId');
