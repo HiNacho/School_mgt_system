@@ -41,21 +41,24 @@ export default function TeachersDirectoryPage() {
 
   const downloadTemplate = () => {
     const wsData = teachers.length > 0
-      ? teachers.map(member => ({
-          'First Name': member.firstName,
-          'Last Name': member.lastName,
-          'Email': member.email,
-          'Role': member.role,
-          'Phone': member.phone || ''
+      ? teachers.map((s: any) => ({
+          'Title': s.title || '',
+          'First Name': s.firstName,
+          'Last Name': s.lastName,
+          'Email': s.email,
+          'Phone': s.phone || '',
+          'Role': s.role,
+          'Class Teacher For': s.classTeacherArms?.[0]?.name || '',
+          'Subject Allocations': s.subjectAssignments?.map((sa: any) => `${sa.subject?.name || sa.subjectId}:${sa.arm?.name || sa.armId}`).join(', ') || ''
         }))
       : [
-          { 'First Name': 'Sarah', 'Last Name': 'Okon', 'Email': 'sarah.okon@school.com', 'Role': 'CLASS_TEACHER', 'Phone': '+234 803 111 2222' },
-          { 'First Name': 'David', 'Last Name': 'Alabi', 'Email': 'david.alabi@school.com', 'Role': 'SUBJECT_TEACHER', 'Phone': '+234 803 333 4444' },
-          { 'First Name': 'Grace', 'Last Name': 'Adenike', 'Email': 'grace.adenike@school.com', 'Role': 'HEAD_TEACHER', 'Phone': '+234 803 555 6666' }
+          { 'Title': 'Mrs.', 'First Name': 'Sarah', 'Last Name': 'Okon', 'Email': 'sarah.okon@school.com', 'Phone': '+234 803 111 2222', 'Role': 'CLASS_TEACHER', 'Class Teacher For': 'JSS 1A', 'Subject Allocations': 'Mathematics:JSS 1A' },
+          { 'Title': 'Mr.', 'First Name': 'David', 'Last Name': 'Alabi', 'Email': 'david.alabi@school.com', 'Phone': '+234 803 333 4444', 'Role': 'SUBJECT_TEACHER', 'Class Teacher For': '', 'Subject Allocations': 'Basic Science:JSS 1A, Civic Education:JSS 1B' },
+          { 'Title': 'Dr.', 'First Name': 'Grace', 'Last Name': 'Adenike', 'Email': 'grace.adenike@school.com', 'Phone': '+234 803 555 6666', 'Role': 'HEAD_TEACHER', 'Class Teacher For': '', 'Subject Allocations': '' }
         ];
     const wb = XLSX.utils.book_new();
-    const ws = XLSX.utils.json_to_sheet(wsData);
-    XLSX.utils.book_append_sheet(wb, ws, 'TeachersTemplate');
+    const wsSheet = XLSX.utils.json_to_sheet(wsData);
+    XLSX.utils.book_append_sheet(wb, wsSheet, 'TeachersTemplate');
     XLSX.writeFile(wb, 'Teachers_Upload_Template.xlsx');
   };
 
@@ -74,11 +77,14 @@ export default function TeachersDirectoryPage() {
 
         const parsed: any[] = [];
         for (const r of rawRows) {
+          const title = String(r['Title'] || r['title'] || '').trim();
           const firstName = String(r['First Name'] || r['FirstName'] || r['Firstname'] || '').trim();
           const lastName = String(r['Last Name'] || r['LastName'] || r['Lastname'] || '').trim();
           const email = String(r['Email'] || r['Email Address'] || r['email'] || '').trim();
           const phone = String(r['Phone'] || r['Phone Number'] || r['phone'] || '').trim();
           let role = String(r['Role'] || r['role'] || 'SUBJECT_TEACHER').trim().toUpperCase();
+          const classTeacherFor = String(r['Class Teacher For'] || r['ClassTeacherFor'] || '').trim();
+          const subjectAllocations = String(r['Subject Allocations'] || r['SubjectAllocations'] || '').trim();
 
           // Limit and normalize to teacher roles
           if (!['CLASS_TEACHER', 'SUBJECT_TEACHER', 'HEAD_TEACHER'].includes(role)) {
@@ -88,11 +94,14 @@ export default function TeachersDirectoryPage() {
           if (!firstName || !lastName || !email) continue;
 
           parsed.push({
+            title: title || null,
             firstName,
             lastName,
             email,
             phone: phone || null,
-            role
+            role,
+            classTeacherFor: classTeacherFor || null,
+            subjectAllocations: subjectAllocations || null
           });
         }
 

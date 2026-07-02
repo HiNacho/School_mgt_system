@@ -20,14 +20,20 @@ export async function POST(req: NextRequest) {
       createdStaff: [] as any[]
     };
 
+    // Cache school arms and subjects for fast lookups
+    const schoolArms = await prisma.arm.findMany({ where: { schoolId } });
+    const schoolSubjects = await prisma.subject.findMany({ where: { schoolId } });
+    const currentTerm = await prisma.term.findFirst({ where: { schoolId, isCurrent: true } });
+
     // Process staff records one by one
     for (const member of staff) {
-      const { firstName, lastName, email, role, phone } = member;
+      const { firstName, lastName, email, role, phone, title, classTeacherFor, subjectAllocations } = member;
 
       const cleanFirstName = String(firstName || '').trim();
       const cleanLastName = String(lastName || '').trim();
       const cleanEmail = String(email || '').trim().toLowerCase();
       const cleanPhone = phone ? String(phone).trim() : null;
+      const cleanTitle = title ? String(title).trim() : null;
       let cleanRole = String(role || 'SUBJECT_TEACHER').trim().toUpperCase();
 
       // Normalize role parameter values
@@ -60,50 +66,105 @@ export async function POST(req: NextRequest) {
       }
 
       try {
-        // Check if email already registered globally on the platform
-        const conflict = await prisma.user.findUnique({
-          where: { email: cleanEmail }
-        });
+        // Execute writes in transaction to ensure safety
+        const user = await prisma.$transaction(async (tx) => {
+          // Check if email already registered globally on the platform
+          const conflict = await tx.user.findUnique({
+            where: { email: cleanEmail }
+          });
 
-        let user;
-        if (conflict) {
-          if (conflict.schoolId === schoolId) {
-            // Upsert / update existing staff member in the same school
-            user = await prisma.user.update({
-              where: { id: conflict.id },
+          let u;
+          if (conflict) {
+            if (conflict.schoolId === schoolId) {
+              // Upsert / update existing staff member in the same school
+              u = await tx.user.update({
+                where: { id: conflict.id },
+                data: {
+                  firstName: cleanFirstName,
+                  lastName: cleanLastName,
+                  title: cleanTitle,
+                  role: cleanRole,
+                  phone: cleanPhone,
+                  status: 'ACTIVE'
+                }
+              });
+            } else {
+              throw new Error(`Email "${cleanEmail}" is registered to another school tenant.`);
+            }
+          } else {
+            // Create new staff user credentials
+            u = await tx.user.create({
               data: {
+                schoolId,
+                email: cleanEmail,
+                username: cleanEmail,
                 firstName: cleanFirstName,
                 lastName: cleanLastName,
+                title: cleanTitle,
                 role: cleanRole,
                 phone: cleanPhone,
-                status: 'ACTIVE'
+                status: 'ACTIVE',
+                passwordHash: defaultPasswordHash // Default demo password
               }
             });
-          } else {
-            results.failCount++;
-            results.failures.push({
-              name: displayName,
-              email: cleanEmail,
-              error: `Email "${cleanEmail}" is registered to another school tenant.`
-            });
-            continue;
           }
-        } else {
-          // Create new staff user credentials
-          user = await prisma.user.create({
-            data: {
-              schoolId,
-              email: cleanEmail,
-              username: cleanEmail,
-              firstName: cleanFirstName,
-              lastName: cleanLastName,
-              role: cleanRole,
-              phone: cleanPhone,
-              status: 'ACTIVE',
-              passwordHash: defaultPasswordHash // Default demo password
+
+          // 2. Class Teacher Relationship
+          if (cleanRole === 'CLASS_TEACHER' && classTeacherFor) {
+            const cleanArmName = String(classTeacherFor).trim();
+            const arm = schoolArms.find(a => a.name.toLowerCase() === cleanArmName.toLowerCase());
+            if (arm) {
+              await tx.arm.update({
+                where: { id: arm.id },
+                data: { classTeacherId: u.id }
+              });
             }
-          });
-        }
+          }
+
+          // 3. Subject Allocations
+          if (subjectAllocations && currentTerm) {
+            const allocations = String(subjectAllocations).split(',').map(s => s.trim());
+            for (const alloc of allocations) {
+              const parts = alloc.split(':');
+              if (parts.length < 2) continue;
+              const subjectNameOrCode = parts[0].trim().toLowerCase();
+              const armName = parts[1].trim().toLowerCase();
+
+              const subject = schoolSubjects.find(
+                s => s.name.toLowerCase() === subjectNameOrCode || s.code.toLowerCase() === subjectNameOrCode
+              );
+              const arm = schoolArms.find(a => a.name.toLowerCase() === armName);
+
+              if (subject && arm) {
+                // Check if duplicate assignment exists
+                const duplicate = await tx.subjectAssignment.findFirst({
+                  where: {
+                    schoolId,
+                    subjectId: subject.id,
+                    armId: arm.id,
+                    teacherId: u.id,
+                    termId: currentTerm.id
+                  }
+                });
+
+                if (!duplicate) {
+                  await tx.subjectAssignment.create({
+                    data: {
+                      schoolId,
+                      subjectId: subject.id,
+                      classId: arm.classId,
+                      armId: arm.id,
+                      teacherId: u.id,
+                      termId: currentTerm.id
+                    }
+                  });
+                }
+              }
+            }
+          }
+
+          return u;
+        });
 
         results.successCount++;
         results.createdStaff.push(user);
