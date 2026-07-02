@@ -93,6 +93,25 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   };
 
   useEffect(() => {
+    // Intercept and decorate all dashboard fetch requests with Authorization Bearer header
+    if (typeof window !== 'undefined' && !(window.fetch as any).__authDecorated) {
+      const originalFetch = window.fetch;
+      const authDecoratedFetch = async function (input: RequestInfo | URL, init?: RequestInit) {
+        const token = localStorage.getItem('report_auth_token');
+        if (token) {
+          init = init || {};
+          const headers = new Headers(init.headers);
+          if (!headers.has('Authorization')) {
+            headers.set('Authorization', `Bearer ${token}`);
+          }
+          init.headers = headers;
+        }
+        return originalFetch(input, init);
+      };
+      (authDecoratedFetch as any).__authDecorated = true;
+      window.fetch = authDecoratedFetch;
+    }
+
     const token = localStorage.getItem('report_auth_token');
     const userSession = localStorage.getItem('report_user_session');
 
