@@ -82,6 +82,14 @@ export default function StaffAccountsPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 8;
 
+  const getAuthHeaders = (extraHeaders: Record<string, string> = {}) => {
+    const token = typeof window !== 'undefined' ? localStorage.getItem('report_auth_token') || '' : '';
+    return {
+      ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+      ...extraHeaders
+    };
+  };
+
   useEffect(() => {
     // Load local multi-tenant SaaS session context
     const sessionStr = localStorage.getItem('report_user_session');
@@ -99,7 +107,7 @@ export default function StaffAccountsPage() {
 
   const loadSetupData = async (schoolId: string) => {
     try {
-      const res = await fetch(`/api/setup?schoolId=${schoolId}`);
+      const res = await fetch(`/api/setup?schoolId=${schoolId}`, { headers: getAuthHeaders() });
       const json = await res.json();
       if (res.ok && json.data) {
         setArms(json.data.arms || []);
@@ -115,7 +123,7 @@ export default function StaffAccountsPage() {
     setLoading(true);
     setErrorMsg('');
     try {
-      const res = await fetch(`/api/staff?schoolId=${schoolId}`);
+      const res = await fetch(`/api/staff?schoolId=${schoolId}`, { headers: getAuthHeaders() });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || 'Failed to fetch staff accounts');
 
@@ -233,7 +241,7 @@ export default function StaffAccountsPage() {
     try {
       const res = await fetch('/api/staff/upload', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify({
           schoolId: school.id,
           staff: parsedStaff
@@ -249,7 +257,7 @@ export default function StaffAccountsPage() {
       setShowUploadModal(false);
       
       // Refresh staff roster
-      const updatedRes = await fetch(`/api/staff?schoolId=${school.id}`);
+      const updatedRes = await fetch(`/api/staff?schoolId=${school.id}`, { headers: getAuthHeaders() });
       const updatedJson = await updatedRes.json();
       if (updatedRes.ok && updatedJson.success) {
         setStaff(updatedJson.data || []);
@@ -313,7 +321,7 @@ export default function StaffAccountsPage() {
     try {
       const res = await fetch('/api/staff', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify({
           schoolId: school.id,
           title: title || undefined,
@@ -362,7 +370,7 @@ export default function StaffAccountsPage() {
     try {
       const res = await fetch('/api/staff', {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify({
           schoolId: school.id,
           staffId,
@@ -429,7 +437,7 @@ export default function StaffAccountsPage() {
     try {
       const res = await fetch('/api/staff', {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify({
           staffId: editStaffId,
           schoolId: school.id,
@@ -468,6 +476,7 @@ export default function StaffAccountsPage() {
     try {
       const res = await fetch(`/api/staff?staffId=${deleteStaffId}&schoolId=${school.id}`, {
         method: 'DELETE',
+        headers: getAuthHeaders()
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || 'Failed to delete staff account.');
