@@ -79,9 +79,12 @@ export default function StaffAccountsPage() {
   const [deleting, setDeleting] = useState(false);
   const [selectedStaffIds, setSelectedStaffIds] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [currentUser, setCurrentUser] = useState<any>(null);
   // Pagination States
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 8;
+
+  const isAdmin = currentUser?.role === 'SUPER_ADMIN' || currentUser?.role === 'SCHOOL_ADMIN';
 
   const getAuthHeaders = (extraHeaders: Record<string, string> = {}) => {
     const token = typeof window !== 'undefined' ? localStorage.getItem('report_auth_token') || '' : '';
@@ -98,6 +101,7 @@ export default function StaffAccountsPage() {
       try {
         const sessionObj = JSON.parse(sessionStr);
         setSchool(sessionObj.school);
+        setCurrentUser(sessionObj.user);
         loadStaffRoster(sessionObj.school.id);
         loadSetupData(sessionObj.school.id);
       } catch (e) {
@@ -643,22 +647,24 @@ export default function StaffAccountsPage() {
             </p>
           </div>
 
-          <div className="flex gap-2 flex-wrap items-center flex-shrink-0">
-            <button
-              type="button"
-              onClick={() => setShowUploadModal(true)}
-              className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold transition-all border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 cursor-pointer"
-            >
-              <Upload className="w-3.5 h-3.5" /> Import
-            </button>
-            <button
-              type="button"
-              onClick={() => setShowModal(true)}
-              className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${buttonPrimary}`}
-            >
-              <UserPlus className="w-3.5 h-3.5" /> Add Staff
-            </button>
-          </div>
+          {isAdmin && (
+            <div className="flex gap-2 flex-wrap items-center flex-shrink-0">
+              <button
+                type="button"
+                onClick={() => setShowUploadModal(true)}
+                className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold transition-all border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 cursor-pointer"
+              >
+                <Upload className="w-3.5 h-3.5" /> Import
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowModal(true)}
+                className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${buttonPrimary}`}
+              >
+                <UserPlus className="w-3.5 h-3.5" /> Add Staff
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
@@ -776,7 +782,7 @@ export default function StaffAccountsPage() {
           </div>
 
           {/* Batch Actions Bar */}
-          {selectedStaffIds.length > 0 && (
+          {selectedStaffIds.length > 0 && isAdmin && (
             <div className="mx-5 mt-4 mb-2 flex items-center justify-between bg-white border border-slate-200 rounded-2xl px-5 py-3 shadow-sm transition-all duration-300">
               <div className="flex items-center gap-2.5">
                 <span className="relative flex h-2 w-2">
@@ -814,52 +820,56 @@ export default function StaffAccountsPage() {
               <table className="w-full border-collapse text-left text-xs">
               <thead>
                 <tr className="bg-slate-50 border-b border-slate-200/60 text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
-                  <th className="p-4 w-10 text-center">
-                    <input
-                      type="checkbox"
-                      className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 w-3.5 h-3.5 cursor-pointer"
-                      checked={currentStaff.length > 0 && currentStaff.every(t => selectedStaffIds.includes(t.id))}
-                      onChange={(e) => {
-                        if (e.target.checked) {
-                          const newIds = [...selectedStaffIds];
-                          currentStaff.forEach(t => {
-                            if (!newIds.includes(t.id)) newIds.push(t.id);
-                          });
-                          setSelectedStaffIds(newIds);
-                        } else {
-                          const currentIds = currentStaff.map(t => t.id);
-                          setSelectedStaffIds(selectedStaffIds.filter(id => !currentIds.includes(id)));
-                        }
-                      }}
-                    />
-                  </th>
+                  {isAdmin && (
+                    <th className="p-4 w-10 text-center">
+                      <input
+                        type="checkbox"
+                        className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 w-3.5 h-3.5 cursor-pointer"
+                        checked={currentStaff.length > 0 && currentStaff.every(t => selectedStaffIds.includes(t.id))}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            const newIds = [...selectedStaffIds];
+                            currentStaff.forEach(t => {
+                              if (!newIds.includes(t.id)) newIds.push(t.id);
+                            });
+                            setSelectedStaffIds(newIds);
+                          } else {
+                            const currentIds = currentStaff.map(t => t.id);
+                            setSelectedStaffIds(selectedStaffIds.filter(id => !currentIds.includes(id)));
+                          }
+                        }}
+                      />
+                    </th>
+                  )}
                   <th className="p-4">Staff Member</th>
                   <th className="p-4">Email Address</th>
                   <th className="p-4">Phone</th>
                   <th className="p-4">Role</th>
                   <th className="p-4">Date Registered</th>
                   <th className="p-4 text-center">Status</th>
-                  <th className="p-4 text-center">Actions</th>
+                  {isAdmin && <th className="p-4 text-center">Actions</th>}
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 font-medium">
                 {currentStaff.map((row) => (
                   <tr key={row.id} className={`hover:bg-slate-50/50 transition-colors ${selectedStaffIds.includes(row.id) ? 'bg-blue-50/20' : ''}`}>
                     {/* Checkbox */}
-                    <td className="p-4 w-10 text-center">
-                      <input
-                        type="checkbox"
-                        className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 w-3.5 h-3.5 cursor-pointer"
-                        checked={selectedStaffIds.includes(row.id)}
-                        onChange={(e) => {
-                          if (e.target.checked) {
-                            setSelectedStaffIds([...selectedStaffIds, row.id]);
-                          } else {
-                            setSelectedStaffIds(selectedStaffIds.filter(id => id !== row.id));
-                          }
-                        }}
-                      />
-                    </td>
+                    {isAdmin && (
+                      <td className="p-4 w-10 text-center">
+                        <input
+                          type="checkbox"
+                          className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 w-3.5 h-3.5 cursor-pointer"
+                          checked={selectedStaffIds.includes(row.id)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setSelectedStaffIds([...selectedStaffIds, row.id]);
+                            } else {
+                              setSelectedStaffIds(selectedStaffIds.filter(id => id !== row.id));
+                            }
+                          }}
+                        />
+                      </td>
+                    )}
                     {/* Details */}
                     <td className="p-4">
                       <div className="flex items-center gap-3">
@@ -939,60 +949,62 @@ export default function StaffAccountsPage() {
                     </td>
 
                     {/* Actions */}
-                    <td className="p-4">
-                      <div className="flex justify-center items-center">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setEditStaffId(row.id);
-                            setEditTitle(row.title || '');
-                            setEditFirstName(row.firstName);
-                            setEditLastName(row.lastName);
-                            setEditEmail(row.email);
-                            setEditPhone(row.phone === 'Not Provided' ? '' : row.phone);
-                            
-                            // Initialize role state
-                            let cat: 'TEACHER' | 'HEAD_TEACHER' | 'SCHOOL_ADMIN' = 'TEACHER';
-                            if (row.role === 'SCHOOL_ADMIN') {
-                              cat = 'SCHOOL_ADMIN';
-                            } else if (row.role === 'HEAD_TEACHER') {
-                              cat = 'HEAD_TEACHER';
-                            }
-                            setEditStaffCategory(cat);
+                    {isAdmin && (
+                      <td className="p-4">
+                        <div className="flex justify-center items-center">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setEditStaffId(row.id);
+                              setEditTitle(row.title || '');
+                              setEditFirstName(row.firstName);
+                              setEditLastName(row.lastName);
+                              setEditEmail(row.email);
+                              setEditPhone(row.phone === 'Not Provided' ? '' : row.phone);
+                              
+                              // Initialize role state
+                              let cat: 'TEACHER' | 'HEAD_TEACHER' | 'SCHOOL_ADMIN' = 'TEACHER';
+                              if (row.role === 'SCHOOL_ADMIN') {
+                                cat = 'SCHOOL_ADMIN';
+                              } else if (row.role === 'HEAD_TEACHER') {
+                                cat = 'HEAD_TEACHER';
+                              }
+                              setEditStaffCategory(cat);
 
-                            const hasClassArm = row.classTeacherArms && row.classTeacherArms.length > 0;
-                            setEditIsClassTeacher(hasClassArm || row.role === 'CLASS_TEACHER');
-                            setEditClassTeacherArmId(row.classTeacherArms?.[0]?.id || '');
+                              const hasClassArm = row.classTeacherArms && row.classTeacherArms.length > 0;
+                              setEditIsClassTeacher(hasClassArm || row.role === 'CLASS_TEACHER');
+                              setEditClassTeacherArmId(row.classTeacherArms?.[0]?.id || '');
 
-                            const hasSubjects = row.subjectAssignments && row.subjectAssignments.length > 0;
-                            setEditIsSubjectTeacher(hasSubjects || row.role === 'SUBJECT_TEACHER');
-                            setEditSubjectAssignments(row.subjectAssignments?.map((sa: any) => ({
-                              subjectId: sa.subjectId,
-                              armId: sa.armId
-                            })) || []);
+                              const hasSubjects = row.subjectAssignments && row.subjectAssignments.length > 0;
+                              setEditIsSubjectTeacher(hasSubjects || row.role === 'SUBJECT_TEACHER');
+                              setEditSubjectAssignments(row.subjectAssignments?.map((sa: any) => ({
+                                subjectId: sa.subjectId,
+                                armId: sa.armId
+                              })) || []);
 
-                            setEditError('');
-                            setShowEditModal(true);
-                          }}
-                          title="Edit Profile"
-                          className="p-1.5 rounded-xl hover:bg-slate-100 text-slate-400 hover:text-slate-700 transition-colors cursor-pointer"
-                        >
-                          <Edit className="w-4 h-4" />
-                        </button>
+                              setEditError('');
+                              setShowEditModal(true);
+                            }}
+                            title="Edit Profile"
+                            className="p-1.5 rounded-xl hover:bg-slate-100 text-slate-400 hover:text-slate-700 transition-colors cursor-pointer"
+                          >
+                            <Edit className="w-4 h-4" />
+                          </button>
 
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setDeleteStaffId(row.id);
-                            setDeleteStaffName(`${row.lastName}, ${row.firstName}`);
-                          }}
-                          title="Delete Account"
-                          className="p-1.5 rounded-xl hover:bg-red-50 text-slate-400 hover:text-red-500 transition-colors cursor-pointer"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </td>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setDeleteStaffId(row.id);
+                              setDeleteStaffName(`${row.lastName}, ${row.firstName}`);
+                            }}
+                            title="Delete Account"
+                            className="p-1.5 rounded-xl hover:bg-red-50 text-slate-400 hover:text-red-500 transition-colors cursor-pointer"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </td>
+                    )}
 
                   </tr>
                 ))}
