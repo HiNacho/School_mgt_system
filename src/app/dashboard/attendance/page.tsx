@@ -64,6 +64,7 @@ export default function AttendanceSheetsPage() {
   // Status Alerts
   const [successMsg, setSuccessMsg] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
+  const [attendanceAlreadyTaken, setAttendanceAlreadyTaken] = useState(false);
 
   // 1. Initial configuration load
   useEffect(() => {
@@ -118,6 +119,7 @@ export default function AttendanceSheetsPage() {
         setSelectedClassId(attJson.data.class.id);
         setSelectedArmId(attJson.data.arm.id);
         setStudents(attJson.data.students || []);
+        setAttendanceAlreadyTaken(attJson.data.taken || false);
       } else {
         // Not a Class Teacher (could be Admin or Subject Teacher)
         setAssigned(false);
@@ -151,6 +153,7 @@ export default function AttendanceSheetsPage() {
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || 'Failed to retrieve class roster.');
       setStudents(json.data.students || []);
+      setAttendanceAlreadyTaken(json.data.taken || false);
     } catch (err: any) {
       setErrorMsg(err.message || 'Error communicating with database.');
     } finally {
@@ -223,6 +226,13 @@ export default function AttendanceSheetsPage() {
 
   // 5. Save entire attendance sheet roster to DB
   const handleSaveAttendance = async () => {
+    if (attendanceAlreadyTaken) {
+      const confirmSave = window.confirm(
+        `Attendance has already been recorded for this day (${selectedDate}). Are you sure you want to resubmit and overwrite the records?`
+      );
+      if (!confirmSave) return;
+    }
+
     setSaving(true);
     setErrorMsg('');
     setSuccessMsg('');
@@ -252,6 +262,7 @@ export default function AttendanceSheetsPage() {
       if (!res.ok) throw new Error(json.error || 'Failed to commit attendance sheet.');
 
       setSuccessMsg(`Daily attendance successfully logged for ${selectedDate}! Terminal aggregates synchronized.`);
+      setAttendanceAlreadyTaken(true);
       
       // Refresh list to pull updated historical calculations securely
       if (assigned) {
@@ -369,6 +380,17 @@ export default function AttendanceSheetsPage() {
             <span className="font-semibold">{errorMsg}</span>
           </div>
           <button type="button" onClick={() => setErrorMsg('')} className="text-red-500 hover:text-red-700 font-bold">✕</button>
+        </div>
+      )}
+
+      {attendanceAlreadyTaken && !loading && (
+        <div className="p-4 rounded-xl bg-amber-50 border border-amber-250 text-amber-800 text-xs flex items-center justify-between shadow-sm animate-fadeIn font-semibold">
+          <div className="flex items-center gap-2">
+            <AlertTriangle className="w-4 h-4 text-amber-600 animate-pulse" />
+            <span>
+              Attendance has already been recorded for this date ({selectedDate}). Submitting again will overwrite the existing records.
+            </span>
+          </div>
         </div>
       )}
 
