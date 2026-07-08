@@ -720,11 +720,11 @@ export default function ScoresManagerPage() {
                     <p className="text-xs text-slate-700 font-bold max-w-full truncate">
                       {excelFile ? excelFile.name : 'Select scoresheet file'}
                     </p>
-                    <p className="text-[9px] text-slate-400 mt-1">XLSX, XLS files up to 5MB</p>
+                    <p className="text-[9px] text-slate-400 mt-1">XLSX, XLS, or CSV files up to 5MB</p>
                   </div>
                   <input
                     type="file"
-                    accept=".xlsx, .xls"
+                    accept=".xlsx, .xls, .csv"
                     className="hidden"
                     onChange={(e) => setExcelFile(e.target.files?.[0] || null)}
                   />

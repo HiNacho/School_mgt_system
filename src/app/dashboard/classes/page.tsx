@@ -751,14 +751,14 @@ export default function ClassesAndArmsPage() {
                   onDrop={handleDrop}
                 >
                   <UploadCloud className="w-8 h-8 text-slate-400 mx-auto mb-2 animate-bounce" />
-                  <p className="text-xs font-bold text-slate-700">Drag and drop student Excel sheet here</p>
-                  <p className="text-[10px] text-slate-400 mt-1">or click below to browse directories</p>
+                  <p className="text-xs font-bold text-slate-700">Drag and drop student spreadsheet here</p>
+                  <p className="text-[10px] text-slate-400 mt-1">or click below to browse directories (.xlsx, .xls, .csv)</p>
                   
                   <label className="mt-3 inline-block px-3 py-1.5 bg-slate-800 hover:bg-slate-750 text-white font-bold text-[10px] rounded-lg cursor-pointer transition-colors shadow-sm">
                     Select File
                     <input
                       type="file"
-                      accept=".xlsx, .xls"
+                      accept=".xlsx, .xls, .csv"
                       onChange={handleExcelFileChange}
                       className="hidden"
                     />

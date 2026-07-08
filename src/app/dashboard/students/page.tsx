@@ -1802,10 +1802,10 @@ export default function StudentsManagerPage() {
                 <div className="flex flex-col items-center justify-center p-8 border-2 border-dashed border-slate-200 hover:border-blue-400 rounded-2xl bg-slate-50/50 text-center relative transition-all cursor-pointer">
                   <UploadCloud className="w-10 h-10 text-slate-400 mb-2" />
                   <span className="block font-black text-slate-750">Drag and drop or select student sheet</span>
-                  <span className="block text-[10px] text-slate-400 mt-1">XLSX, XLS files supported</span>
+                  <span className="block text-[10px] text-slate-400 mt-1">XLSX, XLS, or CSV files supported</span>
                   <input
                     type="file"
-                    accept=".xlsx, .xls"
+                    accept=".xlsx, .xls, .csv"
                     onChange={handleExcelFileChange}
                     className="absolute inset-0 opacity-0 cursor-pointer"
                   />

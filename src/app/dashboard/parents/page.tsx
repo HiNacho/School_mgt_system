@@ -1455,16 +1455,16 @@ export default function ParentsRegistryPage() {
 
               {/* Upload Drop Zone / Input */}
               <div className="space-y-2">
-                <label className="block text-[9px] font-bold uppercase tracking-wider text-slate-400">Upload Spreadsheet (.xlsx, .xls)</label>
+                <label className="block text-[9px] font-bold uppercase tracking-wider text-slate-400">Upload Spreadsheet (.xlsx, .xls, .csv)</label>
                 <div className="relative border-2 border-dashed border-slate-200 hover:border-slate-350 bg-slate-50 rounded-2xl p-6 transition-all duration-300 flex flex-col items-center justify-center text-center space-y-2">
                   <UploadCloud className="w-8 h-8 text-slate-300" />
                   <div>
-                    <span className="block text-xs font-bold text-slate-700">Choose or drag Excel file here</span>
-                    <span className="block text-[10px] text-slate-400 font-normal mt-0.5">Max 5MB · .xlsx or .xls only</span>
+                    <span className="block text-xs font-bold text-slate-700">Choose or drag spreadsheet file here</span>
+                    <span className="block text-[10px] text-slate-400 font-normal mt-0.5">Max 5MB · .xlsx, .xls, or .csv</span>
                   </div>
                   <input
                     type="file"
-                    accept=".xlsx, .xls"
+                    accept=".xlsx, .xls, .csv"
                     onChange={handleExcelFileChange}
                     className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
                   />
