@@ -126,9 +126,18 @@ export default function ScoresManagerPage() {
   // Fetch scores when parameters change
   useEffect(() => {
     if (selectedClass && selectedArm && selectedSubject && selectedTerm && session) {
-      loadScoresheet();
+      const isTeacher = session.user?.role === 'CLASS_TEACHER' || session.user?.role === 'SUBJECT_TEACHER';
+      const assignedSubjectIds = new Set(
+        myAssignments
+          .filter((a: any) => a.classId === selectedClass && a.armId === selectedArm)
+          .map((a: any) => a.subjectId)
+      );
+      const isValid = !isTeacher || assignedSubjectIds.has(selectedSubject);
+      if (isValid) {
+        loadScoresheet();
+      }
     }
-  }, [selectedClass, selectedArm, selectedSubject, selectedTerm]);
+  }, [selectedClass, selectedArm, selectedSubject, selectedTerm, myAssignments, session]);
 
   const loadScoresheet = async () => {
     setLoading(true);
