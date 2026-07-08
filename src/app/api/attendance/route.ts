@@ -213,71 +213,102 @@ export async function POST(req: NextRequest) {
 
     // Execute daily upserts inside a database transaction to guarantee integrity
     await prisma.$transaction(async (tx) => {
-      for (const rec of records) {
-        // 1. Upsert daily attendance record
-        await tx.dailyAttendance.upsert({
-          where: {
-            studentId_attendanceDate: {
-              studentId: rec.studentId,
-              attendanceDate: date
-            }
-          },
-          update: {
-            status: rec.status,
-            classId,
-            armId,
-            termId,
-            markedBy: markedBy || null
-          },
-          create: {
-            schoolId,
-            studentId: rec.studentId,
-            termId,
-            classId,
-            armId,
-            attendanceDate: date,
-            status: rec.status,
-            markedBy: markedBy || null
-          }
-        });
+      // 1. Delete existing daily attendance records for this date, class, and arm in one query
+      await tx.dailyAttendance.deleteMany({
+        where: {
+          classId,
+          armId,
+          attendanceDate: date
+        }
+      });
 
-        // 2. Query historical logs inside term boundaries to compute new aggregates
-        const allTermLogs = await tx.dailyAttendance.findMany({
-          where: {
-            studentId: rec.studentId,
-            termId
-          }
-        });
+      // 2. Insert new daily attendance records in bulk using createMany
+      await tx.dailyAttendance.createMany({
+        data: records.map(rec => ({
+          schoolId,
+          studentId: rec.studentId,
+          termId,
+          classId,
+          armId,
+          attendanceDate: date,
+          status: rec.status,
+          markedBy: markedBy || null
+        }))
+      });
 
-        const presentCount = allTermLogs.filter(l => l.status === 'PRESENT').length;
-        const absentCount = allTermLogs.filter(l => l.status === 'ABSENT').length;
+      // 3. Fetch all term logs for these students in a single query
+      const studentIds = records.map((r) => r.studentId);
+      const allTermLogs = await tx.dailyAttendance.findMany({
+        where: {
+          studentId: { in: studentIds },
+          termId,
+        },
+      });
 
-        // 3. Upsert re-calculated aggregates to termly Attendance sheet to sync printable report cards
-        await tx.attendance.upsert({
-          where: {
-            schoolId_studentId_termId: {
-              schoolId,
-              studentId: rec.studentId,
-              termId
-            }
-          },
-          update: {
-            daysPresent: presentCount,
-            daysAbsent: absentCount,
-            classId,
-            armId
-          },
-          create: {
-            schoolId,
-            studentId: rec.studentId,
-            termId,
-            classId,
-            armId,
-            daysPresent: presentCount,
-            daysAbsent: absentCount
-          }
-        });
+      // Group logs by studentId to count present/absent days
+      const countsMap = new Map<string, { present: number; absent: number }>();
+      for (const id of studentIds) {
+        countsMap.set(id, { present: 0, absent: 0 });
       }
+      for (const log of allTermLogs) {
+        const counts = countsMap.get(log.studentId);
+        if (counts) {
+          if (log.status === 'PRESENT') counts.present++;
+          else if (log.status === 'ABSENT') counts.absent++;
+        }
+      }
+
+      // 4. Fetch existing termly attendance summaries in a single query
+      const existingSummaries = await tx.attendance.findMany({
+        where: {
+          schoolId,
+          termId,
+          studentId: { in: studentIds }
+        }
+      });
+
+      const existingSummariesSet = new Set(existingSummaries.map(s => s.studentId));
+
+      // 5. Update/create termly attendance aggregates in parallel (direct updates/creates)
+      await Promise.all(
+        studentIds.map((studentId) => {
+          const counts = countsMap.get(studentId) || { present: 0, absent: 0 };
+          const exists = existingSummariesSet.has(studentId);
+
+          if (exists) {
+            return tx.attendance.update({
+              where: {
+                schoolId_studentId_termId: {
+                  schoolId,
+                  studentId,
+                  termId,
+                }
+              },
+              data: {
+                daysPresent: counts.present,
+                daysAbsent: counts.absent,
+                classId,
+                armId
+              }
+            });
+          } else {
+            return tx.attendance.create({
+              data: {
+                schoolId,
+                studentId,
+                termId,
+                classId,
+                armId,
+                daysPresent: counts.present,
+                daysAbsent: counts.absent
+              }
+            });
+          }
+        })
+      );
+    }, {
+      maxWait: 15000,
+      timeout: 30000
     });
 
     // Telemetry: increment attendanceSessionsCount if it's a tester
