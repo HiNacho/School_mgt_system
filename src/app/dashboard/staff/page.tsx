@@ -1600,7 +1600,7 @@ export default function StaffAccountsPage() {
                   </div>
                   <input
                     type="file"
-                    accept=".xlsx, .xls, .csv"
+                    accept=".xlsx,.xls,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,text/csv"
                     onChange={handleExcelFileChange}
                     className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
                   />

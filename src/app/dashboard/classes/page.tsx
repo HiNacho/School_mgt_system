@@ -758,7 +758,7 @@ export default function ClassesAndArmsPage() {
                     Select File
                     <input
                       type="file"
-                      accept=".xlsx, .xls, .csv"
+                      accept=".xlsx,.xls,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,text/csv"
                       onChange={handleExcelFileChange}
                       className="hidden"
                     />

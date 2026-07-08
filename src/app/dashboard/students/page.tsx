@@ -1805,7 +1805,7 @@ export default function StudentsManagerPage() {
                   <span className="block text-[10px] text-slate-400 mt-1">XLSX, XLS, or CSV files supported</span>
                   <input
                     type="file"
-                    accept=".xlsx, .xls, .csv"
+                    accept=".xlsx,.xls,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,text/csv"
                     onChange={handleExcelFileChange}
                     className="absolute inset-0 opacity-0 cursor-pointer"
                   />
