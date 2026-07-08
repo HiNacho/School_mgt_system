@@ -1192,33 +1192,35 @@ export default function TeachersDirectoryPage() {
               </div>
 
               <div className="flex justify-end gap-2 pt-3">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setEditTeacherId(viewingTeacher.id);
-                    setEditTitle(viewingTeacher.title || '');
-                    setEditFirstName(viewingTeacher.firstName);
-                    setEditLastName(viewingTeacher.lastName);
-                    setEditEmail(viewingTeacher.email);
-                    setEditPhone(viewingTeacher.phone === 'Not Provided' ? '' : viewingTeacher.phone);
-                    setEditRole(viewingTeacher.role || '');
-                    setEditPassportPhoto(viewingTeacher.passportPhoto || null);
-                    
-                    const hasClassArm = viewingTeacher.classTeacherArms && viewingTeacher.classTeacherArms.length > 0;
-                    setEditIsClassTeacher(hasClassArm || viewingTeacher.role === 'CLASS_TEACHER');
-                    setEditClassTeacherArmId(viewingTeacher.classTeacherArms?.[0]?.id || '');
-                    
-                    const hasSubjects = viewingTeacher.subjectAssignments && viewingTeacher.subjectAssignments.length > 0;
-                    setEditIsSubjectTeacher(hasSubjects || viewingTeacher.role === 'SUBJECT_TEACHER');
-                    setEditSubjectAssignments(groupFlatAssignments(viewingTeacher.subjectAssignments || []));
-                    
-                    setEditError('');
-                    setShowEditModal(true);
-                  }}
-                  className="py-2 px-4 rounded-xl text-xs font-black bg-slate-900 text-white hover:bg-slate-800 transition-colors text-center flex items-center justify-center cursor-pointer"
-                >
-                  <Sparkles className="w-3.5 h-3.5 mr-1 text-blue-400 animate-pulse" /> Edit Profile
-                </button>
+                {isAdmin && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEditTeacherId(viewingTeacher.id);
+                      setEditTitle(viewingTeacher.title || '');
+                      setEditFirstName(viewingTeacher.firstName);
+                      setEditLastName(viewingTeacher.lastName);
+                      setEditEmail(viewingTeacher.email);
+                      setEditPhone(viewingTeacher.phone === 'Not Provided' ? '' : viewingTeacher.phone);
+                      setEditRole(viewingTeacher.role || '');
+                      setEditPassportPhoto(viewingTeacher.passportPhoto || null);
+                      
+                      const hasClassArm = viewingTeacher.classTeacherArms && viewingTeacher.classTeacherArms.length > 0;
+                      setEditIsClassTeacher(hasClassArm || viewingTeacher.role === 'CLASS_TEACHER');
+                      setEditClassTeacherArmId(viewingTeacher.classTeacherArms?.[0]?.id || '');
+                      
+                      const hasSubjects = viewingTeacher.subjectAssignments && viewingTeacher.subjectAssignments.length > 0;
+                      setEditIsSubjectTeacher(hasSubjects || viewingTeacher.role === 'SUBJECT_TEACHER');
+                      setEditSubjectAssignments(groupFlatAssignments(viewingTeacher.subjectAssignments || []));
+                      
+                      setEditError('');
+                      setShowEditModal(true);
+                    }}
+                    className="py-2 px-4 rounded-xl text-xs font-black bg-slate-900 text-white hover:bg-slate-800 transition-colors text-center flex items-center justify-center cursor-pointer"
+                  >
+                    <Sparkles className="w-3.5 h-3.5 mr-1 text-blue-400 animate-pulse" /> Edit Profile
+                  </button>
+                )}
                 <Link
                   href={`/dashboard/teachers/${viewingTeacher.id}`}
                   className="py-2 px-4 rounded-xl text-xs font-black bg-blue-600 text-white hover:bg-blue-500 shadow-md shadow-blue-600/10 transition-colors text-center flex items-center justify-center"
