@@ -147,9 +147,23 @@ export default function DashboardHome() {
         // Aggregate platform totals
         const totalStudents = allSchools.reduce((sum: number, s: any) => sum + (s.studentCount || 0), 0);
         const totalParents = allSchools.reduce((sum: number, s: any) => sum + (s.parentCount || 0), 0);
+        const totalBoys = allSchools.reduce((sum: number, s: any) => sum + (s.boysCount || 0), 0);
+        const totalGirls = allSchools.reduce((sum: number, s: any) => sum + (s.girlsCount || 0), 0);
 
         // Populate local states so standard KPI metric card logic works
-        setStudents(new Array(totalStudents).fill({ status: 'ACTIVE' }));
+        const mockStudents: any[] = [];
+        for (let i = 0; i < totalBoys; i++) {
+          mockStudents.push({ status: 'ACTIVE', gender: 'MALE' });
+        }
+        for (let i = 0; i < totalGirls; i++) {
+          mockStudents.push({ status: 'ACTIVE', gender: 'FEMALE' });
+        }
+        // Fill remaining students with default values if any mismatch exists
+        const remainingCount = totalStudents - mockStudents.length;
+        for (let i = 0; i < remainingCount; i++) {
+          mockStudents.push({ status: 'ACTIVE', gender: 'MALE' });
+        }
+        setStudents(mockStudents);
         
         // Re-create a representative staff list with roles to feed filters:
         const aggregatedStaff: any[] = [];

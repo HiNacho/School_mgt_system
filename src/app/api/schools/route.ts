@@ -66,6 +66,11 @@ export async function GET(req: NextRequest) {
             parents: true,
           }
         },
+        students: {
+          select: {
+            gender: true
+          }
+        },
         users: {
           select: {
             role: true
@@ -87,6 +92,8 @@ export async function GET(req: NextRequest) {
 
       const adminCount = s.users.filter(u => u.role === 'SCHOOL_ADMIN').length;
       const teacherCount = s.users.filter(u => ['CLASS_TEACHER', 'SUBJECT_TEACHER', 'HEAD_TEACHER'].includes(u.role)).length;
+      const boysCount = s.students.filter(stud => stud.gender === 'MALE').length;
+      const girlsCount = s.students.filter(stud => stud.gender === 'FEMALE').length;
 
       return {
         id: s.id,
@@ -98,6 +105,8 @@ export async function GET(req: NextRequest) {
         gradingType: s.gradingType,
         createdAt: s.createdAt,
         studentCount: s._count.students,
+        boysCount,
+        girlsCount,
         staffCount: s.users.length,
         adminCount,
         teacherCount,
