@@ -6,7 +6,7 @@ import {
   Search, Filter, ChevronLeft, ChevronRight, X, Eye, FileText,
   TrendingUp, Bell, RefreshCw, Check, UserCheck, BarChart2, Printer,
   ArrowRight, User, ClipboardList, Star, Percent, Activity, ChevronDown,
-  ChevronUp, TriangleAlert, Info, GraduationCap, Loader2
+  ChevronUp, TriangleAlert, Info, GraduationCap, Loader2, Send
 } from 'lucide-react';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -134,6 +134,74 @@ export default function ClassTeacherDashboard() {
   const [showNotifications, setShowNotifications] = useState(false);
   const [resultsSubTab, setResultsSubTab] = useState<'tracker' | 'rankings'>('tracker');
 
+  const [reportStatus, setReportStatus] = useState<string>('DRAFT');
+  const [statusFeedback, setStatusFeedback] = useState<string | null>(null);
+  const [updatingStatus, setUpdatingStatus] = useState<boolean>(false);
+
+  const fetchReportStatus = async (schoolId: string, classId: string, armId: string, termId: string) => {
+    try {
+      const token = localStorage.getItem('report_auth_token') || '';
+      const headers: Record<string, string> = {};
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+
+      const res = await fetch(`/api/reports/status?schoolId=${schoolId}&classId=${classId}&armId=${armId}&termId=${termId}`, { headers });
+      if (res.ok) {
+        const json = await res.json();
+        if (json && json.success && json.data) {
+          setReportStatus(json.data.status || 'DRAFT');
+          setStatusFeedback(json.data.feedback || null);
+        }
+      }
+    } catch (e) {
+      console.error('Error fetching report status:', e);
+    }
+  };
+
+  const handleUpdateStatus = async (newStatus: string) => {
+    if (!session || !classInfo || !setupData) return;
+    const term = setupData.terms?.find((t: any) => t.isCurrent) || setupData.terms?.[0];
+    if (!term) return;
+
+    setUpdatingStatus(true);
+    setError('');
+    setSuccessMsg('');
+
+    try {
+      const token = localStorage.getItem('report_auth_token') || '';
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+
+      const res = await fetch('/api/reports/status', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          schoolId: session.school.id,
+          classId: classInfo.class.id,
+          armId: classInfo.arm.id,
+          termId: term.id,
+          status: newStatus,
+          feedback: null
+        })
+      });
+
+      const json = await res.json();
+      if (!res.ok) {
+        throw new Error(json.error || 'Failed to update report status');
+      }
+
+      setReportStatus(newStatus);
+      if (newStatus === 'AWAITING_APPROVAL') {
+        setSuccessMsg('Class reports successfully compiled and submitted for school approval!');
+      } else {
+        setSuccessMsg(`Class reports status updated to ${newStatus}.`);
+      }
+    } catch (err: any) {
+      setError(err.message || 'Error updating status.');
+    } finally {
+      setUpdatingStatus(false);
+    }
+  };
+
   // ── Bootstrap ───────────────────────────────────────────────────────────────
   useEffect(() => {
     const raw = localStorage.getItem('report_user_session');
@@ -213,6 +281,7 @@ export default function ClassTeacherDashboard() {
           // Fetch all submissions for this arm to build results tracker
           if (data.class && data.arm && setup?.subjects) {
             await fetchAllSubmissions(schoolId, data.class.id, data.arm.id, term.id, setup, studs, userId);
+            await fetchReportStatus(schoolId, data.class.id, data.arm.id, term.id);
           }
         }
       }
@@ -1425,6 +1494,59 @@ export default function ClassTeacherDashboard() {
             ══════════════════════════════════════════════════════════════ */}
             {activeTab === 'reports' && (
               <div className="space-y-4">
+                {/* Submission / Compilation workflow card */}
+                {allApproved && (
+                  <div className="p-5 rounded-2xl bg-white border border-slate-200 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div className="flex items-start gap-3">
+                      <div className={`p-2.5 rounded-xl ${
+                        reportStatus === 'APPROVED' ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' :
+                        reportStatus === 'AWAITING_APPROVAL' ? 'bg-amber-50 text-amber-600 border border-amber-100' :
+                        reportStatus === 'REJECTED' ? 'bg-rose-50 text-rose-600 border border-rose-100' :
+                        'bg-slate-50 text-slate-600 border border-slate-100'
+                      }`}>
+                        {reportStatus === 'APPROVED' ? <CheckCircle className="w-5 h-5" /> :
+                         reportStatus === 'AWAITING_APPROVAL' ? <Clock className="w-5 h-5 animate-pulse" /> :
+                         reportStatus === 'REJECTED' ? <AlertCircle className="w-5 h-5" /> :
+                         <FileText className="w-5 h-5" />}
+                      </div>
+                      <div className="space-y-0.5 flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-[10px] uppercase font-black tracking-wider text-slate-400">Class Report Status</span>
+                          <span className={`px-2 py-0.5 rounded-lg text-[9px] font-black uppercase border ${
+                            reportStatus === 'APPROVED' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
+                            reportStatus === 'AWAITING_APPROVAL' ? 'bg-amber-50 text-amber-700 border-amber-200' :
+                            reportStatus === 'REJECTED' ? 'bg-rose-50 text-rose-700 border-rose-200' :
+                            'bg-slate-100 text-slate-700 border-slate-200'
+                          }`}>
+                            {reportStatus === 'APPROVED' ? 'Approved & Released' :
+                             reportStatus === 'AWAITING_APPROVAL' ? 'Awaiting School Approval' :
+                             reportStatus === 'REJECTED' ? 'Returned for Correction' :
+                             'Draft / Not Submitted'}
+                          </span>
+                        </div>
+                        <p className="text-xs font-semibold text-slate-650 leading-relaxed mt-1">
+                          {reportStatus === 'APPROVED' ? 'The final report cards are approved and published. Students and parents can access them.' :
+                           reportStatus === 'AWAITING_APPROVAL' ? 'Locked and pending administrator final verification and release.' :
+                           reportStatus === 'REJECTED' ? `Returned for correction: "${statusFeedback || 'Please review score entries'}"` :
+                           'All subjects approved! You can now submit this compilation for School Administrator approval.'}
+                        </p>
+                      </div>
+                    </div>
+
+                    {(reportStatus === 'DRAFT' || reportStatus === 'REJECTED') && (
+                      <button
+                        type="button"
+                        disabled={updatingStatus}
+                        onClick={() => handleUpdateStatus('AWAITING_APPROVAL')}
+                        className="flex items-center justify-center gap-1.5 px-4.5 py-2.5 rounded-xl text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-500 transition-colors shadow-md shadow-indigo-600/10 cursor-pointer disabled:opacity-50 flex-shrink-0"
+                      >
+                        {updatingStatus ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                        Submit to Admin for Approval
+                      </button>
+                    )}
+                  </div>
+                )}
+
                 {/* Status banner */}
                 <div className={`p-4 rounded-xl border flex items-center gap-3 ${
                   allApproved

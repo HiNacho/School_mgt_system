@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { 
   FileBarChart, CheckSquare, Sparkles, Printer, RefreshCw, 
   AlertCircle, CheckCircle, Award, Percent, Users, TrendingUp,
-  Search, Eye, HelpCircle, X, Check
+  Search, Eye, HelpCircle, X, Check, XCircle
 } from 'lucide-react';
 
 interface StudentReport {
@@ -478,8 +478,8 @@ export default function ReportCardCompilerPage() {
               </div>
             </div>
 
-            {/* Actions for Class Teacher */}
-            {isClassTeacher && (reportStatus === 'DRAFT' || reportStatus === 'REJECTED') && (
+            {/* Actions for Class Teacher / Admin */}
+            {(isClassTeacher || isAdmin) && (reportStatus === 'DRAFT' || reportStatus === 'REJECTED') && (
               <button
                 type="button"
                 disabled={transitioningStatus}
@@ -494,27 +494,27 @@ export default function ReportCardCompilerPage() {
             {/* Actions for School Admin / Super Admin */}
             {isAdmin && (
               <div className="flex flex-wrap gap-2.5 mt-2 md:mt-0">
+                {(reportStatus === 'AWAITING_APPROVAL' || reportStatus === 'DRAFT' || reportStatus === 'REJECTED') && (
+                  <button
+                    type="button"
+                    disabled={transitioningStatus}
+                    onClick={() => handleUpdateStatus('APPROVED')}
+                    className="flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-750 transition-all shadow-sm"
+                  >
+                    {transitioningStatus ? <RefreshCw className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
+                    Approve & Release
+                  </button>
+                )}
                 {reportStatus === 'AWAITING_APPROVAL' && (
-                  <>
-                    <button
-                      type="button"
-                      disabled={transitioningStatus}
-                      onClick={() => handleUpdateStatus('APPROVED')}
-                      className="flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-750 transition-all shadow-sm"
-                    >
-                      {transitioningStatus ? <RefreshCw className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
-                      Approve & Release
-                    </button>
-                    <button
-                      type="button"
-                      disabled={transitioningStatus}
-                      onClick={() => setShowRejectModal(true)}
-                      className="flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-bold text-white bg-rose-600 hover:bg-rose-755 transition-all shadow-sm"
-                    >
-                      <X className="w-4 h-4" />
-                      Return for Correction
-                    </button>
-                  </>
+                  <button
+                    type="button"
+                    disabled={transitioningStatus}
+                    onClick={() => setShowRejectModal(true)}
+                    className="flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 transition-all shadow-sm"
+                  >
+                    <XCircle className="w-4 h-4 text-red-500" />
+                    Return for Correction
+                  </button>
                 )}
                 {reportStatus === 'APPROVED' && (
                   <button
