@@ -20,6 +20,12 @@ export async function POST(req: NextRequest) {
       createdStaff: [] as any[]
     };
 
+    const school = await prisma.school.findUnique({ where: { id: schoolId } });
+    if (!school) {
+      return NextResponse.json({ error: 'School not found' }, { status: 404 });
+    }
+    const schoolSlug = school.slug;
+
     // Cache school arms and subjects for fast lookups
     const schoolArms = await prisma.arm.findMany({
       where: { schoolId },
@@ -97,9 +103,20 @@ export async function POST(req: NextRequest) {
         // Execute writes in transaction to ensure safety
         const user = await prisma.$transaction(async (tx) => {
           // Check if email already registered globally on the platform
-          const conflict = await tx.user.findUnique({
-            where: { email: cleanEmail }
+          let finalEmail = cleanEmail;
+          let conflict = await tx.user.findUnique({
+            where: { email: finalEmail }
           });
+
+          if (conflict && conflict.schoolId !== schoolId) {
+            const [localPart, domain] = cleanEmail.split('@');
+            const cleanSlug = schoolSlug.replace(/-live-.*/, '').replace(/[^a-zA-Z0-9]/g, '');
+            finalEmail = `${localPart}.${cleanSlug}@${domain}`;
+            
+            conflict = await tx.user.findUnique({
+              where: { email: finalEmail }
+            });
+          }
 
           let u;
           if (conflict) {
@@ -117,15 +134,15 @@ export async function POST(req: NextRequest) {
                 }
               });
             } else {
-              throw new Error(`Email "${cleanEmail}" is registered to another school tenant.`);
+              throw new Error(`Email "${finalEmail}" is registered to another school tenant.`);
             }
           } else {
             // Create new staff user credentials
             u = await tx.user.create({
               data: {
                 schoolId,
-                email: cleanEmail,
-                username: cleanEmail,
+                email: finalEmail,
+                username: finalEmail,
                 firstName: cleanFirstName,
                 lastName: cleanLastName,
                 title: cleanTitle,
@@ -221,6 +238,8 @@ export async function POST(req: NextRequest) {
           }
 
           return u;
+        }, {
+          timeout: 90000
         });
 
         results.successCount++;
