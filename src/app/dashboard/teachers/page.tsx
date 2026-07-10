@@ -190,7 +190,7 @@ export default function TeachersDirectoryPage() {
     try {
       const res = await fetch('/api/staff/upload', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify({
           schoolId: school.id,
           staff: parsedTeachers
@@ -268,6 +268,14 @@ export default function TeachersDirectoryPage() {
 
   const isAdmin = currentUser?.role === 'SUPER_ADMIN' || currentUser?.role === 'SCHOOL_ADMIN';
 
+  const getAuthHeaders = (extraHeaders: Record<string, string> = {}) => {
+    const token = typeof window !== 'undefined' ? localStorage.getItem('report_auth_token') || '' : '';
+    return {
+      ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+      ...extraHeaders
+    };
+  };
+
   useEffect(() => {
     const sessionStr = localStorage.getItem('report_user_session');
     if (sessionStr) {
@@ -285,7 +293,7 @@ export default function TeachersDirectoryPage() {
 
   const loadSetupData = async (schoolId: string) => {
     try {
-      const res = await fetch(`/api/setup?schoolId=${schoolId}`);
+      const res = await fetch(`/api/setup?schoolId=${schoolId}`, { headers: getAuthHeaders() });
       const json = await res.json();
       if (res.ok && json.data) {
         setArms(json.data.arms || []);
@@ -300,7 +308,7 @@ export default function TeachersDirectoryPage() {
     setLoading(true);
     setErrorMsg('');
     try {
-      const res = await fetch(`/api/staff?schoolId=${schoolId}`);
+      const res = await fetch(`/api/staff?schoolId=${schoolId}`, { headers: getAuthHeaders() });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || 'Failed to fetch staff accounts');
 
@@ -319,7 +327,7 @@ export default function TeachersDirectoryPage() {
   const handleOpenDetails = async (teacher: TeacherMember) => {
     setViewingTeacher(teacher);
     try {
-      const res = await fetch(`/api/staff?schoolId=${school.id}&staffId=${teacher.id}`);
+      const res = await fetch(`/api/staff?schoolId=${school.id}&staffId=${teacher.id}`, { headers: getAuthHeaders() });
       const json = await res.json();
       if (res.ok && json.data) {
         setViewingTeacher(json.data);
@@ -458,7 +466,7 @@ export default function TeachersDirectoryPage() {
 
       const res = await fetch('/api/staff', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify({
           schoolId: school.id,
           title: title || undefined,
@@ -507,7 +515,7 @@ export default function TeachersDirectoryPage() {
     try {
       const res = await fetch('/api/staff', {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify({
           schoolId: school.id,
           staffId: teacherId,
@@ -538,7 +546,7 @@ export default function TeachersDirectoryPage() {
     try {
       const res = await fetch('/api/staff', {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify({
           schoolId: school.id,
           staffId: teacherId,
@@ -565,7 +573,8 @@ export default function TeachersDirectoryPage() {
 
     try {
       const res = await fetch(`/api/staff?schoolId=${school.id}&staffId=${teacherId}`, {
-        method: 'DELETE'
+        method: 'DELETE',
+        headers: getAuthHeaders()
       });
 
       const json = await res.json();
@@ -589,7 +598,7 @@ export default function TeachersDirectoryPage() {
     try {
       const res = await fetch('/api/staff', {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify({
           schoolId: school.id,
           staffIds: selectedTeacherIds,
@@ -617,7 +626,8 @@ export default function TeachersDirectoryPage() {
 
     try {
       const res = await fetch(`/api/staff?schoolId=${school.id}&staffIds=${selectedTeacherIds.join(',')}`, {
-        method: 'DELETE'
+        method: 'DELETE',
+        headers: getAuthHeaders()
       });
 
       const json = await res.json();
@@ -681,7 +691,7 @@ export default function TeachersDirectoryPage() {
 
       const res = await fetch('/api/staff', {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify({
           staffId: editTeacherId,
           schoolId: school.id,
@@ -706,7 +716,7 @@ export default function TeachersDirectoryPage() {
 
       // Update viewing teacher if currently open
       if (viewingTeacher && viewingTeacher.id === editTeacherId) {
-        const detailRes = await fetch(`/api/staff?schoolId=${school.id}&staffId=${editTeacherId}`);
+        const detailRes = await fetch(`/api/staff?schoolId=${school.id}&staffId=${editTeacherId}`, { headers: getAuthHeaders() });
         const detailJson = await detailRes.json();
         if (detailRes.ok && detailJson.data) {
           setViewingTeacher(detailJson.data);
