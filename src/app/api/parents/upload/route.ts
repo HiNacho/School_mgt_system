@@ -31,8 +31,17 @@ export async function POST(req: NextRequest) {
       where: { schoolId, status: 'ACTIVE' }
     });
 
-    // Process parent records one by one
-    for (const member of parents) {
+    const emailsList = parents.map(p => String(p.email || '').trim().toLowerCase()).filter(Boolean);
+
+    // Batch query existing users and parents to avoid N+1 query loop
+    const existingUsers = await prisma.user.findMany({
+      where: { email: { in: emailsList } }
+    });
+    const existingParents = await prisma.parent.findMany({
+      where: { email: { in: emailsList } }
+    });
+
+    const processParent = async (member: any) => {
       const { firstName, lastName, email, phone, address, wards } = member;
 
       const cleanFirstName = String(firstName || '').trim();
@@ -50,7 +59,7 @@ export async function POST(req: NextRequest) {
           email: cleanEmail || 'MISSING',
           error: 'First Name, Last Name, and Email are required fields.'
         });
-        continue;
+        return;
       }
 
       // Quick email regex validation
@@ -62,30 +71,27 @@ export async function POST(req: NextRequest) {
           email: cleanEmail,
           error: 'Invalid email address format.'
         });
-        continue;
+        return;
       }
 
       try {
-        // Verify unique email globally across User & Parent tables
+        // Verify unique email globally across User & Parent tables (use pre-fetched cache first)
         let finalEmail = cleanEmail;
-        let conflictUser = await prisma.user.findUnique({
-          where: { email: finalEmail }
-        });
-        let conflictParent = await prisma.parent.findUnique({
-          where: { email: finalEmail }
-        });
+        let conflictUser = existingUsers.find(u => u.email === finalEmail);
+        let conflictParent = existingParents.find(p => p.email === finalEmail);
 
         if ((conflictParent && conflictParent.schoolId !== schoolId) || (conflictUser && conflictUser.schoolId !== schoolId)) {
           const [localPart, domain] = cleanEmail.split('@');
           const cleanSlug = schoolSlug.replace(/-live-.*/, '').replace(/[^a-zA-Z0-9]/g, '');
           finalEmail = `${localPart}.${cleanSlug}@${domain}`;
 
+          // Re-check database if suffix is clean slug (rare fallback)
           conflictUser = await prisma.user.findUnique({
             where: { email: finalEmail }
-          });
+          }) as any;
           conflictParent = await prisma.parent.findUnique({
             where: { email: finalEmail }
-          });
+          }) as any;
         }
 
         let resultParent;
@@ -99,7 +105,7 @@ export async function POST(req: NextRequest) {
               email: finalEmail,
               error: `Email "${finalEmail}" is already registered in another school tenant.`
             });
-            continue;
+            return;
           }
 
           resultParent = await prisma.$transaction(async (tx) => {
@@ -274,6 +280,20 @@ export async function POST(req: NextRequest) {
           error: err.message || 'Database transaction error.'
         });
       }
+    };
+
+    // Process chunked parents in parallel (groups of 15 concurrently)
+    const chunkArray = <T>(arr: T[], size: number): T[][] => {
+      const chunks: T[][] = [];
+      for (let i = 0; i < arr.length; i += size) {
+        chunks.push(arr.slice(i, i + size));
+      }
+      return chunks;
+    };
+
+    const parentChunks = chunkArray(parents, 15);
+    for (const chunk of parentChunks) {
+      await Promise.all(chunk.map(member => processParent(member)));
     }
 
     return NextResponse.json({
