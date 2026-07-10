@@ -11,6 +11,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Missing required upload parameters (schoolId and parents array)' }, { status: 400 });
     }
 
+    const school = await prisma.school.findUnique({ where: { id: schoolId } });
+    if (!school) {
+      return NextResponse.json({ error: 'School not found' }, { status: 404 });
+    }
+    const schoolSlug = school.slug;
+
     const defaultPasswordHash = await bcrypt.hash('password', 10);
 
     const results = {
@@ -61,12 +67,26 @@ export async function POST(req: NextRequest) {
 
       try {
         // Verify unique email globally across User & Parent tables
-        const conflictUser = await prisma.user.findUnique({
-          where: { email: cleanEmail }
+        let finalEmail = cleanEmail;
+        let conflictUser = await prisma.user.findUnique({
+          where: { email: finalEmail }
         });
-        const conflictParent = await prisma.parent.findUnique({
-          where: { email: cleanEmail }
+        let conflictParent = await prisma.parent.findUnique({
+          where: { email: finalEmail }
         });
+
+        if ((conflictParent && conflictParent.schoolId !== schoolId) || (conflictUser && conflictUser.schoolId !== schoolId)) {
+          const [localPart, domain] = cleanEmail.split('@');
+          const cleanSlug = schoolSlug.replace(/-live-.*/, '').replace(/[^a-zA-Z0-9]/g, '');
+          finalEmail = `${localPart}.${cleanSlug}@${domain}`;
+
+          conflictUser = await prisma.user.findUnique({
+            where: { email: finalEmail }
+          });
+          conflictParent = await prisma.parent.findUnique({
+            where: { email: finalEmail }
+          });
+        }
 
         let resultParent;
         if (conflictParent || conflictUser) {
@@ -76,8 +96,8 @@ export async function POST(req: NextRequest) {
             results.failCount++;
             results.failures.push({
               name: displayName,
-              email: cleanEmail,
-              error: `Email "${cleanEmail}" is already registered in another school tenant.`
+              email: finalEmail,
+              error: `Email "${finalEmail}" is already registered in another school tenant.`
             });
             continue;
           }
@@ -106,7 +126,7 @@ export async function POST(req: NextRequest) {
               parent = await tx.parent.create({
                 data: {
                   schoolId,
-                  email: cleanEmail,
+                  email: finalEmail,
                   firstName: cleanFirstName,
                   lastName: cleanLastName,
                   phone: cleanPhone,
@@ -133,8 +153,8 @@ export async function POST(req: NextRequest) {
               await tx.user.create({
                 data: {
                   schoolId,
-                  email: cleanEmail,
-                  username: cleanEmail,
+                  email: finalEmail,
+                  username: finalEmail,
                   firstName: cleanFirstName,
                   lastName: cleanLastName,
                   role: 'PARENT',
@@ -175,6 +195,8 @@ export async function POST(req: NextRequest) {
             }
 
             return parent;
+          }, {
+            timeout: 90000
           });
         } else {
           // Create the parent profile & matching user credentials transactionally
@@ -182,7 +204,7 @@ export async function POST(req: NextRequest) {
             const parent = await tx.parent.create({
               data: {
                 schoolId,
-                email: cleanEmail,
+                email: finalEmail,
                 firstName: cleanFirstName,
                 lastName: cleanLastName,
                 phone: cleanPhone,
@@ -194,8 +216,8 @@ export async function POST(req: NextRequest) {
             await tx.user.create({
               data: {
                 schoolId,
-                email: cleanEmail,
-                username: cleanEmail,
+                email: finalEmail,
+                username: finalEmail,
                 firstName: cleanFirstName,
                 lastName: cleanLastName,
                 role: 'PARENT',
@@ -236,6 +258,8 @@ export async function POST(req: NextRequest) {
             }
 
             return parent;
+          }, {
+            timeout: 90000
           });
         }
 
