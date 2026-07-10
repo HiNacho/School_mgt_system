@@ -124,7 +124,7 @@ export default function ParentsRegistryPage() {
     try {
       const res = await fetch('/api/parents/upload', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify({
           schoolId: school.id,
           parents: parsedParents
@@ -182,6 +182,61 @@ export default function ParentsRegistryPage() {
   const [successMsg, setSuccessMsg] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
 
+  const [selectedParentIds, setSelectedParentIds] = useState<string[]>([]);
+
+  const getAuthHeaders = (extraHeaders: Record<string, string> = {}) => {
+    const token = typeof window !== 'undefined' ? localStorage.getItem('report_auth_token') || '' : '';
+    return {
+      ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+      ...extraHeaders
+    };
+  };
+
+  const toggleParentSelection = (parentId: string) => {
+    setSelectedParentIds(prev =>
+      prev.includes(parentId)
+        ? prev.filter(id => id !== parentId)
+        : [...prev, parentId]
+    );
+  };
+
+  const toggleAllParents = () => {
+    if (selectedParentIds.length === currentParents.length) {
+      setSelectedParentIds([]);
+    } else {
+      setSelectedParentIds(currentParents.map(p => p.id));
+    }
+  };
+
+  const handleBatchDeleteParents = async () => {
+    if (selectedParentIds.length === 0) return;
+    
+    const confirmAction = window.confirm(`WARNING: Are you sure you want to permanently delete the ${selectedParentIds.length} selected parent accounts? This will also delete their system logins, and cannot be undone.`);
+    if (!confirmAction) return;
+
+    setErrorMsg('');
+    setSuccessMsg('');
+    setSubmitting(true);
+
+    try {
+      const res = await fetch(`/api/parents?schoolId=${school.id}&ids=${selectedParentIds.join(',')}`, {
+        method: 'DELETE',
+        headers: getAuthHeaders()
+      });
+
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || 'Failed to delete selected parents.');
+
+      setSuccessMsg(`Successfully deleted ${selectedParentIds.length} parent accounts.`);
+      setSelectedParentIds([]);
+      await loadParents(school.id);
+    } catch (err: any) {
+      setErrorMsg(err.message || 'Error deleting parents.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   useEffect(() => {
     const sessionStr = localStorage.getItem('report_user_session');
     if (sessionStr) {
@@ -200,7 +255,7 @@ export default function ParentsRegistryPage() {
     setLoading(true);
     setErrorMsg('');
     try {
-      const res = await fetch(`/api/parents?schoolId=${schoolId}`);
+      const res = await fetch(`/api/parents?schoolId=${schoolId}`, { headers: getAuthHeaders() });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || 'Failed to fetch parent accounts');
       setParents(json.data || []);
@@ -213,7 +268,7 @@ export default function ParentsRegistryPage() {
 
   const loadStudents = async (schoolId: string) => {
     try {
-      const res = await fetch(`/api/students?schoolId=${schoolId}&status=ALL`);
+      const res = await fetch(`/api/students?schoolId=${schoolId}&status=ALL`, { headers: getAuthHeaders() });
       const json = await res.json();
       if (res.ok) {
         setStudents(json.data || []);
@@ -237,7 +292,7 @@ export default function ParentsRegistryPage() {
     try {
       const res = await fetch('/api/parents', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify({
           schoolId: school.id,
           firstName,
@@ -279,7 +334,7 @@ export default function ParentsRegistryPage() {
     try {
       const res = await fetch('/api/parents', {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify({
           id: selectedParent.id,
           firstName,
@@ -315,7 +370,8 @@ export default function ParentsRegistryPage() {
 
     try {
       const res = await fetch(`/api/parents?id=${parent.id}`, {
-        method: 'DELETE'
+        method: 'DELETE',
+        headers: getAuthHeaders()
       });
 
       const json = await res.json();
@@ -396,6 +452,16 @@ export default function ParentsRegistryPage() {
         </div>
 
         <div className="flex items-center gap-2 shrink-0">
+          {selectedParentIds.length > 0 && (
+            <button
+              type="button"
+              onClick={handleBatchDeleteParents}
+              className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-2xl bg-red-50 hover:bg-red-100 text-red-650 text-xs font-bold transition-all shadow-sm border border-red-150 cursor-pointer animate-fadeIn"
+            >
+              <Trash2 className="w-3.5 h-3.5" /> Delete Selected ({selectedParentIds.length})
+            </button>
+          )}
+
           <button
             type="button"
             onClick={() => {
@@ -482,6 +548,14 @@ export default function ParentsRegistryPage() {
             <table className="w-full border-collapse text-left text-xs font-semibold text-slate-600">
               <thead>
                 <tr className="bg-slate-50 border-b border-slate-100 text-[10px] font-black uppercase tracking-wider text-slate-400">
+                  <th className="p-4 w-10 text-center">
+                    <input
+                      type="checkbox"
+                      checked={currentParents.length > 0 && selectedParentIds.length === currentParents.length}
+                      onChange={toggleAllParents}
+                      className="rounded border-slate-350 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                    />
+                  </th>
                   <th className="p-4">Guardian Name</th>
                   <th className="p-4">Email Address</th>
                   <th className="p-4">Phone Number</th>
@@ -492,6 +566,15 @@ export default function ParentsRegistryPage() {
               <tbody className="divide-y divide-slate-50">
                 {currentParents.map((row) => (
                   <tr key={row.id} className="hover:bg-slate-50/50 transition-colors">
+                    {/* Checkbox */}
+                    <td className="p-4 text-center">
+                      <input
+                        type="checkbox"
+                        checked={selectedParentIds.includes(row.id)}
+                        onChange={() => toggleParentSelection(row.id)}
+                        className="rounded border-slate-350 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                      />
+                    </td>
                     {/* Guardian Name */}
                     <td className="p-4">
                       <span className="font-extrabold text-sm text-slate-800 block">
@@ -657,7 +740,7 @@ export default function ParentsRegistryPage() {
                           setExtendedStudentDetail(null);
                           setLoadingDetail(true);
                           try {
-                            const res = await fetch(`/api/students?studentId=${st.id}`);
+                            const res = await fetch(`/api/students?studentId=${st.id}`, { headers: getAuthHeaders() });
                             const json = await res.json();
                             if (res.ok && json.data) {
                               setExtendedStudentDetail(json.data);

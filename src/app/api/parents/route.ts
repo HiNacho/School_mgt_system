@@ -247,37 +247,71 @@ export async function DELETE(req: NextRequest) {
 
     const { searchParams } = new URL(req.url);
     const id = searchParams.get('id');
+    const idsParam = searchParams.get('ids');
+    const schoolId = searchParams.get('schoolId');
 
-    if (!id) {
-      return NextResponse.json({ error: 'Parent ID is required for deletion' }, { status: 400 });
+    if (!id && !idsParam) {
+      return NextResponse.json({ error: 'Parent ID or IDs are required for deletion' }, { status: 400 });
     }
 
-    const parent = await prisma.parent.findUnique({ where: { id } });
-    if (!parent) {
-      return NextResponse.json({ error: 'Parent profile not found' }, { status: 404 });
+    if (id) {
+      const parent = await prisma.parent.findUnique({ where: { id } });
+      if (!parent) {
+        return NextResponse.json({ error: 'Parent profile not found' }, { status: 404 });
+      }
+
+      requireSchoolScope(session, parent.schoolId);
+
+      await prisma.$transaction(async (tx) => {
+        // 1. Set parentId to null for all connected students
+        await tx.student.updateMany({
+          where: { parentId: id },
+          data: { parentId: null }
+        });
+
+        // 2. Delete linked User credential
+        await tx.user.deleteMany({
+          where: { parentId: id }
+        });
+
+        // 3. Delete Parent profile
+        await tx.parent.delete({
+          where: { id }
+        });
+      });
+
+      return NextResponse.json({ success: true, message: 'Parent profile and login credentials successfully deleted' });
+    } else if (idsParam) {
+      const ids = idsParam.split(',').map(i => i.trim()).filter(Boolean);
+      if (ids.length === 0) {
+        return NextResponse.json({ error: 'No parent IDs provided' }, { status: 400 });
+      }
+      if (!schoolId) {
+        return NextResponse.json({ error: 'School ID is required for batch deletion' }, { status: 400 });
+      }
+
+      requireSchoolScope(session, schoolId);
+
+      await prisma.$transaction(async (tx) => {
+        // 1. Set parentId to null for all connected students
+        await tx.student.updateMany({
+          where: { parentId: { in: ids }, schoolId },
+          data: { parentId: null }
+        });
+
+        // 2. Delete linked User credential
+        await tx.user.deleteMany({
+          where: { parentId: { in: ids }, schoolId }
+        });
+
+        // 3. Delete Parent profile
+        await tx.parent.deleteMany({
+          where: { id: { in: ids }, schoolId }
+        });
+      });
+
+      return NextResponse.json({ success: true, message: `Successfully deleted ${ids.length} parent accounts` });
     }
-
-    requireSchoolScope(session, parent.schoolId);
-
-    await prisma.$transaction(async (tx) => {
-      // 1. Set parentId to null for all connected students
-      await tx.student.updateMany({
-        where: { parentId: id },
-        data: { parentId: null }
-      });
-
-      // 2. Delete linked User credential
-      await tx.user.deleteMany({
-        where: { parentId: id }
-      });
-
-      // 3. Delete Parent profile
-      await tx.parent.delete({
-        where: { id }
-      });
-    });
-
-    return NextResponse.json({ success: true, message: 'Parent profile and login credentials successfully deleted' });
   } catch (error: any) {
     console.error('Parent DELETE Error:', error);
     return NextResponse.json({ error: error.message || 'Failed to delete parent account' }, { status: error.status || 500 });
