@@ -821,9 +821,24 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                             <div 
                               key={alert.messageId}
                               className="p-3.5 hover:bg-slate-50 transition-colors flex gap-2.5 items-start text-xs font-semibold cursor-pointer text-left"
-                              onClick={() => {
+                              onClick={async () => {
                                 setBellOpen(false);
-                                router.push('/dashboard/messages');
+                                try {
+                                  await fetch('/api/messages', {
+                                    method: 'PATCH',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({
+                                      userId: session.user.id,
+                                      messageIds: [alert.messageId]
+                                    })
+                                  });
+                                  // Refresh layout stats unread count locally
+                                  setUnreadCount(prev => Math.max(0, prev - 1));
+                                  setLatestAlerts(prev => prev.filter(a => a.messageId !== alert.messageId));
+                                } catch (e) {
+                                  console.error(e);
+                                }
+                                router.push(alert.redirectUrl || '/dashboard/messages');
                               }}
                             >
                               <div className="space-y-1.5 flex-1">

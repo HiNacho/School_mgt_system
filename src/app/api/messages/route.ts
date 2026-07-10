@@ -336,9 +336,22 @@ export async function PATCH(req: NextRequest) {
       }
     });
 
+    // Also mark system notifications in Notification table as read
+    await prisma.notification.updateMany({
+      where: {
+        userId,
+        id: {
+          in: messageIds
+        }
+      },
+      data: {
+        isRead: true
+      }
+    });
+
     return NextResponse.json({ 
       success: true, 
-      message: `Successfully marked ${result.count} announcements as read.` 
+      message: `Successfully marked ${result.count} alerts as read.` 
     });
 
   } catch (error: any) {
