@@ -686,31 +686,11 @@ export default function DashboardHome() {
                   </thead>
                   <tbody className="divide-y divide-slate-100 font-semibold text-slate-700">
                     {(() => {
-                      const allClassArms = [];
-                      if (setupData?.classes && setupData?.arms) {
-                        for (const cls of setupData.classes) {
-                          const relatedArms = setupData.arms.filter((a: any) => a.classId === cls.id);
-                          for (const arm of relatedArms) {
-                            const matchedStatus = classStatuses.find(
-                              (s: any) => s.classId === cls.id && s.armId === arm.id
-                            );
-                            allClassArms.push({
-                              classId: cls.id,
-                              className: cls.name,
-                              armId: arm.id,
-                              armName: arm.name,
-                              status: matchedStatus?.status || 'DRAFT',
-                              feedback: matchedStatus?.feedback || null,
-                            });
-                          }
-                        }
-                      }
-
-                      if (allClassArms.length === 0) {
+                      if (classStatuses.length === 0) {
                         return (
                           <tr>
                             <td colSpan={3} className="p-6 text-center text-slate-400 font-medium italic">
-                              No classes or arms configured yet in setups.
+                              Loading class report card statuses...
                             </td>
                           </tr>
                         );
@@ -718,10 +698,16 @@ export default function DashboardHome() {
 
                       const termId = setupData?.terms?.find((t: any) => t.isCurrent)?.id || setupData?.terms?.[0]?.id || '';
 
-                      return allClassArms.map((item) => {
+                      return classStatuses.map((item) => {
                         let statusColor = 'bg-slate-50 text-slate-600 border-slate-150';
                         let statusText = 'Draft';
-                        if (item.status === 'AWAITING_APPROVAL') {
+                        if (item.status === 'NOT_SET') {
+                          statusColor = 'bg-slate-100 text-slate-450 border-slate-200/80';
+                          statusText = 'Not Set';
+                        } else if (item.status === 'DRAFT') {
+                          statusColor = 'bg-blue-50 text-blue-700 border-blue-200';
+                          statusText = 'Draft / Not Submitted';
+                        } else if (item.status === 'AWAITING_APPROVAL') {
                           statusColor = 'bg-amber-50 text-amber-700 border-amber-200 animate-pulse';
                           statusText = 'Pending Approval';
                         } else if (item.status === 'APPROVED') {

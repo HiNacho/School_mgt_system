@@ -18,14 +18,50 @@ export async function GET(req: NextRequest) {
 
     // A. Fetch all class statuses for the school (for Admin Dashboard)
     if (all) {
-      const statuses = await prisma.classReportStatus.findMany({
-        where: { schoolId, termId },
+      const classes = await prisma.classLevel.findMany({
+        where: { schoolId },
         include: {
-          class: true,
-          arm: true
+          arms: true
         }
       });
-      return NextResponse.json({ success: true, data: statuses });
+
+      const statuses = await prisma.classReportStatus.findMany({
+        where: { schoolId, termId }
+      });
+
+      const scoreGroups = await prisma.score.groupBy({
+        by: ['classId', 'armId'],
+        where: { schoolId, termId },
+        _count: {
+          _all: true
+        }
+      });
+
+      const roster = [];
+      for (const cls of classes) {
+        for (const arm of cls.arms) {
+          const matchedStatus = statuses.find(s => s.classId === cls.id && s.armId === arm.id);
+          const matchedScores = scoreGroups.find(sg => sg.classId === cls.id && sg.armId === arm.id);
+          const scoreCount = matchedScores?._count._all || 0;
+
+          let status = matchedStatus?.status || 'DRAFT';
+          if (status === 'DRAFT' && scoreCount === 0) {
+            status = 'NOT_SET';
+          }
+
+          roster.push({
+            classId: cls.id,
+            className: cls.name,
+            armId: arm.id,
+            armName: arm.name,
+            status,
+            feedback: matchedStatus?.feedback || null,
+            scoreCount
+          });
+        }
+      }
+
+      return NextResponse.json({ success: true, data: roster });
     }
 
     // B. Fetch status for a single class arm
