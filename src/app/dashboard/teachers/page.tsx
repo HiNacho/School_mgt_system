@@ -125,6 +125,61 @@ export default function TeachersDirectoryPage() {
     XLSX.writeFile(wb, 'Teachers_Upload_Template.xlsx');
   };
 
+  const handleExportToExcel = () => {
+    if (teachers.length === 0) {
+      alert("No teacher data available to export.");
+      return;
+    }
+
+    const getFullArmName = (arm: any) => {
+      if (!arm) return '';
+      if (!arm.class) return arm.name;
+      const className = arm.class.name;
+      const armName = arm.name;
+      if (armName.toLowerCase().startsWith(className.toLowerCase())) {
+        return armName;
+      }
+      return `${className} ${armName}`;
+    };
+
+    const wsData = teachers.map((s: any) => {
+      const isClassTeacher = s.role === 'CLASS_TEACHER';
+      const isSubjectTeacher = s.role === 'SUBJECT_TEACHER' || (s.role === 'CLASS_TEACHER' && s.subjectAssignments?.length > 0);
+      
+      let roleStr = '';
+      if (isClassTeacher && isSubjectTeacher) {
+        roleStr = 'Class Teacher, Subject Teacher';
+      } else if (isClassTeacher) {
+        roleStr = 'Class Teacher';
+      } else if (isSubjectTeacher) {
+        roleStr = 'Subject Teacher';
+      } else {
+        roleStr = s.role === 'HEAD_TEACHER' ? 'Head Teacher' : s.role === 'SCHOOL_ADMIN' ? 'School Admin' : s.role;
+      }
+
+      const uniqueSubjects = Array.from(new Set(s.subjectAssignments?.map((sa: any) => sa.subject?.name).filter(Boolean))) as string[];
+      const uniqueArms = Array.from(new Set(s.subjectAssignments?.map((sa: any) => getFullArmName(sa.arm)).filter(Boolean))) as string[];
+
+      return {
+        'Title': s.title || '',
+        'First Name': s.firstName,
+        'Last Name': s.lastName,
+        'Staff Email Address': s.email,
+        'Contact Phone': s.phone || '',
+        'Role': roleStr,
+        'Class Teacher Class': getFullArmName(s.classTeacherArms?.[0]),
+        'Subject': uniqueSubjects.join(', '),
+        'Class Allocation': uniqueArms.join(', '),
+        'Status': s.status
+      };
+    });
+
+    const wb = XLSX.utils.book_new();
+    const wsSheet = XLSX.utils.json_to_sheet(wsData);
+    XLSX.utils.book_append_sheet(wb, wsSheet, 'TeachersRegistry');
+    XLSX.writeFile(wb, `${school?.name || 'School'}_Teachers_Registry.xlsx`);
+  };
+
   const handleExcelFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -773,6 +828,14 @@ export default function TeachersDirectoryPage() {
 
         {isAdmin && (
           <div className="flex items-center gap-2 shrink-0">
+            <button
+              type="button"
+              onClick={handleExportToExcel}
+              className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-2xl bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-bold transition-all shadow-sm shadow-slate-100 cursor-pointer"
+            >
+              <Download className="w-3.5 h-3.5 text-blue-500" /> Export Registry
+            </button>
+
             <button
               type="button"
               onClick={() => {
