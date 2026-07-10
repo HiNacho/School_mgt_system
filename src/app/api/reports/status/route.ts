@@ -18,7 +18,7 @@ export async function GET(req: NextRequest) {
 
     // A. Fetch all class statuses for the school (for Admin Dashboard)
     if (all) {
-      const classes = await prisma.classLevel.findMany({
+      const classes = await prisma.class.findMany({
         where: { schoolId },
         include: {
           arms: true

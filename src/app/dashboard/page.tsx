@@ -686,11 +686,21 @@ export default function DashboardHome() {
                   </thead>
                   <tbody className="divide-y divide-slate-100 font-semibold text-slate-700">
                     {(() => {
-                      if (classStatuses.length === 0) {
+                      if (loading) {
                         return (
                           <tr>
                             <td colSpan={3} className="p-6 text-center text-slate-400 font-medium italic">
                               Loading class report card statuses...
+                            </td>
+                          </tr>
+                        );
+                      }
+
+                      if (classStatuses.length === 0) {
+                        return (
+                          <tr>
+                            <td colSpan={3} className="p-6 text-center text-slate-400 font-medium italic">
+                              No classes or report card statuses found.
                             </td>
                           </tr>
                         );
