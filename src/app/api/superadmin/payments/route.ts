@@ -38,7 +38,7 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { schoolId, amount, paymentMethod, status, planSelected } = body;
+    const { schoolId, amount, paymentMethod, status, planSelected, durationTerms } = body;
 
     if (!schoolId || !amount || !paymentMethod) {
       return NextResponse.json({ error: 'Missing required payment parameters' }, { status: 400 });
@@ -63,11 +63,24 @@ export async function POST(req: NextRequest) {
         }
       });
 
-      // 2. If status is paid, trigger automated subscription activation
+      // 2. If status is paid, trigger automated subscription activation/extension
       if (cleanStatus === 'paid') {
+        const termsCount = parseInt(String(durationTerms), 10) || 1;
+
+        // Fetch current subscription status to check for advance stacking
+        const school = await tx.school.findUnique({
+          where: { id: schoolId },
+          select: { subscriptionEnd: true }
+        });
+
         const start = new Date();
-        const end = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000); // 1 year subscription
-        const grace = new Date(end.getTime() + 14 * 24 * 60 * 60 * 1000); // 14 days grace period
+        const baseTime = school?.subscriptionEnd && new Date(school.subscriptionEnd).getTime() > Date.now()
+          ? new Date(school.subscriptionEnd).getTime()
+          : Date.now();
+
+        // Calculate end date: 90 days per term paid
+        const end = new Date(baseTime + termsCount * 90 * 24 * 60 * 60 * 1000);
+        const grace = new Date(end.getTime() + 14 * 24 * 60 * 60 * 1005); // 14 days grace period (rounded ms)
 
         // Map plan to max students capacity limit
         let maxStudents = 100;

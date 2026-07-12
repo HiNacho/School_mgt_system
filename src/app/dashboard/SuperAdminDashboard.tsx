@@ -61,6 +61,7 @@ export default function SuperAdminDashboard({ user, school }: SuperAdminDashboar
   const [billingAmount, setBillingAmount] = useState('');
   const [billingMethod, setBillingMethod] = useState('Manual Bank Transfer');
   const [billingPlan, setBillingPlan] = useState('Standard Plan');
+  const [billingTerms, setBillingTerms] = useState('1');
   const [loggingPayment, setLoggingPayment] = useState(false);
 
   // Search & Filters
@@ -331,7 +332,8 @@ export default function SuperAdminDashboard({ user, school }: SuperAdminDashboar
           amount: parseFloat(billingAmount),
           paymentMethod: billingMethod,
           status: 'paid',
-          planSelected: billingPlan
+          planSelected: billingPlan,
+          durationTerms: parseInt(billingTerms, 10)
         })
       });
       const json = await res.json();
@@ -1335,6 +1337,19 @@ export default function SuperAdminDashboard({ user, school }: SuperAdminDashboar
                   <option value="Standard Plan (Up to 250 Students)">Standard Plan (Up to 250 Students)</option>
                   <option value="Premium Plan (Up to 500 Students)">Premium Plan (Up to 500 Students)</option>
                   <option value="Enterprise Unlimited Plan">Enterprise Unlimited Plan</option>
+                </select>
+              </div>
+
+              <div className="space-y-1">
+                <label className="block text-[9px] font-extrabold uppercase tracking-wider text-slate-400">Subscription Duration</label>
+                <select
+                  value={billingTerms}
+                  onChange={(e) => setBillingTerms(e.target.value)}
+                  className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-indigo-500 bg-white"
+                >
+                  <option value="1">1 Term (90 Days)</option>
+                  <option value="2">2 Terms (180 Days)</option>
+                  <option value="3">Full Academic Year - 3 Terms (270 Days)</option>
                 </select>
               </div>
 
