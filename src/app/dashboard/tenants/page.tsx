@@ -784,7 +784,7 @@ The NachoEd Support Team
                             <span className="text-xs text-slate-700 font-extrabold block">
                               {row.subscriptionEnd ? new Date(row.subscriptionEnd).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'N/A'}
                             </span>
-                            {row.subscriptionStatus === 'active' && daysLeft !== null && (
+                            {(row.subscriptionStatus === 'active' || row.subscriptionStatus === 'trial') && daysLeft !== null && (
                               <span className={`block text-[9px] font-black uppercase ${daysLeft <= 30 ? 'text-red-500 animate-pulse' : 'text-emerald-600'}`}>
                                 {daysLeft <= 0 ? 'Expired' : `${daysLeft} days remaining`}
                               </span>

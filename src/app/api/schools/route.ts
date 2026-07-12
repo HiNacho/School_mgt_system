@@ -172,8 +172,8 @@ export async function POST(req: NextRequest) {
     }
 
     const trialStart = new Date();
-    const trialEnd = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000); // 14 days trial
-    const graceEnd = new Date(Date.now() + 28 * 24 * 60 * 60 * 1000);  // 14 days trial + 14 days grace
+    const trialEnd = new Date(Date.now() + 90 * 24 * 60 * 60 * 1000); // 90 days trial (1 term)
+    const graceEnd = new Date(trialEnd.getTime() + 14 * 24 * 60 * 60 * 1000);  // 90 days + 14 days grace
 
     const result = await prisma.$transaction(async (tx) => {
       // 1. Create the school tenant

@@ -22,11 +22,6 @@ export async function verifySubscriptionAccess(schoolId: string, writeOperation 
 
     const { subscriptionStatus, subscriptionEnd, gracePeriodEnd } = school;
 
-    // Active or trial are fully allowed
-    if (subscriptionStatus === 'active' || subscriptionStatus === 'trial') {
-      return null;
-    }
-
     // Suspended is completely locked out
     if (subscriptionStatus === 'suspended') {
       return { error: 'Your school subscription has been suspended by the platform administrator. Please contact support.' };
@@ -37,23 +32,33 @@ export async function verifySubscriptionAccess(schoolId: string, writeOperation 
       return { error: 'This school tenant registry has been archived. Access is restricted.' };
     }
 
-    // Expired status checks
-    if (subscriptionStatus === 'expired') {
+    // Active or trial checks (with grace period & auto-suspension details)
+    if (subscriptionStatus === 'active' || subscriptionStatus === 'trial') {
       const now = new Date();
+      if (subscriptionEnd && now > new Date(subscriptionEnd)) {
+        // If grace period ended, auto-suspend tenant in DB and lock out completely
+        if (gracePeriodEnd && now > new Date(gracePeriodEnd)) {
+          try {
+            await prisma.school.update({
+              where: { id: schoolId },
+              data: { subscriptionStatus: 'suspended' }
+            });
+          } catch (e) {
+            console.error('Failed to auto-update school status to suspended:', e);
+          }
+          return { 
+            error: 'Your subscription and 14-day grace period have expired, and your school account has been suspended. Please contact the platform administrator to activate.' 
+          };
+        }
 
-      // Grace period check
-      if (gracePeriodEnd && now > new Date(gracePeriodEnd)) {
-        return { 
-          error: 'Your subscription and 14-day grace period have expired. Access to data entry, scoring, and registration features is locked. Please contact the platform admin to activate.' 
-        };
+        // If inside grace period, block data entry write operations
+        if (writeOperation) {
+          return {
+            error: 'Your school subscription has expired. Data modification features (such as adding students, editing grades, or marking attendance) are restricted. Please contact support to activate.'
+          };
+        }
       }
-
-      // If it is a write operation, we block write operations during expired status!
-      if (writeOperation) {
-        return {
-          error: 'Your school subscription has expired. Data modification features (such as adding students, editing grades, or marking attendance) are restricted. Please contact support to activate.'
-        };
-      }
+      return null;
     }
 
     return null;
