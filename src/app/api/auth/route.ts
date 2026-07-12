@@ -69,6 +69,20 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: `Demo account for role ${bypassRole} not seeded` }, { status: 404 });
       }
 
+      // Check subscription status
+      if (user.role !== 'SUPER_ADMIN' && user.school) {
+        if (user.school.subscriptionStatus === 'suspended') {
+          return NextResponse.json({ 
+            error: 'Your school subscription has been suspended by the platform administrator. Please contact support.' 
+          }, { status: 403 });
+        }
+        if (user.school.subscriptionStatus === 'archived') {
+          return NextResponse.json({ 
+            error: 'This school tenant registry has been archived. Access is restricted.' 
+          }, { status: 403 });
+        }
+      }
+
       // Generate secure JWT session token containing only: userId, role, schoolId
       const token = await generateJWT({
         userId: user.id,
@@ -173,6 +187,22 @@ export async function POST(req: NextRequest) {
 
     // Success: log attempt and login
     await logLoginAttempt(ipAddress, emailOrUsername, true);
+
+    // Check subscription status
+    if (user.role !== 'SUPER_ADMIN' && user.school) {
+      if (user.school.subscriptionStatus === 'suspended') {
+        await logLoginAttempt(ipAddress, emailOrUsername, false);
+        return NextResponse.json({ 
+          error: 'Your school subscription has been suspended by the platform administrator. Please contact support.' 
+        }, { status: 403 });
+      }
+      if (user.school.subscriptionStatus === 'archived') {
+        await logLoginAttempt(ipAddress, emailOrUsername, false);
+        return NextResponse.json({ 
+          error: 'This school tenant registry has been archived. Access is restricted.' 
+        }, { status: 403 });
+      }
+    }
 
     // Generate JWT token containing only: userId, role, schoolId
     const token = await generateJWT({
