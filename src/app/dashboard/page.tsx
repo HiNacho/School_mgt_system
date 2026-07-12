@@ -11,6 +11,7 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, 
   ResponsiveContainer, Legend, PieChart, Pie, Cell 
 } from 'recharts';
+import SuperAdminDashboard from './SuperAdminDashboard';
 
 export default function DashboardHome() {
   const [session, setSession] = useState<any>(null);
@@ -515,6 +516,11 @@ export default function DashboardHome() {
 
   const { user, school } = session;
   const role = user.role;
+
+  if (role === 'SUPER_ADMIN') {
+    return <SuperAdminDashboard user={user} school={school} />;
+  }
+
   const activeStudents = students.filter(s => s.status === 'ACTIVE');
 
   // RENDER CORRESPONDING DASHBOARD
