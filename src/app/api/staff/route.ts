@@ -430,13 +430,16 @@ export async function PATCH(req: NextRequest) {
 
           // Insert new ones
           if (Array.isArray(subjectAssignments) && subjectAssignments.length > 0) {
+            // Pre-fetch all school arms once to avoid N+1 queries in the loop
+            const schoolArms = await tx.arm.findMany({
+              where: { schoolId }
+            });
+
             for (const sa of subjectAssignments) {
               const { subjectId, armId } = sa;
               if (!subjectId || !armId) continue;
 
-              const arm = await tx.arm.findFirst({
-                where: { id: armId, schoolId }
-              });
+              const arm = schoolArms.find(a => a.id === armId);
               if (!arm) continue;
 
               // Create assignment
@@ -456,6 +459,8 @@ export async function PATCH(req: NextRequest) {
       }
 
       return updatedUser;
+    }, {
+      timeout: 30000
     });
 
     return NextResponse.json({ success: true, data: result });
