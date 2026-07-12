@@ -359,7 +359,7 @@ export default function BillingPage() {
                   </div>
                   <div className="flex justify-between items-baseline pt-1">
                     <span className="text-xs text-slate-800 font-black uppercase">Total Due (NGN):</span>
-                    <span className="text-xl font-black text-emerald-650 font-mono">
+                    <span className="text-xl font-black text-emerald-600 font-mono">
                       ₦{calculatedAmount.toLocaleString('en-US')}.00
                     </span>
                   </div>
@@ -370,7 +370,7 @@ export default function BillingPage() {
                   type="button"
                   onClick={handleOnlinePayment}
                   disabled={processingPayment}
-                  className="w-full flex items-center justify-center gap-1.5 py-3 bg-emerald-650 hover:bg-emerald-600 disabled:bg-slate-200 text-white rounded-xl text-xs font-black cursor-pointer shadow-sm transition-colors uppercase tracking-wider"
+                  className="w-full flex items-center justify-center gap-1.5 py-3 bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-200 text-white rounded-xl text-xs font-black cursor-pointer shadow-sm transition-colors uppercase tracking-wider"
                 >
                   {processingPayment ? (
                     <>
