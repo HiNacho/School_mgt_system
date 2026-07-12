@@ -234,6 +234,23 @@ export default function SuperAdminDashboard({ user, school }: SuperAdminDashboar
     loadPlatformData();
   }, []);
 
+  // Automatically calculate default billing amount based on selected plan and duration terms
+  useEffect(() => {
+    let pricePerTerm = 80000; // Standard Plan default (Up to 250 students)
+    if (billingPlan.includes('Basic') || billingPlan.includes('100')) {
+      pricePerTerm = 40000;
+    } else if (billingPlan.includes('Standard') || billingPlan.includes('250')) {
+      pricePerTerm = 80000;
+    } else if (billingPlan.includes('Premium') || billingPlan.includes('500')) {
+      pricePerTerm = 150000;
+    } else if (billingPlan.includes('Enterprise') || billingPlan.includes('Unlimited')) {
+      pricePerTerm = 300000;
+    }
+
+    const termsCount = parseInt(billingTerms, 10) || 1;
+    setBillingAmount(String(pricePerTerm * termsCount));
+  }, [billingPlan, billingTerms]);
+
   // Filter school registry
   const filteredSchools = useMemo(() => {
     return schools.filter(s => {
