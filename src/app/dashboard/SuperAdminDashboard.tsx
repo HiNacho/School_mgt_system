@@ -62,6 +62,109 @@ export default function SuperAdminDashboard({ user, school }: SuperAdminDashboar
   const [selectedStatusFilter, setSelectedStatusFilter] = useState('ALL');
   const [currentTime, setCurrentTime] = useState<string>('');
 
+  // Selector for chart mode
+  const [chartMode, setChartMode] = useState<'revenue' | 'activity' | 'growth'>('revenue');
+
+  // Compute dynamic chart data points based on selected mode
+  const chartData = useMemo(() => {
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    if (chartMode === 'revenue') {
+      const monthlySum: Record<string, number> = {};
+      const now = new Date();
+      const last6Months: string[] = [];
+      for (let i = 5; i >= 0; i--) {
+        const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        const mName = months[d.getMonth()];
+        last6Months.push(mName);
+        monthlySum[mName] = 0;
+      }
+
+      payments.forEach(p => {
+        if (p.status === 'paid') {
+          const pDate = new Date(p.paymentDate);
+          const mName = months[pDate.getMonth()];
+          if (monthlySum[mName] !== undefined) {
+            monthlySum[mName] += p.amount;
+          }
+        }
+      });
+
+      return last6Months.map(m => ({ label: m, value: monthlySum[m] }));
+    } else if (chartMode === 'activity') {
+      const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+      const dailyCount: Record<string, number> = {};
+      const now = new Date();
+      const last7Days: string[] = [];
+      for (let i = 6; i >= 0; i--) {
+        const d = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
+        const dName = days[d.getDay()];
+        last7Days.push(dName);
+        dailyCount[dName] = 0;
+      }
+
+      usageLogs.forEach(l => {
+        const lDate = new Date(l.createdAt);
+        const dName = days[lDate.getDay()];
+        if (dailyCount[dName] !== undefined) {
+          dailyCount[dName]++;
+        }
+      });
+
+      return last7Days.map(d => ({ label: d, value: dailyCount[d] }));
+    } else {
+      const monthlyCount: Record<string, number> = {};
+      const now = new Date();
+      const last6Months: string[] = [];
+      for (let i = 5; i >= 0; i--) {
+        const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        const mName = months[d.getMonth()];
+        last6Months.push(mName);
+        monthlyCount[mName] = 0;
+      }
+
+      schools.forEach(s => {
+        const sDate = new Date(s.createdAt);
+        const mName = months[sDate.getMonth()];
+        if (monthlyCount[mName] !== undefined) {
+          monthlyCount[mName]++;
+        }
+      });
+
+      let cumulative = 0;
+      return last6Months.map(m => {
+        cumulative += monthlyCount[m];
+        return { label: m, value: cumulative };
+      });
+    }
+  }, [chartMode, payments, usageLogs, schools]);
+
+  // Compute SVG Path points from chartData
+  const svgPath = useMemo(() => {
+    if (chartData.length === 0) return { line: '', area: '', points: [] };
+
+    const maxVal = Math.max(...chartData.map(d => d.value), 10);
+    const width = 500;
+    const height = 160;
+    const paddingLeft = 30;
+    const paddingRight = 30;
+    const paddingTop = 20;
+    const paddingBottom = 20;
+
+    const plotWidth = width - paddingLeft - paddingRight;
+    const plotHeight = height - paddingTop - paddingBottom;
+
+    const points = chartData.map((d, index) => {
+      const x = paddingLeft + (index / (chartData.length - 1)) * plotWidth;
+      const y = height - paddingBottom - (d.value / maxVal) * plotHeight;
+      return { x, y };
+    });
+
+    const linePath = points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(' ');
+    const areaPath = `${linePath} L ${points[points.length - 1].x.toFixed(1)} ${(height - paddingBottom).toFixed(1)} L ${points[0].x.toFixed(1)} ${(height - paddingBottom).toFixed(1)} Z`;
+
+    return { line: linePath, area: areaPath, points };
+  }, [chartData]);
+
   useEffect(() => {
     // Dynamic Time display
     const updateTime = () => {
@@ -590,21 +693,60 @@ export default function SuperAdminDashboard({ user, school }: SuperAdminDashboar
             {/* Custom SVG Analytics Chart */}
             <div className="lg:col-span-8 bg-white rounded-3xl border border-slate-200/80 p-6 shadow-sm space-y-4">
               <div className="flex justify-between items-center">
-                <span className="text-[9px] font-extrabold tracking-wider text-slate-400 uppercase">Platform Growth & Revenue Analytics</span>
-                <span className="text-[10px] text-slate-500 font-bold">Past 90 Days</span>
+                <span className="text-[9px] font-extrabold tracking-wider text-slate-400 uppercase">Platform Telemetry & Analytics</span>
+                
+                {/* Dynamic Chart Selector Tab Group */}
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setChartMode('revenue')}
+                    className={`px-2.5 py-1 rounded-lg text-[9px] font-bold border transition-all cursor-pointer ${chartMode === 'revenue' ? 'bg-indigo-50 border-indigo-200 text-indigo-650' : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'}`}
+                  >
+                    Revenue (₦)
+                  </button>
+                  <button
+                    onClick={() => setChartMode('activity')}
+                    className={`px-2.5 py-1 rounded-lg text-[9px] font-bold border transition-all cursor-pointer ${chartMode === 'activity' ? 'bg-indigo-50 border-indigo-200 text-indigo-650' : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'}`}
+                  >
+                    Engagement
+                  </button>
+                  <button
+                    onClick={() => setChartMode('growth')}
+                    className={`px-2.5 py-1 rounded-lg text-[9px] font-bold border transition-all cursor-pointer ${chartMode === 'growth' ? 'bg-indigo-50 border-indigo-200 text-indigo-650' : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'}`}
+                  >
+                    School Onboardings
+                  </button>
+                </div>
               </div>
+
               {/* Interactive SVG Chart Area */}
-              <div className="h-60 w-full relative">
-                <svg className="w-full h-full" viewBox="0 0 500 200" preserveAspectRatio="none">
+              <div className="h-44 w-full relative">
+                <svg className="w-full h-full" viewBox="0 0 500 160" preserveAspectRatio="none">
                   {/* Grid Lines */}
-                  <line x1="0" y1="50" x2="500" y2="50" stroke="#f1f5f9" strokeWidth="1" />
-                  <line x1="0" y1="100" x2="500" y2="100" stroke="#f1f5f9" strokeWidth="1" />
-                  <line x1="0" y1="150" x2="500" y2="150" stroke="#f1f5f9" strokeWidth="1" />
+                  <line x1="0" y1="40" x2="500" y2="40" stroke="#f8fafc" strokeWidth="1" />
+                  <line x1="0" y1="80" x2="500" y2="80" stroke="#f8fafc" strokeWidth="1" />
+                  <line x1="0" y1="120" x2="500" y2="120" stroke="#f8fafc" strokeWidth="1" />
                   
                   {/* Chart Fill (Area Under Line) */}
-                  <path d="M 0 180 Q 100 150, 200 110 T 400 60 T 500 20 L 500 200 L 0 200 Z" fill="url(#chartGrad)" opacity="0.15" />
+                  {svgPath.area && (
+                    <path d={svgPath.area} fill="url(#chartGrad)" opacity="0.12" />
+                  )}
                   {/* Chart Line */}
-                  <path d="M 0 180 Q 100 150, 200 110 T 400 60 T 500 20" fill="none" stroke="#4f46e5" strokeWidth="3" />
+                  {svgPath.line && (
+                    <path d={svgPath.line} fill="none" stroke="#4f46e5" strokeWidth="2.5" />
+                  )}
+                  
+                  {/* Render Data Points Dots */}
+                  {svgPath.points?.map((p, i) => (
+                    <g key={i} className="group cursor-pointer">
+                      <circle
+                        cx={p.x}
+                        cy={p.y}
+                        r="3.5"
+                        className="fill-indigo-600 stroke-white stroke-2 hover:r-5 transition-all"
+                      />
+                      <title>{chartData[i].label}: {chartMode === 'revenue' ? `₦${chartData[i].value.toLocaleString()}` : chartData[i].value}</title>
+                    </g>
+                  ))}
                   
                   {/* Definitions for gradient */}
                   <defs>
@@ -615,11 +757,10 @@ export default function SuperAdminDashboard({ user, school }: SuperAdminDashboar
                   </defs>
                 </svg>
                 {/* Axes details */}
-                <div className="absolute bottom-1 left-0 right-0 flex justify-between text-[8px] font-bold text-slate-400 px-2">
-                  <span>April</span>
-                  <span>May</span>
-                  <span>June</span>
-                  <span>July (Active)</span>
+                <div className="absolute bottom-1 left-0 right-0 flex justify-between text-[8px] font-bold text-slate-400 px-6">
+                  {chartData.map((d, i) => (
+                    <span key={i}>{d.label}</span>
+                  ))}
                 </div>
               </div>
             </div>
