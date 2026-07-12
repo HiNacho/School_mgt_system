@@ -359,8 +359,20 @@ export default function SuperAdminDashboard({ user, school }: SuperAdminDashboar
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || 'Failed to impersonate admin');
 
+      // Backup current super admin session & token
+      const currentSession = localStorage.getItem('report_user_session');
+      const currentToken = localStorage.getItem('report_auth_token');
+      if (currentSession) {
+        localStorage.setItem('report_super_session_backup', currentSession);
+      }
+      if (currentToken) {
+        localStorage.setItem('report_super_token_backup', currentToken);
+      }
+
+      // Overwrite with school admin session and cookie
       localStorage.setItem('report_auth_token', json.token);
       localStorage.setItem('report_user_session', JSON.stringify({ user: json.user, school: json.school }));
+      document.cookie = `report_auth_token=${json.token}; path=/; max-age=3600; SameSite=Lax`;
       
       // Force reload to dashboard with school admin context loaded
       window.location.href = '/dashboard';
