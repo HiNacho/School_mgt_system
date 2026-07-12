@@ -536,21 +536,21 @@ The NachoEd Support Team
   return (
     <div className="space-y-6 max-w-7xl mx-auto pb-12 text-slate-800">
       
-      {/* Page Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+      {/* Page Header Welcome Card */}
+      <div className="bg-white border border-[#e9ecef] rounded-3xl p-6 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h1 className="text-xl font-extrabold text-slate-800 flex items-center gap-2">
-            <School className="w-6 h-6 text-emerald-600" /> SaaS School Tenant Registry
+          <span className="text-[9px] font-bold tracking-widest text-[#94a3b8] uppercase">NachoEd Global Platform</span>
+          <h1 className="text-xl font-normal text-[#1e293b] tracking-tight mt-1">
+            SaaS School <span className="text-emerald-500 serif-italic font-normal">Tenant Registry</span>
           </h1>
-          <p className="text-xs text-slate-450 mt-1 font-semibold">
+          <p className="text-xs text-[#64748b] font-semibold mt-0.5">
             Super Administrator console to deploy, isolate, monitor, and scale multi-tenant school academic engines.
           </p>
         </div>
-
         <button
           type="button"
           onClick={() => setShowRegModal(true)}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black transition-all shadow-md shadow-emerald-600/10 cursor-pointer"
+          className="flex items-center gap-1.5 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold transition-all shadow-sm shadow-emerald-600/10 cursor-pointer w-full md:w-auto justify-center"
         >
           <Plus className="w-4 h-4" /> Register New Tenant
         </button>
@@ -578,103 +578,117 @@ The NachoEd Support Team
       )}
 
       {/* Business Stat Widgets */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-        <div className="p-5 rounded-3xl bg-white border border-slate-200/60 shadow-sm flex items-center gap-4">
-          <div className="p-3 rounded-xl bg-emerald-50 text-emerald-600">
-            <School className="w-5 h-5" />
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+        {/* Total/Active Schools */}
+        <div className="bg-white rounded-3xl border border-slate-200/80 p-5 shadow-sm space-y-2">
+          <div className="flex justify-between items-start text-slate-400">
+            <span className="text-[10px] font-bold uppercase tracking-wider">Total / Active</span>
+            <School className="w-4 h-4 text-emerald-600" />
           </div>
-          <div>
-            <span className="block text-[10px] text-slate-400 font-bold uppercase tracking-wider">Total / Active</span>
-            <span className="text-xl font-extrabold text-slate-800">{tenants.length} / <span className="text-emerald-650">{activeCount} Schools</span></span>
+          <div className="flex items-baseline gap-1.5">
+            <span className="text-xl font-extrabold text-slate-800">{tenants.length}</span>
+            <span className="text-xs font-bold text-emerald-500">/ {activeCount} Live</span>
           </div>
-        </div>
-
-        <div className="p-5 rounded-3xl bg-white border border-slate-200/60 shadow-sm flex items-center gap-4">
-          <div className="p-3 rounded-xl bg-purple-50 text-purple-600">
-            <Mail className="w-5 h-5" />
-          </div>
-          <div>
-            <span className="block text-[10px] text-slate-400 font-bold uppercase tracking-wider">Registered Leads</span>
-            <span className="text-xl font-extrabold text-slate-800">{leads.length} Leads</span>
+          <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
+            <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${tenants.length ? (activeCount / tenants.length) * 100 : 0}%` }} />
           </div>
         </div>
 
-        <div className="p-5 rounded-3xl bg-white border border-slate-200/60 shadow-sm flex items-center gap-4">
-          <div className="p-3 rounded-xl bg-sky-50 text-sky-600">
-            <DollarSign className="w-5 h-5" />
+        {/* Leads */}
+        <div className="bg-white rounded-3xl border border-slate-200/80 p-5 shadow-sm space-y-2">
+          <div className="flex justify-between items-start text-slate-400">
+            <span className="text-[10px] font-bold uppercase tracking-wider">Registered Leads</span>
+            <Mail className="w-4 h-4 text-purple-600" />
           </div>
-          <div>
-            <span className="block text-[10px] text-slate-400 font-bold uppercase tracking-wider">Platform Revenue</span>
-            <span className="text-xl font-extrabold text-slate-850">₦{(totalRevenueVal / 1000000).toFixed(2)}M</span>
+          <div className="flex items-baseline gap-1.5">
+            <span className="text-xl font-extrabold text-slate-800">{leads.length}</span>
+            <span className="text-xs font-bold text-slate-450">Leads</span>
           </div>
+          <div className="h-1 w-full bg-purple-100/50 rounded-full" />
         </div>
 
-        <div className="p-5 rounded-3xl bg-white border border-slate-200/60 shadow-sm flex items-center gap-4">
-          <div className="p-3 rounded-xl bg-indigo-50 text-indigo-600">
-            <Users className="w-5 h-5" />
+        {/* Revenue */}
+        <div className="bg-white rounded-3xl border border-slate-200/80 p-5 shadow-sm space-y-2">
+          <div className="flex justify-between items-start text-slate-400">
+            <span className="text-[10px] font-bold uppercase tracking-wider">Platform Revenue</span>
+            <DollarSign className="w-4 h-4 text-sky-600" />
           </div>
-          <div>
-            <span className="block text-[10px] text-slate-400 font-bold uppercase tracking-wider">Wards Enrollment</span>
-            <span className="text-xl font-extrabold text-slate-800">{totalStudents} Pupils</span>
+          <div className="flex items-baseline gap-1.5">
+            <span className="text-xl font-extrabold text-slate-855 text-slate-800">₦{(totalRevenueVal / 1000000).toFixed(2)}M</span>
           </div>
+          <div className="h-1 w-full bg-sky-100/50 rounded-full" />
         </div>
 
-        <div className="p-5 rounded-3xl bg-white border border-slate-200/60 shadow-sm flex items-center gap-4">
-          <div className="p-3 rounded-xl bg-amber-50 text-amber-600">
-            <AlertTriangle className="w-5 h-5" />
+        {/* Enrollment */}
+        <div className="bg-white rounded-3xl border border-slate-200/80 p-5 shadow-sm space-y-2">
+          <div className="flex justify-between items-start text-slate-400">
+            <span className="text-[10px] font-bold uppercase tracking-wider">Wards Enrollment</span>
+            <Users className="w-4 h-4 text-indigo-650" />
           </div>
-          <div>
-            <span className="block text-[10px] text-slate-400 font-bold uppercase tracking-wider">Expired / Suspended</span>
-            <span className="text-xl font-extrabold text-slate-800">{expiredCount} / <span className="text-amber-650">{tenants.filter(t=>t.subscriptionStatus==='suspended').length} Closed</span></span>
+          <div className="flex items-baseline gap-1.5">
+            <span className="text-xl font-extrabold text-slate-800">{totalStudents}</span>
           </div>
+          <div className="h-1 w-full bg-indigo-100/50 rounded-full" />
+        </div>
+
+        {/* Expired / Closed */}
+        <div className="bg-white rounded-3xl border border-slate-200/80 p-5 shadow-sm space-y-2 col-span-2 lg:col-span-1">
+          <div className="flex justify-between items-start text-slate-400">
+            <span className="text-[10px] font-bold uppercase tracking-wider">Inactive / Closed</span>
+            <AlertTriangle className="w-4 h-4 text-amber-500" />
+          </div>
+          <div className="flex items-baseline gap-1.5">
+            <span className="text-xl font-extrabold text-slate-800">{expiredCount + tenants.filter(t=>t.subscriptionStatus==='suspended').length}</span>
+          </div>
+          <div className="h-1 w-full bg-amber-100/50 rounded-full" />
         </div>
       </div>
 
       {/* Tabs navigation block */}
-      <div className="flex border-b border-slate-200 bg-white p-1 rounded-2xl border border-slate-150 w-full max-w-2xl">
+      <div className="flex border-b border-slate-200 gap-6 w-full">
         <button
           type="button"
           onClick={() => setActiveTab('schools')}
-          className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer ${
+          className={`pb-3 text-xs font-bold transition-all border-b-2 cursor-pointer flex items-center gap-1.5 ${
             activeTab === 'schools' 
-              ? 'bg-emerald-50 text-emerald-800 border border-emerald-100 shadow-sm font-black' 
-              : 'text-slate-400 hover:text-slate-650'
+              ? 'border-emerald-600 text-emerald-600 font-black' 
+              : 'border-transparent text-slate-400 hover:text-slate-650'
           }`}
         >
-          <School className="w-4 h-4" /> Schools Registry
+          <School className="w-3.5 h-3.5" /> Schools Registry
         </button>
         <button
           type="button"
           onClick={() => setActiveTab('leads')}
-          className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer ${
+          className={`pb-3 text-xs font-bold transition-all border-b-2 cursor-pointer flex items-center gap-1.5 ${
             activeTab === 'leads' 
-              ? 'bg-emerald-50 text-emerald-800 border border-emerald-100 shadow-sm font-black' 
-              : 'text-slate-400 hover:text-slate-650'
+              ? 'border-emerald-600 text-emerald-600 font-black' 
+              : 'border-transparent text-slate-400 hover:text-slate-650'
           }`}
         >
-          <Mail className="w-4 h-4" /> Lead Registrations
+          <Mail className="w-3.5 h-3.5" /> Lead Registrations
         </button>
         <button
           type="button"
           onClick={() => setActiveTab('payments')}
-          className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer ${
+          className={`pb-3 text-xs font-bold transition-all border-b-2 cursor-pointer flex items-center gap-1.5 ${
             activeTab === 'payments' 
-              ? 'bg-emerald-50 text-emerald-800 border border-emerald-100 shadow-sm font-black' 
-              : 'text-slate-400 hover:text-slate-650'
+              ? 'border-emerald-600 text-emerald-600 font-black' 
+              : 'border-transparent text-slate-400 hover:text-slate-650'
           }`}
         >
-          <CreditCard className="w-4 h-4" /> Payments Ledger
+          <CreditCard className="w-3.5 h-3.5" /> Payments Ledger
         </button>
         <button
           type="button"
           onClick={() => setActiveTab('usage')}
-          className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer ${
+          className={`pb-3 text-xs font-bold transition-all border-b-2 cursor-pointer flex items-center gap-1.5 ${
             activeTab === 'usage' 
-              ? 'bg-emerald-50 text-emerald-800 border border-emerald-100 shadow-sm font-black' 
-              : 'text-slate-400 hover:text-slate-650'
+              ? 'border-emerald-600 text-emerald-600 font-black' 
+              : 'border-transparent text-slate-400 hover:text-slate-650'
           }`}
         >
-          <Activity className="w-4 h-4" /> Telemetry Logs
+          <Activity className="w-3.5 h-3.5" /> Telemetry Logs
         </button>
       </div>
 
