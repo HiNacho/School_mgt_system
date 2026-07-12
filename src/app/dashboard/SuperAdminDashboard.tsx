@@ -172,17 +172,26 @@ export default function SuperAdminDashboard({ user, school }: SuperAdminDashboar
     return { line: linePath, area: areaPath, points };
   }, [chartData]);
 
-  // Daily stats calculations
+  // Daily stats calculations (sliding 24-hour window to handle timezone shifts/midnights)
   const dailyActiveUsersCount = useMemo(() => {
-    const uniqueEmails = new Set(auditLogs.map(l => l.user?.email).filter(Boolean));
-    return uniqueEmails.size || 0;
+    const oneDayMs = 24 * 60 * 60 * 1000;
+    const nowMs = Date.now();
+    const activeEmails = auditLogs
+      .filter(l => nowMs - new Date(l.loginTime).getTime() <= oneDayMs)
+      .map(l => l.user?.email)
+      .filter(Boolean);
+    return new Set(activeEmails).size || 0;
   }, [auditLogs]);
 
   const todayRevenueSum = useMemo(() => {
-    const startOfToday = new Date();
-    startOfToday.setHours(0, 0, 0, 0);
+    const oneDayMs = 24 * 60 * 60 * 1000;
+    const nowMs = Date.now();
     return payments
-      .filter(p => p.status === 'paid' && new Date(p.paymentDate).getTime() >= startOfToday.getTime())
+      .filter(p => {
+        const isPaid = p.status === 'paid';
+        const isRecent = nowMs - new Date(p.paymentDate).getTime() <= oneDayMs;
+        return isPaid && isRecent;
+      })
       .reduce((sum, p) => sum + p.amount, 0);
   }, [payments]);
 
