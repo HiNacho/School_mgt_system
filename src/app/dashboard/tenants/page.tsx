@@ -467,6 +467,21 @@ The NachoEd Support Team
       // Backup current super admin session & token
       const currentSession = localStorage.getItem('report_user_session');
       const currentToken = localStorage.getItem('report_auth_token');
+      
+      // Log usage trace using Super Admin credentials before they are overwritten
+      try {
+        await fetch('/api/superadmin/usage', {
+          method: 'POST',
+          headers: getAuthHeaders(), // reads Super Admin token
+          body: JSON.stringify({
+            schoolId: tenant.id,
+            activityType: 'Super Admin Impersonation Session Active'
+          })
+        });
+      } catch (usageErr) {
+        console.error('Failed to log impersonation audit trace', usageErr);
+      }
+
       if (currentSession) {
         localStorage.setItem('report_super_session_backup', currentSession);
       }
@@ -483,16 +498,6 @@ The NachoEd Support Team
       // Set auth token in localStorage and cookie
       localStorage.setItem('report_auth_token', json.data.token);
       document.cookie = `report_auth_token=${json.data.token}; path=/; max-age=3600; SameSite=Lax`;
-
-      // Log usage trace
-      await fetch('/api/superadmin/usage', {
-        method: 'POST',
-        headers: getAuthHeaders(),
-        body: JSON.stringify({
-          schoolId: tenant.id,
-          activityType: 'Super Admin Impersonation Session Active'
-        })
-      });
 
       // Redirect and reload to reflect new session boundary
       window.location.href = '/dashboard';
