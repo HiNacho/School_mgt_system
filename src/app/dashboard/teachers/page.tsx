@@ -11,6 +11,7 @@ interface TeacherMember {
   id: string;
   firstName: string;
   lastName: string;
+  title?: string;
   email: string;
   role: string;
   phone: string;

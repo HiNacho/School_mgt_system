@@ -73,7 +73,7 @@ export default function DashboardHome() {
     const termId = setupData?.terms?.find((t: any) => t.isCurrent)?.id || setupData?.terms?.[0]?.id || '';
 
     const token = localStorage.getItem('report_auth_token') || '';
-    const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+    const headers: Record<string, string> = token ? { 'Authorization': `Bearer ${token}` } : {};
 
     const fetchStudentDetail = async (studentId: string) => {
       try {
@@ -129,7 +129,7 @@ export default function DashboardHome() {
       let currentTermId = '';
 
       const token = localStorage.getItem('report_auth_token') || '';
-      const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+      const headers: Record<string, string> = token ? { 'Authorization': `Bearer ${token}` } : {};
 
       if (role === 'SUPER_ADMIN') {
         // Fetch global platform-wide statistics for Super Admin
