@@ -18,6 +18,13 @@ export default function SuperAdminDashboard({ user, school }: SuperAdminDashboar
   // Navigation tabs for the 20 subsections
   const [activeTab, setActiveTab] = useState<'overview' | 'schools' | 'leads' | 'billing' | 'audit'>('overview');
 
+  const getGreeting = () => {
+    const hr = new Date().getHours();
+    if (hr < 12) return 'Good Morning';
+    if (hr < 17) return 'Good Afternoon';
+    return 'Good Evening';
+  };
+
   // Core Data States
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState<any>(null);
@@ -470,7 +477,7 @@ export default function SuperAdminDashboard({ user, school }: SuperAdminDashboar
             <div className="p-2 rounded-xl bg-slate-50 border border-slate-100">
               <Shield className="w-4 h-4 text-indigo-650" />
             </div>
-            <h1 className="text-lg font-extrabold text-slate-900">Good Morning, {user.firstName || 'Victor'} 👋</h1>
+            <h1 className="text-lg font-extrabold text-slate-900">{getGreeting()}, {user.firstName || 'Victor'} 👋</h1>
           </div>
           <p className="text-xs text-slate-400 font-medium">
             Platform central command • Version 2.4.0 • Local Time: <span className="font-mono font-bold text-slate-650">{currentTime || '11:52 PM'}</span>
