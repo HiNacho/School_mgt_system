@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { 
   Home, Users, GraduationCap, BookOpen, Layers, ClipboardList, 
   MessageSquare, User, Settings, LogOut, Menu, X, 
-  Bell, Award, Shield, Sparkles, Calendar, FileText, CheckCircle
+  Bell, Award, Shield, Sparkles, Calendar, FileText, CheckCircle, CreditCard
 } from 'lucide-react';
 
 interface SidebarItem {
@@ -322,6 +322,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       { name: 'Classes', href: '/dashboard/classes', icon: Layers },
       { name: 'Attendance', href: '/dashboard/attendance', icon: ClipboardList },
       { name: 'Messages', href: '/dashboard/messages', icon: MessageSquare },
+      { name: 'Billing & Subscription', href: '/dashboard/billing', icon: CreditCard },
     ];
   } else {
     // Teachers, Parents, Students default links
