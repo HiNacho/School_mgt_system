@@ -172,6 +172,20 @@ export default function SuperAdminDashboard({ user, school }: SuperAdminDashboar
     return { line: linePath, area: areaPath, points };
   }, [chartData]);
 
+  // Daily stats calculations
+  const dailyActiveUsersCount = useMemo(() => {
+    const uniqueEmails = new Set(auditLogs.map(l => l.user?.email).filter(Boolean));
+    return uniqueEmails.size || 0;
+  }, [auditLogs]);
+
+  const todayRevenueSum = useMemo(() => {
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
+    return payments
+      .filter(p => p.status === 'paid' && new Date(p.paymentDate).getTime() >= startOfToday.getTime())
+      .reduce((sum, p) => sum + p.amount, 0);
+  }, [payments]);
+
   useEffect(() => {
     // Dynamic Time display
     const updateTime = () => {
@@ -678,19 +692,19 @@ export default function SuperAdminDashboard({ user, school }: SuperAdminDashboar
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <div className="p-4 rounded-2xl border border-slate-100 bg-slate-50/50 space-y-1">
                 <h4 className="text-slate-450 text-[10px] font-bold">Daily Active Users</h4>
-                <div className="text-lg font-black text-slate-700">148 logins</div>
+                <div className="text-lg font-black text-slate-700">{dailyActiveUsersCount || 0} active users</div>
               </div>
               <div className="p-4 rounded-2xl border border-slate-100 bg-slate-50/50 space-y-1">
                 <h4 className="text-slate-450 text-[10px] font-bold">Attendance Sheets Taken</h4>
-                <div className="text-lg font-black text-slate-700">32 classrooms</div>
+                <div className="text-lg font-black text-slate-700">{stats?.totalAttendanceTaken || 0} registers</div>
               </div>
               <div className="p-4 rounded-2xl border border-slate-100 bg-slate-50/50 space-y-1">
                 <h4 className="text-slate-450 text-[10px] font-bold">Report Cards Compiled</h4>
-                <div className="text-lg font-black text-slate-700">12 class levels</div>
+                <div className="text-lg font-black text-slate-700">{stats?.totalReportCardsCompiled || 0} class levels</div>
               </div>
               <div className="p-4 rounded-2xl border border-slate-100 bg-slate-50/50 space-y-1">
                 <h4 className="text-slate-450 text-[10px] font-bold">Revenue Logged Today</h4>
-                <div className="text-lg font-black text-emerald-600">₦280,000</div>
+                <div className="text-lg font-black text-emerald-600">₦{(todayRevenueSum || 0).toLocaleString()}</div>
               </div>
             </div>
           </div>
