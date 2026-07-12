@@ -237,6 +237,33 @@ export default function ParentsRegistryPage() {
     }
   };
 
+  const handleExportToExcel = () => {
+    if (parents.length === 0) {
+      alert("No parent data available to export.");
+      return;
+    }
+
+    const wsData = parents.map((s: ParentMember) => {
+      const linkedWards = s.students?.map((st: any) => `${st.firstName} ${st.lastName} (${st.class?.name || ''} ${st.arm?.name || ''})`).join(', ') || '';
+      const wardAdmissionNumbers = s.students?.map((st: any) => st.admissionNumber).join(', ') || '';
+
+      return {
+        'First Name': s.firstName,
+        'Last Name': s.lastName,
+        'Email Address': s.email,
+        'Phone Number': s.phone || '',
+        'Residential Address': s.address || '',
+        'Linked Children (Names & Classes)': linkedWards,
+        'Linked Children (Admission Numbers)': wardAdmissionNumbers
+      };
+    });
+
+    const wb = XLSX.utils.book_new();
+    const wsSheet = XLSX.utils.json_to_sheet(wsData);
+    XLSX.utils.book_append_sheet(wb, wsSheet, 'ParentsRegistry');
+    XLSX.writeFile(wb, `${school?.name || 'School'}_Parents_Registry.xlsx`);
+  };
+
   useEffect(() => {
     const sessionStr = localStorage.getItem('report_user_session');
     if (sessionStr) {
@@ -461,6 +488,14 @@ export default function ParentsRegistryPage() {
               <Trash2 className="w-3.5 h-3.5" /> Delete Selected ({selectedParentIds.length})
             </button>
           )}
+
+          <button
+            type="button"
+            onClick={handleExportToExcel}
+            className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-2xl bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-bold transition-all shadow-sm shadow-slate-100 cursor-pointer animate-fadeIn"
+          >
+            <Download className="w-3.5 h-3.5 text-blue-500" /> Export Registry
+          </button>
 
           <button
             type="button"
