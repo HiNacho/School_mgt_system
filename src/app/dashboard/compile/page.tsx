@@ -208,9 +208,15 @@ export default function ReportCardCompilerPage() {
     setSelectedStudentIds(new Set());
 
     try {
-      const res = await fetch(
-        `/api/reports?schoolId=${session.school.id}&classId=${selectedClass}&armId=${selectedArm}&termId=${selectedTerm}`
-      );
+      const params = new URLSearchParams(window.location.search);
+      const queryStudentId = params.get('studentId');
+      
+      let url = `/api/reports?schoolId=${session.school.id}&classId=${selectedClass}&armId=${selectedArm}&termId=${selectedTerm}`;
+      if (queryStudentId) {
+        url += `&studentId=${queryStudentId}`;
+      }
+
+      const res = await fetch(url);
       const json = await res.json();
 
       if (!res.ok) throw new Error(json.error || 'Failed to compile reports');
