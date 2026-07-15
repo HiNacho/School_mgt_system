@@ -40,6 +40,10 @@ export async function GET(req: NextRequest) {
       console.error('[Telemetry] Error recording report telemetry:', telemetryErr);
     }
     if (session.role === 'PARENT' || session.role === 'STUDENT') {
+      if (!studentId) {
+        return NextResponse.json({ error: 'Student ID is required for student/parent inquiries' }, { status: 400 });
+      }
+
       const statusRecord = await prisma.classReportStatus.findUnique({
         where: {
           schoolId_classId_armId_termId: {
@@ -55,6 +59,34 @@ export async function GET(req: NextRequest) {
           { error: 'Term report cards have not been approved and released by the administration yet.' },
           { status: 403 }
         );
+      }
+
+      // Verify relationship linkage for data isolation
+      if (session.role === 'PARENT') {
+        const parentUser = await prisma.user.findUnique({
+          where: { id: session.userId },
+          select: {
+            parent: {
+              include: {
+                students: {
+                  select: { id: true }
+                }
+              }
+            }
+          }
+        });
+        const hasWard = parentUser?.parent?.students.some((s: any) => s.id === studentId);
+        if (!hasWard) {
+          return NextResponse.json({ error: 'Access Denied: Requested student is not your linked ward.' }, { status: 403 });
+        }
+      } else if (session.role === 'STUDENT') {
+        const studentUser = await prisma.user.findUnique({
+          where: { id: session.userId },
+          select: { studentId: true }
+        });
+        if (studentUser?.studentId !== studentId) {
+          return NextResponse.json({ error: 'Access Denied: You are not authorized to view this student record.' }, { status: 403 });
+        }
       }
     }
 

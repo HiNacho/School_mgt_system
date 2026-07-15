@@ -99,20 +99,52 @@ export default function ReportCardCompilerPage() {
   useEffect(() => {
     const userSession = localStorage.getItem('report_user_session');
     if (userSession) {
-      const parsed = JSON.parse(userSession);
-      setSession(parsed);
+      try {
+        const parsed = JSON.parse(userSession);
+        const role = parsed.user?.role;
+        
+        const params = new URLSearchParams(window.location.search);
+        const queryClassId = params.get('classId');
+        const queryArmId = params.get('armId');
+        const queryTermId = params.get('termId');
+        const queryStudentId = params.get('studentId');
 
-      const params = new URLSearchParams(window.location.search);
-      const queryClassId = params.get('classId');
-      const queryArmId = params.get('armId');
-      const queryTermId = params.get('termId');
-      const queryStudentId = params.get('studentId');
+        // Security validations for Parent and Student roles
+        if (role === 'PARENT') {
+          if (!queryStudentId) {
+            window.location.href = '/dashboard';
+            return;
+          }
+          const parentWards = parsed.user?.parent?.students || [];
+          const hasWard = parentWards.some((kid: any) => kid.id === queryStudentId);
+          if (!hasWard) {
+            window.location.href = '/dashboard';
+            return;
+          }
+        } else if (role === 'STUDENT') {
+          if (!queryStudentId) {
+            window.location.href = '/dashboard';
+            return;
+          }
+          const studentId = parsed.user?.student?.id;
+          if (studentId !== queryStudentId) {
+            window.location.href = '/dashboard';
+            return;
+          }
+        }
 
-      if (queryStudentId) {
-        setAutoPreviewStudentId(queryStudentId);
+        setSession(parsed);
+
+        if (queryStudentId) {
+          setAutoPreviewStudentId(queryStudentId);
+        }
+
+        loadSetupConfigs(parsed, queryClassId, queryArmId, queryTermId);
+      } catch (e) {
+        window.location.href = '/login';
       }
-
-      loadSetupConfigs(parsed, queryClassId, queryArmId, queryTermId);
+    } else {
+      window.location.href = '/login';
     }
   }, []);
 
@@ -372,6 +404,7 @@ export default function ReportCardCompilerPage() {
   const userRole = session?.user?.role;
   const isClassTeacher = userRole === 'CLASS_TEACHER';
   const isAdmin = userRole === 'SCHOOL_ADMIN' || userRole === 'SUPER_ADMIN';
+  const isParentOrStudent = userRole === 'PARENT' || userRole === 'STUDENT';
 
   if (loading) {
     return (
@@ -379,6 +412,217 @@ export default function ReportCardCompilerPage() {
         <div className="text-center space-y-4">
           <div className={`w-8 h-8 border-4 border-t-slate-500 border-r-transparent border-b-transparent border-l-transparent rounded-full animate-spin mx-auto`} />
           <p className="text-slate-400 text-xs tracking-wider uppercase font-bold">Initializing printable compiler...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (isParentOrStudent) {
+    if (!previewReport) {
+      return (
+        <div className="h-[60vh] flex items-center justify-center">
+          <div className="text-center space-y-4">
+            <div className="w-8 h-8 border-4 border-t-slate-500 border-r-transparent border-b-transparent border-l-transparent rounded-full animate-spin mx-auto" />
+            <p className="text-slate-400 text-xs tracking-wider uppercase font-bold">Accessing academic record...</p>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div className="space-y-6 max-w-4xl mx-auto p-4">
+        {/* Visual Parent Header */}
+        <div className="bg-white border border-slate-200/80 rounded-3xl p-5 shadow-sm flex justify-between items-center no-print">
+          <div>
+            <h1 className="text-xs font-black uppercase text-slate-500 tracking-wider">Academic Report card</h1>
+            <h2 className="text-base font-black text-slate-850 mt-0.5">
+              {previewReport.student.lastName}, {previewReport.student.firstName}
+            </h2>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => window.print()}
+              className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold transition-all ${themeBgAccent}`}
+            >
+              <Printer className="w-4 h-4" /> Print Report Card
+            </button>
+            <a
+              href="/dashboard"
+              className="px-4 py-2 border border-slate-200 rounded-xl text-xs font-bold text-slate-650 hover:bg-slate-50 transition-colors"
+            >
+              Back to Dashboard
+            </a>
+          </div>
+        </div>
+
+        {/* Inline A4 Sheet View */}
+        <div className="flex justify-center bg-slate-50 rounded-3xl p-6 border border-slate-200/80 overflow-x-auto">
+          <div className="bg-white text-slate-950 p-8 rounded shadow-lg w-[210mm] min-h-[297mm] font-serif flex flex-col justify-between">
+            {/* Visual Card Header */}
+            <div className="space-y-4">
+              <div className="flex items-start justify-between border-b-2 border-slate-900 pb-4">
+                <div className="flex items-center gap-4">
+                  {compiledSchool?.logo ? (
+                    <img src={compiledSchool.logo} alt="School Logo" className="w-14 h-14 rounded-full object-cover border-2 border-slate-800 bg-white" />
+                  ) : (
+                    <div className="text-slate-800 border-2 border-slate-800 p-1 rounded-full w-14 h-14 flex items-center justify-center bg-slate-100 font-extrabold">
+                      {isGreenwood ? 'G.S' : 'L.E.P'}
+                    </div>
+                  )}
+                  <div>
+                    <h1 className="font-extrabold text-lg uppercase tracking-tight text-slate-900">{compiledSchool?.name}</h1>
+                    <p className="text-[10px] text-slate-600 font-sans italic">{compiledSchool?.address || 'Lagos, Nigeria'}</p>
+                    <p className="text-[9px] text-slate-500 font-sans">Contact: {compiledSchool?.phone || '+234 803 000 0000'} | {compiledSchool?.email}</p>
+                  </div>
+                </div>
+
+                <div className="text-right font-sans">
+                  <span className="inline-block px-3 py-1 bg-slate-900 text-white font-extrabold text-[10px] rounded uppercase tracking-wider">
+                    Official Academic Report
+                  </span>
+                  <p className="text-[10px] font-bold text-slate-600 mt-2 font-mono">{compiledTerm?.name} ({compiledTerm?.session})</p>
+                </div>
+              </div>
+
+              {/* Student Details Grid */}
+              <div className="grid grid-cols-12 gap-4 border border-slate-900 p-3 rounded font-sans text-[11px] bg-slate-50/50">
+                <div className="col-span-8 grid grid-cols-2 gap-y-1.5">
+                  <div>
+                    <span className="text-slate-500 font-bold uppercase tracking-wider text-[8px] block">Student Name</span>
+                    <strong className="text-slate-900 text-xs font-serif">{previewReport.student.lastName}, {previewReport.student.firstName} {previewReport.student.middleName}</strong>
+                  </div>
+                  <div>
+                    <span className="text-slate-500 font-bold uppercase tracking-wider text-[8px] block">Admission ID</span>
+                    <strong className="text-slate-900 text-xs font-mono font-bold">{previewReport.student.admissionNumber}</strong>
+                  </div>
+                  <div>
+                    <span className="text-slate-500 font-bold uppercase tracking-wider text-[8px] block">Class Level</span>
+                    <strong className="text-slate-900 text-xs">{previewReport.student.className} - Arm {previewReport.student.armName}</strong>
+                  </div>
+                  <div>
+                    <span className="text-slate-500 font-bold uppercase tracking-wider text-[8px] block">Student Gender</span>
+                    <strong className="text-slate-900 text-xs uppercase">{previewReport.student.gender}</strong>
+                  </div>
+                </div>
+
+                <div className="col-span-4 border-l border-slate-200 pl-4 grid grid-cols-2 gap-y-1.5">
+                  <div>
+                    <span className="text-slate-500 font-bold uppercase tracking-wider text-[8px] block">Class Position</span>
+                    <strong className="text-slate-900 text-sm font-serif font-extrabold">{previewReport.summary.classPositionFormatted} <span className="text-[10px] text-slate-500 font-normal">of {previewReport.summary.totalStudents}</span></strong>
+                  </div>
+                  <div>
+                    <span className="text-slate-500 font-bold uppercase tracking-wider text-[8px] block">Term Average</span>
+                    <strong className="text-slate-900 text-sm font-serif font-extrabold">{previewReport.summary.averageScore}%</strong>
+                  </div>
+                  <div>
+                    <span className="text-slate-500 font-bold uppercase tracking-wider text-[8px] block">Attendance</span>
+                    <strong className="text-slate-900 text-xs">{previewReport.attendance.present} / {previewReport.attendance.total} days</strong>
+                  </div>
+                  <div>
+                    <span className="text-slate-500 font-bold uppercase tracking-wider text-[8px] block">Result Status</span>
+                    <strong className={`text-xs ${previewReport.summary.passStatus === 'PASS' ? 'text-emerald-700' : 'text-red-700'} font-extrabold`}>{previewReport.summary.passStatus}</strong>
+                  </div>
+                </div>
+              </div>
+
+              {/* Subject Matrix */}
+              <table className="w-full border-collapse border border-slate-900 text-slate-900 text-left font-sans text-[10px] leading-tight">
+                <thead>
+                  <tr className="bg-slate-100 border-b border-slate-900 font-bold">
+                    <th className="p-1.5 border border-slate-900">Subject Name</th>
+                    <th className="p-1.5 border border-slate-900 text-center w-12">CA1 (15)</th>
+                    <th className="p-1.5 border border-slate-900 text-center w-12">CA2 (15)</th>
+                    <th className="p-1.5 border border-slate-900 text-center w-12">Asg (10)</th>
+                    <th className="p-1.5 border border-slate-900 text-center w-15">Exam (60)</th>
+                    <th className="p-1.5 border border-slate-900 text-center w-15">Total (100)</th>
+                    <th className="p-1.5 border border-slate-900 text-center w-15">Grade</th>
+                    <th className="p-1.5 border border-slate-900 text-center w-15">Pos</th>
+                    <th className="p-1.5 border border-slate-900 text-center w-24">Teacher Remark</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {previewReport.subjects.map((sub) => (
+                    <tr key={sub.subjectId} className="border-b border-slate-300">
+                      <td className="p-1.5 border-r border-slate-300 font-bold uppercase">{sub.subjectName}</td>
+                      <td className="p-1.5 border-r border-slate-300 text-center font-mono">{sub.ca1 !== null ? sub.ca1 : '-'}</td>
+                      <td className="p-1.5 border-r border-slate-300 text-center font-mono">{sub.ca2 !== null ? sub.ca2 : '-'}</td>
+                      <td className="p-1.5 border-r border-slate-300 text-center font-mono">{sub.assignment !== null ? sub.assignment : '-'}</td>
+                      <td className="p-1.5 border-r border-slate-300 text-center font-mono">{sub.exam !== null ? sub.exam : '-'}</td>
+                      <td className="p-1.5 border-r border-slate-300 text-center font-mono font-bold">{sub.total !== null ? sub.total : '-'}</td>
+                      <td className="p-1.5 border-r border-slate-300 text-center font-bold">{sub.grade || '-'}</td>
+                      <td className="p-1.5 border-r border-slate-300 text-center font-mono font-bold">{sub.rankFormatted || '-'}</td>
+                      <td className="p-1.5 text-[8.5px] italic text-slate-600 font-sans leading-none">{sub.remarks || 'Satisfactory progress.'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Cognitive & Psychomotor & Signatures */}
+            <div className="space-y-4 mt-4 pt-2 border-t border-slate-200">
+              <div className="grid grid-cols-12 gap-4">
+                {/* Traits */}
+                <div className="col-span-6 space-y-1.5">
+                  <span className="text-slate-500 font-bold uppercase tracking-wider text-[8px] block">Affective & Psychomotor Domains</span>
+                  <div className="grid grid-cols-2 gap-x-4 gap-y-1 border border-slate-300 rounded p-2 text-[9px] bg-slate-50/50 font-sans">
+                    {Object.entries(previewReport.traits).map(([trait, rating]) => (
+                      <div key={trait} className="flex justify-between border-b border-slate-150 pb-0.5">
+                        <span className="capitalize text-slate-500 font-semibold">{trait.replace(/([A-Z])/g, ' $1')}:</span>
+                        <strong className="text-slate-800">{rating} ({getTraitLabel(rating)})</strong>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Remarks */}
+                <div className="col-span-6 space-y-1.5 font-sans">
+                  <span className="text-slate-500 font-bold uppercase tracking-wider text-[8px] block">General Remarks & Recommendations</span>
+                  <div className="border border-slate-300 rounded p-2.5 text-[9px] space-y-2 bg-slate-50/50">
+                    <div>
+                      <span className="text-slate-400 font-bold text-[8px] uppercase tracking-wider block">Class Teacher Remark</span>
+                      <p className="text-slate-700 italic font-medium">"{previewReport.comments.teacher}"</p>
+                    </div>
+                    <div>
+                      <span className="text-slate-400 font-bold text-[8px] uppercase tracking-wider block">Head Teacher / Principal Remark</span>
+                      <p className="text-slate-700 italic font-medium">"{previewReport.comments.headTeacher}"</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Signatures */}
+              <div className="grid grid-cols-3 gap-4 pt-4 text-center font-sans">
+                <div className="space-y-1">
+                  <div className="h-6 flex items-end justify-center font-serif text-[10px] text-slate-800 italic font-bold">
+                    {previewReport.classTeacherName || 'Class Teacher'}
+                  </div>
+                  <div className="border-t border-slate-400 pt-1 text-slate-500 font-bold uppercase tracking-wider text-[8px]">
+                    Class Teacher Signature
+                  </div>
+                </div>
+
+                <div className="relative flex justify-center items-center">
+                  <div className="w-12 h-12 rounded-full border-2 border-dashed border-red-500/40 text-red-500/40 text-[7px] font-bold flex flex-col items-center justify-center transform -rotate-12 scale-90">
+                    <span>APPROVED</span>
+                    <span className="text-[5px] uppercase truncate max-w-[42px]" title={compiledSchool?.name || 'NACHO ACAD.'}>
+                      {compiledSchool?.name || 'NACHO ACAD.'}
+                    </span>
+                    <span className="text-[5px]">LAGOS</span>
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <div className="h-6 flex items-end justify-center font-serif text-[10px] text-indigo-700 italic font-bold">
+                    Dr. A. B. Olumide
+                  </div>
+                  <div className="border-t border-slate-400 pt-1 text-slate-500 font-bold uppercase tracking-wider text-[8px]">
+                    Principal's Signature & Stamp
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     );

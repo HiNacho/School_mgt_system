@@ -90,11 +90,18 @@ export default function ClassesAndArmsPage() {
     if (sessionStr) {
       try {
         const sessionObj = JSON.parse(sessionStr);
+        const role = sessionObj.user?.role;
+        if (role !== 'SCHOOL_ADMIN' && role !== 'SUPER_ADMIN') {
+          window.location.href = '/dashboard';
+          return;
+        }
         setSchool(sessionObj.school);
         loadClassesData(sessionObj.school.id);
       } catch (e) {
         setErrorMsg('Invalid authentication session context.');
       }
+    } else {
+      window.location.href = '/login';
     }
   }, []);
 

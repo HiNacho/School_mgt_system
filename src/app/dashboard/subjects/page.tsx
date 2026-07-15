@@ -103,11 +103,18 @@ export default function SubjectRegistryPage() {
     if (sessionStr) {
       try {
         const sessionObj = JSON.parse(sessionStr);
+        const role = sessionObj.user?.role;
+        if (role !== 'SCHOOL_ADMIN' && role !== 'SUPER_ADMIN') {
+          window.location.href = '/dashboard';
+          return;
+        }
         setSchool(sessionObj.school);
         loadRegistryData(sessionObj.school.id);
       } catch (e) {
         setErrorMsg('Invalid session credentials.');
       }
+    } else {
+      window.location.href = '/login';
     }
   }, []);
 

@@ -97,20 +97,56 @@ export async function GET(req: NextRequest) {
       }
     });
 
-    const mappedSystemNotifications = unreadSystemNotifications.map(n => ({
-      messageId: n.id,
-      title: 'Report Card Alert',
-      body: n.message,
-      messageType: 'ALERT',
-      priority: 'HIGH',
-      createdAt: n.createdAt,
-      sender: {
-        firstName: 'System',
-        lastName: 'Alert',
-        role: 'SYSTEM'
-      },
-      redirectUrl: '/dashboard/classes'
-    }));
+    // Fetch receiver user role to map notification redirect url contextually
+    const receiver = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { role: true }
+    });
+    const receiverRole = receiver?.role || 'STUDENT';
+
+    const mappedSystemNotifications = unreadSystemNotifications.map(n => {
+      let redirectUrl = '/dashboard';
+      const msgLower = n.message.toLowerCase();
+      const role = receiverRole;
+
+      if (role === 'SCHOOL_ADMIN' || role === 'SUPER_ADMIN') {
+        if (msgLower.includes('score submission') || msgLower.includes('pending review') || msgLower.includes('approval')) {
+          redirectUrl = '/dashboard/compile';
+        } else if (msgLower.includes('class') || msgLower.includes('arm') || msgLower.includes('roster')) {
+          redirectUrl = '/dashboard/classes';
+        } else if (msgLower.includes('teachers') || msgLower.includes('staff')) {
+          redirectUrl = '/dashboard/teachers';
+        } else {
+          redirectUrl = '/dashboard';
+        }
+      } else if (role === 'CLASS_TEACHER' || role === 'SUBJECT_TEACHER') {
+        if (msgLower.includes('scores') || msgLower.includes('published') || msgLower.includes('marks')) {
+          redirectUrl = '/dashboard/scores';
+        } else if (msgLower.includes('report card') || msgLower.includes('approved') || msgLower.includes('released')) {
+          redirectUrl = '/dashboard/compile';
+        } else {
+          redirectUrl = '/dashboard';
+        }
+      } else {
+        // PARENT or STUDENT goes directly to home dashboard overview
+        redirectUrl = '/dashboard';
+      }
+
+      return {
+        messageId: n.id,
+        title: 'Report Card Alert',
+        body: n.message,
+        messageType: 'ALERT',
+        priority: 'HIGH',
+        createdAt: n.createdAt,
+        sender: {
+          firstName: 'System',
+          lastName: 'Alert',
+          role: 'SYSTEM'
+        },
+        redirectUrl
+      };
+    });
 
     // 4. Combine both arrays, sort by date descending, and limit to 5
     const combinedLatest = [...mappedLatestMessages, ...mappedSystemNotifications]

@@ -156,6 +156,11 @@ export default function StaffAccountsPage() {
     if (sessionStr) {
       try {
         const sessionObj = JSON.parse(sessionStr);
+        const role = sessionObj.user?.role;
+        if (role !== 'SCHOOL_ADMIN' && role !== 'SUPER_ADMIN') {
+          window.location.href = '/dashboard';
+          return;
+        }
         setSchool(sessionObj.school);
         setCurrentUser(sessionObj.user);
         loadStaffRoster(sessionObj.school.id);
@@ -163,6 +168,8 @@ export default function StaffAccountsPage() {
       } catch (e) {
         setErrorMsg('Invalid authentication credentials.');
       }
+    } else {
+      window.location.href = '/login';
     }
   }, []);
 

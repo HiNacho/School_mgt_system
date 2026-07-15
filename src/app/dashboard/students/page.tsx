@@ -71,11 +71,18 @@ export default function StudentsManagerPage() {
     if (userSession) {
       try {
         const parsed = JSON.parse(userSession);
+        const role = parsed.user?.role;
+        if (role === 'PARENT' || role === 'STUDENT') {
+          window.location.href = '/dashboard';
+          return;
+        }
         setSession(parsed);
         loadRegistries(parsed);
       } catch (e) {
         setErrorMsg('Invalid session credentials.');
       }
+    } else {
+      window.location.href = '/login';
     }
   }, []);
 
