@@ -208,7 +208,7 @@ export async function POST(req: NextRequest) {
         }
       });
 
-      // Notify Parents
+      // Notify Parents & Log Timelines
       for (const parent of parents) {
         if (parent.user) {
           await prisma.notification.create({
@@ -219,6 +219,23 @@ export async function POST(req: NextRequest) {
             }
           });
         }
+      }
+
+      // Add to Student Timelines
+      const studentsInArm = await prisma.student.findMany({
+        where: { schoolId, classId: updatedRecord.classId, armId: updatedRecord.armId, status: 'ACTIVE' }
+      });
+      for (const student of studentsInArm) {
+        await prisma.studentTimeline.create({
+          data: {
+            schoolId,
+            studentId: student.id,
+            eventType: 'RESULT',
+            title: `Report Card Released`,
+            description: `Official ${updatedRecord.term.name} academic report card compiled and released to parents.`,
+            referenceId: updatedRecord.id
+          }
+        });
       }
     }
 

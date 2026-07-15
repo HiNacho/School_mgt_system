@@ -167,6 +167,7 @@ async function main() {
     const user = await prisma.user.create({
       data: {
         schoolId,
+        username: t.email,
         email: t.email,
         passwordHash: 'password', // Plain match
         firstName: t.firstName,
@@ -325,6 +326,7 @@ async function main() {
   await prisma.user.create({
     data: {
       schoolId,
+      username: 'parent@greenwood.com',
       email: 'parent@greenwood.com',
       passwordHash: 'password',
       firstName: 'Alice',

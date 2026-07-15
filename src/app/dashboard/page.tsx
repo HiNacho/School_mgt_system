@@ -43,6 +43,7 @@ export default function DashboardHome() {
   const [classStatuses, setClassStatuses] = useState<any[]>([]);
   const [activeReportStatus, setActiveReportStatus] = useState<string>('DRAFT');
   const [activeStudentDetail, setActiveStudentDetail] = useState<any>(null);
+  const [wellbeingData, setWellbeingData] = useState<any>(null);
 
   // Parent specific states
   const [selectedChildId, setSelectedChildId] = useState<string>('');
@@ -82,6 +83,13 @@ export default function DashboardHome() {
         if (detailRes.ok) {
           const detailJson = await detailRes.json();
           setActiveStudentDetail(detailJson.data);
+        }
+
+        // Fetch wellbeing details
+        const wRes = await fetch(`/api/wellbeing?schoolId=${session.school.id}&studentId=${studentId}`, { cache: 'no-store', headers });
+        if (wRes.ok) {
+          const wJson = await wRes.json();
+          setWellbeingData(wJson.data);
         }
       } catch (err) {
         console.error('Error fetching student details', err);
@@ -1553,6 +1561,72 @@ export default function DashboardHome() {
                       </div>
                     )}
                   </div>
+
+                  {/* Ward Wellbeing Indicators */}
+                  {wellbeingData && (
+                    <div className="bg-white border border-slate-100 p-6 rounded-3xl shadow-sm space-y-4 animate-fadeIn">
+                      <div className="flex justify-between items-center border-b border-slate-50 pb-2">
+                        <h4 className="text-xs font-black uppercase text-slate-600 tracking-wider">Ward Continuous Well-being</h4>
+                        <a 
+                          href="/dashboard/messages" 
+                          className="text-[10px] font-black text-indigo-600 hover:underline flex items-center gap-0.5"
+                        >
+                          Message Teachers →
+                        </a>
+                      </div>
+
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                        <div className="p-3 bg-slate-50/50 border border-slate-200 rounded-xl space-y-1">
+                          <span className="block text-[9px] font-black text-slate-400 uppercase tracking-wider">Attendance Rate</span>
+                          <span className="text-sm font-extrabold text-slate-800">{wellbeingData.attendanceRate}%</span>
+                        </div>
+                        <div className="p-3 bg-slate-50/50 border border-slate-200 rounded-xl space-y-1">
+                          <span className="block text-[9px] font-black text-slate-400 uppercase tracking-wider">Academic Average</span>
+                          <span className="text-sm font-extrabold text-slate-800">{wellbeingData.academicAverage}%</span>
+                        </div>
+                        <div className="p-3 bg-slate-50/50 border border-slate-200 rounded-xl space-y-1">
+                          <span className="block text-[9px] font-black text-slate-400 uppercase tracking-wider">Behaviour Rating</span>
+                          <span className="text-sm font-extrabold text-slate-800">{wellbeingData.behaviourRating} / 5 ⭐</span>
+                        </div>
+                        <div className="p-3 bg-slate-50/50 border border-slate-200 rounded-xl space-y-1">
+                          <span className="block text-[9px] font-black text-slate-400 uppercase tracking-wider">Homework Completion</span>
+                          <span className="text-sm font-extrabold text-slate-800">{wellbeingData.homeworkCompletion}%</span>
+                        </div>
+                        <div className="p-3 bg-slate-50/50 border border-slate-200 rounded-xl space-y-1">
+                          <span className="block text-[9px] font-black text-slate-400 uppercase tracking-wider">Social development</span>
+                          <span className="text-sm font-extrabold text-slate-800">{wellbeingData.socialDevelopment}%</span>
+                        </div>
+                        <div className="p-3 bg-slate-50/50 border border-slate-200 rounded-xl space-y-1">
+                          <span className="block text-[9px] font-black text-slate-400 uppercase tracking-wider">Conduct Points</span>
+                          <span className={`text-sm font-extrabold ${wellbeingData.conductBalance >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                            {wellbeingData.conductBalance >= 0 ? `+${wellbeingData.conductBalance}` : wellbeingData.conductBalance}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Ward Timeline logs */}
+                      <div className="pt-3 border-t border-slate-100 space-y-3">
+                        <h5 className="text-[10px] font-black uppercase text-slate-505 tracking-wider">Recent Activity Timeline</h5>
+                        <div className="border-l border-slate-200 pl-4 space-y-3.5 max-h-[220px] overflow-y-auto pr-1">
+                          {(!wellbeingData.timeline || wellbeingData.timeline.length === 0) ? (
+                            <p className="text-[10px] text-slate-400 italic">No timeline entries reported.</p>
+                          ) : (
+                            wellbeingData.timeline.slice(0, 5).map((t: any) => (
+                              <div key={t.id} className="relative space-y-0.5 animate-fadeIn">
+                                <span className="w-1.5 h-1.5 bg-indigo-600 rounded-full absolute -left-[20px] top-1 border border-white" />
+                                <div className="flex justify-between items-center text-[9px] text-slate-400">
+                                  <span className="font-extrabold uppercase text-indigo-500 tracking-wider">{t.eventType}</span>
+                                  <span>{new Date(t.createdAt).toLocaleDateString()}</span>
+                                </div>
+                                <h6 className="text-[10px] font-bold text-slate-750">{t.title}</h6>
+                                <p className="text-[10px] text-slate-500 leading-normal">"{t.description}"</p>
+                              </div>
+                            ))
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )}
 
                 </div>
 

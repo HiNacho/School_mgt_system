@@ -236,8 +236,59 @@ export async function POST(req: NextRequest) {
         }))
       });
 
-      // 3. Fetch all term logs for these students in a single query
+      // 2.5. Generate automated notifications and timeline records
       const studentIds = records.map((r) => r.studentId);
+      const studentsWithParents = await tx.student.findMany({
+        where: { id: { in: studentIds } },
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          parent: {
+            select: {
+              id: true,
+              user: { select: { id: true } }
+            }
+          }
+        }
+      });
+
+      const parentMap = new Map<string, { parentUserId: string; studentName: string }>();
+      for (const s of studentsWithParents) {
+        if (s.parent?.user?.id) {
+          parentMap.set(s.id, {
+            parentUserId: s.parent.user.id,
+            studentName: s.firstName
+          });
+        }
+      }
+
+      for (const rec of records) {
+        const parentInfo = parentMap.get(rec.studentId);
+        const statusText = rec.status === 'PRESENT' ? 'Present' : rec.status === 'LATE' ? 'Late' : 'Absent';
+        
+        // Log to Student Timeline
+        await tx.studentTimeline.create({
+          data: {
+            schoolId,
+            studentId: rec.studentId,
+            eventType: 'ATTENDANCE',
+            title: `Attendance: ${statusText}`,
+            description: `Student marked ${statusText.toLowerCase()} for school session on ${date}.`
+          }
+        });
+
+        // Notify parent if status is ABSENT or LATE
+        if (parentInfo && (rec.status === 'ABSENT' || rec.status === 'LATE')) {
+          await tx.notification.create({
+            data: {
+              schoolId,
+              userId: parentInfo.parentUserId,
+              message: `Attendance Alert: ${parentInfo.studentName} was marked ${statusText.toLowerCase()} at school today (${date}).`
+            }
+          });
+        }
+      }
       const allTermLogs = await tx.dailyAttendance.findMany({
         where: {
           studentId: { in: studentIds },

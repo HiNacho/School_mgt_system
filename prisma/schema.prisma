@@ -53,6 +53,14 @@ model School {
   classReportStatuses ClassReportStatus[]
   announcements      Announcement[]
   behaviorRatings    BehaviorRating[]
+  communicationSettings   CommunicationSettings?
+  chatConversations       ChatConversation[]
+  weeklyReports           WeeklyReport[]
+  behaviourLogs           BehaviourLog[]
+  meetingRequests         MeetingRequest[]
+  teacherNotes            TeacherNote[]
+  communicationTemplates  CommunicationTemplate[]
+  studentTimelines        StudentTimeline[]
 }
 
 model User {
@@ -87,6 +95,14 @@ model User {
   parentId           String?             @unique
   parent             Parent?             @relation("ParentUser", fields: [parentId], references: [id], onDelete: Cascade)
   loginAuditLogs     LoginAuditLog[]
+  parentChats             ChatConversation[]  @relation("ParentChat")
+  teacherChats            ChatConversation[]  @relation("TeacherChat")
+  chatMessages            ChatMessage[]
+  weeklyReports           WeeklyReport[]
+  behaviourLogs           BehaviourLog[]
+  parentMeetings          MeetingRequest[]    @relation("ParentMeeting")
+  teacherMeetings         MeetingRequest[]    @relation("TeacherMeeting")
+  teacherNotes            TeacherNote[]
 }
 
 model LoginAuditLog {
@@ -138,6 +154,7 @@ model Term {
   scoreSubmissions   ScoreSubmission[]
   classReportStatuses ClassReportStatus[]
   behaviorRatings     BehaviorRating[]
+  weeklyReports           WeeklyReport[]
 }
 
 model Class {
@@ -207,9 +224,16 @@ model Student {
   parent         Parent?             @relation(fields: [parentId], references: [id], onDelete: SetNull)
   user           User?               @relation("StudentUser")
   behaviorRatings BehaviorRating[]
+  chatConversations       ChatConversation[]
+  weeklyReports           WeeklyReport[]
+  behaviourLogs           BehaviourLog[]
+  meetingRequests         MeetingRequest[]
+  teacherNotes            TeacherNote[]
+  studentTimelines        StudentTimeline[]
 
   @@unique([schoolId, admissionNumber])
 }
+
 model Subject {
   id           String   @id @default(uuid())
   schoolId     String
@@ -589,6 +613,171 @@ model Feedback {
   createdAt          DateTime @default(now())
   
   lead               Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+}
+
+// 1. Settings governing communication policies per school
+model CommunicationSettings {
+  id                         String   @id @default(uuid())
+  schoolId                   String   @unique
+  communicationHoursStart    String   @default("08:00") // HH:MM
+  communicationHoursEnd      String   @default("17:00") // HH:MM
+  whoCanMessageWhom          String   @default("ALL") // ALL, CLASS_ONLY
+  maxAttachmentSizeMb        Int      @default(5)
+  messageRetentionDays       Int      @default(365)
+  autoCloseInactivityDays    Int      @default(7)
+  directSubjectTeacherContact Boolean  @default(true)
+  createdAt                  DateTime @default(now())
+  updatedAt                  DateTime @updatedAt
+
+  school                     School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+}
+
+// 2. Chat conversations linked to student categories
+model ChatConversation {
+  id          String   @id @default(uuid())
+  schoolId    String
+  studentId   String
+  parentId    String // Parent User ID
+  teacherId   String // Teacher User ID (Class or Subject Teacher)
+  category    String // ACADEMIC, ATTENDANCE, BEHAVIOUR, HOMEWORK, HEALTH, GENERAL, MEETING, FEES, TRANSFER, OTHER
+  subject     String
+  status      String   @default("OPEN") // OPEN, PENDING, RESOLVED, CLOSED
+  lastActivity DateTime @default(now())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  school      School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  student     Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  parent      User     @relation("ParentChat", fields: [parentId], references: [id], onDelete: Cascade)
+  teacher     User     @relation("TeacherChat", fields: [teacherId], references: [id], onDelete: Cascade)
+  messages    ChatMessage[]
+
+  @@index([schoolId, studentId])
+}
+
+// 3. Threaded chat messages with attachments and read receipts
+model ChatMessage {
+  id             String   @id @default(uuid())
+  conversationId String
+  senderId       String // User ID of sender
+  body           String
+  attachmentUrl  String?
+  attachmentName String?
+  isRead         Boolean  @default(false)
+  readAt         DateTime?
+  createdAt      DateTime @default(now())
+
+  conversation   ChatConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender         User             @relation(fields: [senderId], references: [id], onDelete: Cascade)
+}
+
+// 4. Structured weekly progress reports compiled by Class Teachers
+model WeeklyReport {
+  id                  String   @id @default(uuid())
+  schoolId            String
+  studentId           String
+  teacherId           String // Class Teacher User ID
+  termId              String
+  weekNumber          Int
+  academicPerformance String // EXCELLENT, VERY_GOOD, GOOD, FAIR, NEEDS_IMPROVEMENT
+  classParticipation  String // EXCELLENT, ACTIVE, AVERAGE, PASSIVE
+  homeworkCompletion  String // ALWAYS, USUALLY, SOMETIMES, RARELY, NEVER
+  behaviour           String // EXCELLENT, GOOD, SATISFACTORY, NEEDS_IMPROVEMENT, POOR
+  socialInteraction   String // EXCELLENT, FRIENDLY, AVERAGE, RESERVED, NEEDS_SUPPORT
+  leadership          String // EXCELLENT, GOOD, AVERAGE, DEVELOPING
+  comment             String // Rich Text Area
+  recommendation      String // Reading, Math, Homework, Punctuality, etc.
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  school              School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  student             Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  teacher             User     @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  term                Term     @relation(fields: [termId], references: [id], onDelete: Cascade)
+
+  @@unique([studentId, termId, weekNumber])
+}
+
+// 5. Daily behaviour incidents recorded by teachers
+model BehaviourLog {
+  id          String   @id @default(uuid())
+  schoolId    String
+  studentId   String
+  teacherId   String // Teacher User ID
+  category    String // POSITIVE, NEGATIVE, LEADERSHIP, DISCIPLINE, PARTICIPATION, ACHIEVEMENT, ATTENDANCE, HEALTH
+  severity    String // INFO, MINOR, MODERATE, MAJOR, CRITICAL
+  title       String
+  description String
+  createdAt   DateTime @default(now())
+
+  school      School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  student     Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  teacher     User     @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+}
+
+// 6. Scheduling appointments between parents and teachers
+model MeetingRequest {
+  id            String   @id @default(uuid())
+  schoolId      String
+  studentId     String
+  parentId      String // Parent User ID
+  teacherId     String // Teacher User ID
+  type          String // PHYSICAL, PHONE, ONLINE
+  reason        String
+  preferredDate String // YYYY-MM-DD
+  preferredTime String // HH:MM
+  status        String   @default("PENDING") // PENDING, APPROVED, DECLINED, SUGGESTED
+  suggestedDate String?
+  suggestedTime String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  school        School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  student       Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  parent        User     @relation("ParentMeeting", fields: [parentId], references: [id], onDelete: Cascade)
+  teacher       User     @relation("TeacherMeeting", fields: [teacherId], references: [id], onDelete: Cascade)
+}
+
+// 7. Internal private observations for teachers only
+model TeacherNote {
+  id        String   @id @default(uuid())
+  schoolId  String
+  studentId String
+  teacherId String // Teacher User ID
+  note      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  school    School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  student   Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  teacher   User     @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+}
+
+// 8. Preset message templates for quick replies
+model CommunicationTemplate {
+  id        String   @id @default(uuid())
+  schoolId  String
+  title     String
+  content   String
+  category  String   @default("GENERAL") // GENERAL, ACADEMIC, ATTENDANCE, BEHAVIOUR
+  createdAt DateTime @default(now())
+
+  school    School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+}
+
+// 9. Consolidated chronological record of student events
+model StudentTimeline {
+  id          String   @id @default(uuid())
+  schoolId    String
+  studentId   String
+  eventType   String // ATTENDANCE, WEEKLY_REPORT, CHAT_MESSAGE, MEETING, RESULT, BEHAVIOUR, NOTE
+  title       String
+  description String
+  referenceId String?  // ID of the related log record
+  createdAt   DateTime @default(now())
+
+  school      School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  student     Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
 }
 
 

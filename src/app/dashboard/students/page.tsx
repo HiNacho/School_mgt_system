@@ -4,7 +4,8 @@ import React, { useEffect, useState } from 'react';
 import { 
   Users, UserPlus, Search, GraduationCap, Archive, 
   Trash2, ShieldCheck, RefreshCw, X, AlertCircle, Edit, ArrowRightLeft, UserCheck,
-  FileSpreadsheet, UploadCloud, AlertTriangle, FileUp, CheckCircle, Eye, Sparkles, Loader2
+  FileSpreadsheet, UploadCloud, AlertTriangle, FileUp, CheckCircle, Eye, Sparkles, Loader2,
+  Award, FileText
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 
@@ -31,7 +32,17 @@ export default function StudentsManagerPage() {
   const [extendedStudentDetail, setExtendedStudentDetail] = useState<any | null>(null);
   const [showExtendedView, setShowExtendedView] = useState(false);
   const [loadingDetail, setLoadingDetail] = useState(false);
-  const [activeDetailTab, setActiveDetailTab] = useState<'scores' | 'progression' | 'attendance' | 'comments'>('scores');
+  const [activeDetailTab, setActiveDetailTab] = useState<'scores' | 'progression' | 'attendance' | 'comments' | 'wellbeing'>('scores');
+
+  // Wellbeing and Timeline state hooks
+  const [wellbeingData, setWellbeingData] = useState<any | null>(null);
+  const [loadingWellbeing, setLoadingWellbeing] = useState(false);
+  const [newLogCategory, setNewLogCategory] = useState('POSITIVE');
+  const [newLogSeverity, setNewLogSeverity] = useState('INFO');
+  const [newLogTitle, setNewLogTitle] = useState('');
+  const [newLogDesc, setNewLogDesc] = useState('');
+  const [newNoteText, setNewNoteText] = useState('');
+  const [addingLog, setAddingLog] = useState(false);
 
   // Excel upload & DB clear state
   const [excelModalOpen, setExcelModalOpen] = useState(false);
@@ -929,17 +940,26 @@ export default function StudentsManagerPage() {
                             setViewingStudent(stud);
                             setShowExtendedView(false);
                             setExtendedStudentDetail(null);
+                            setWellbeingData(null);
                             setLoadingDetail(true);
+                            setLoadingWellbeing(true);
                             try {
                               const res = await fetch(`/api/students?studentId=${stud.id}`);
                               const json = await res.json();
                               if (res.ok && json.data) {
                                 setExtendedStudentDetail(json.data);
                               }
+
+                              const wRes = await fetch(`/api/wellbeing?schoolId=${session.school.id}&studentId=${stud.id}`);
+                              const wJson = await wRes.json();
+                              if (wRes.ok && wJson.success) {
+                                setWellbeingData(wJson.data);
+                              }
                             } catch (e) {
                               console.error("Error fetching student details:", e);
                             } finally {
                               setLoadingDetail(false);
+                              setLoadingWellbeing(false);
                             }
                           }}
                           className="p-1.5 rounded-xl hover:bg-slate-50 text-slate-450 hover:text-slate-800 transition-colors cursor-pointer"
@@ -1254,6 +1274,17 @@ export default function StudentsManagerPage() {
                       >
                         Teacher Comments
                       </button>
+                      <button
+                        type="button"
+                        onClick={() => setActiveDetailTab('wellbeing')}
+                        className={`flex-1 flex items-center justify-center gap-1 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer ${
+                          activeDetailTab === 'wellbeing' 
+                            ? 'bg-white text-slate-850 shadow-sm border border-slate-100 font-black' 
+                            : 'text-slate-400 hover:text-slate-650'
+                        }`}
+                      >
+                        Well-being & Timeline
+                      </button>
                     </div>
 
                     {/* Tab Panels */}
@@ -1419,6 +1450,260 @@ export default function StudentsManagerPage() {
                                       )}
                                     </div>
                                   ))}
+                                </div>
+                              )}
+                            </div>
+                          )}
+
+                          {/* 4. Well-being Dashboard Tab */}
+                          {activeDetailTab === 'wellbeing' && (
+                            <div className="space-y-6 animate-fadeIn">
+                              {loadingWellbeing ? (
+                                <div className="h-44 flex items-center justify-center">
+                                  <div className="text-center space-y-2">
+                                    <div className="w-5 h-5 border-2 border-t-indigo-600 border-r-transparent border-b-transparent border-l-transparent rounded-full animate-spin mx-auto" />
+                                    <p className="text-slate-400 text-[10px] font-bold uppercase tracking-wider">Compiling metrics...</p>
+                                  </div>
+                                </div>
+                              ) : wellbeingData ? (
+                                <div className="space-y-6">
+                                  {/* Wellbeing indexes grid */}
+                                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                                    <div className="p-3 bg-slate-50/50 border border-slate-200 rounded-xl space-y-1">
+                                      <span className="block text-[9px] font-black text-slate-400 uppercase tracking-wider">Attendance Rate</span>
+                                      <span className="text-sm font-extrabold text-slate-800">{wellbeingData.attendanceRate}%</span>
+                                    </div>
+                                    <div className="p-3 bg-slate-50/50 border border-slate-200 rounded-xl space-y-1">
+                                      <span className="block text-[9px] font-black text-slate-400 uppercase tracking-wider">Academic Average</span>
+                                      <span className="text-sm font-extrabold text-slate-800">{wellbeingData.academicAverage}%</span>
+                                    </div>
+                                    <div className="p-3 bg-slate-50/50 border border-slate-200 rounded-xl space-y-1">
+                                      <span className="block text-[9px] font-black text-slate-400 uppercase tracking-wider">Behaviour Rating</span>
+                                      <span className="text-sm font-extrabold text-slate-800">{wellbeingData.behaviourRating} / 5 ⭐</span>
+                                    </div>
+                                    <div className="p-3 bg-slate-50/50 border border-slate-200 rounded-xl space-y-1">
+                                      <span className="block text-[9px] font-black text-slate-400 uppercase tracking-wider">Homework Completion</span>
+                                      <span className="text-sm font-extrabold text-slate-800">{wellbeingData.homeworkCompletion}%</span>
+                                    </div>
+                                    <div className="p-3 bg-slate-50/50 border border-slate-200 rounded-xl space-y-1">
+                                      <span className="block text-[9px] font-black text-slate-400 uppercase tracking-wider">Social development</span>
+                                      <span className="text-sm font-extrabold text-slate-800">{wellbeingData.socialDevelopment}%</span>
+                                    </div>
+                                    <div className="p-3 bg-slate-50/50 border border-slate-200 rounded-xl space-y-1">
+                                      <span className="block text-[9px] font-black text-slate-400 uppercase tracking-wider">Conduct Points</span>
+                                      <span className={`text-sm font-extrabold ${wellbeingData.conductBalance >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                                        {wellbeingData.conductBalance >= 0 ? `+${wellbeingData.conductBalance}` : wellbeingData.conductBalance}
+                                      </span>
+                                    </div>
+                                  </div>
+
+                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-slate-100">
+                                    {/* Left: Behaviour & Timeline */}
+                                    <div className="space-y-4">
+                                      {/* Log behaviour event form */}
+                                      <div className="p-4 border border-slate-200 rounded-2xl space-y-3 bg-slate-50/50">
+                                        <h4 className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                                          <Award className="w-4 h-4 text-indigo-600" />
+                                          Log Conduct Event
+                                        </h4>
+                                        <div className="grid grid-cols-2 gap-3">
+                                          <div>
+                                            <label className="block text-[9px] font-black text-slate-400 uppercase mb-1">Category</label>
+                                            <select
+                                              value={newLogCategory}
+                                              onChange={(e) => setNewLogCategory(e.target.value)}
+                                              className="w-full px-2 py-1.5 border border-slate-200 rounded text-[11px] bg-white focus:outline-none"
+                                            >
+                                              <option value="POSITIVE">Positive conduct</option>
+                                              <option value="NEGATIVE">Negative conduct</option>
+                                              <option value="LEADERSHIP">Leadership</option>
+                                              <option value="DISCIPLINE">Discipline</option>
+                                              <option value="ACHIEVEMENT">Achievement</option>
+                                              <option value="HEALTH">Health Alert</option>
+                                            </select>
+                                          </div>
+                                          <div>
+                                            <label className="block text-[9px] font-black text-slate-400 uppercase mb-1">Severity</label>
+                                            <select
+                                              value={newLogSeverity}
+                                              onChange={(e) => setNewLogSeverity(e.target.value)}
+                                              className="w-full px-2 py-1.5 border border-slate-200 rounded text-[11px] bg-white focus:outline-none"
+                                            >
+                                              <option value="INFO">Information</option>
+                                              <option value="MINOR">Minor</option>
+                                              <option value="MODERATE">Moderate</option>
+                                              <option value="MAJOR">Major</option>
+                                              <option value="CRITICAL">Critical</option>
+                                            </select>
+                                          </div>
+                                        </div>
+                                        <div>
+                                          <label className="block text-[9px] font-black text-slate-400 uppercase mb-1">Title</label>
+                                          <input
+                                            type="text"
+                                            placeholder="e.g. Helped peer with tutoring"
+                                            value={newLogTitle}
+                                            onChange={(e) => setNewLogTitle(e.target.value)}
+                                            className="w-full px-2.5 py-1.5 border border-slate-200 rounded text-[11px] bg-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                                          />
+                                        </div>
+                                        <div>
+                                          <label className="block text-[9px] font-black text-slate-400 uppercase mb-1">Description</label>
+                                          <textarea
+                                            rows={2}
+                                            placeholder="Details of the conduct..."
+                                            value={newLogDesc}
+                                            onChange={(e) => setNewLogDesc(e.target.value)}
+                                            className="w-full px-2.5 py-1.5 border border-slate-200 rounded text-[11px] bg-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                                          />
+                                        </div>
+                                        <button
+                                          type="button"
+                                          disabled={addingLog || !newLogTitle.trim()}
+                                          onClick={async () => {
+                                            setAddingLog(true);
+                                            try {
+                                              const res = await fetch('/api/communication/behaviour', {
+                                                method: 'POST',
+                                                headers: { 'Content-Type': 'application/json' },
+                                                body: JSON.stringify({
+                                                  schoolId: session.school.id,
+                                                  studentId: viewingStudent.id,
+                                                  category: newLogCategory,
+                                                  severity: newLogSeverity,
+                                                  title: newLogTitle.trim(),
+                                                  description: newLogDesc.trim()
+                                                })
+                                              });
+                                              if (res.ok) {
+                                                setNewLogTitle('');
+                                                setNewLogDesc('');
+                                                // Reload wellbeing details
+                                                const wRes = await fetch(`/api/wellbeing?schoolId=${session.school.id}&studentId=${viewingStudent.id}`);
+                                                const wJson = await wRes.json();
+                                                if (wRes.ok) setWellbeingData(wJson.data);
+                                              }
+                                            } catch (err) {
+                                              console.error(err);
+                                            } finally {
+                                              setAddingLog(false);
+                                            }
+                                          }}
+                                          className="w-full py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded text-[11px] font-bold transition-all disabled:opacity-50"
+                                        >
+                                          {addingLog ? 'Logging Event...' : 'Log Conduct Event'}
+                                        </button>
+                                      </div>
+
+                                      {/* Student Timeline list */}
+                                      <div className="space-y-3 pt-2">
+                                        <h4 className="text-xs font-bold text-slate-800">Chronological Activity Timeline</h4>
+                                        <div className="border-l border-slate-200 pl-4 space-y-4 max-h-[300px] overflow-y-auto pr-1 animate-fadeIn">
+                                          {(!wellbeingData.timeline || wellbeingData.timeline.length === 0) ? (
+                                            <p className="text-[10px] text-slate-400 italic">No timeline activities recorded.</p>
+                                          ) : (
+                                            wellbeingData.timeline.map((t: any) => (
+                                              <div key={t.id} className="relative space-y-0.5">
+                                                <span className="w-2 h-2 bg-indigo-600 rounded-full absolute -left-[21px] top-1 border border-white" />
+                                                <div className="flex justify-between items-center text-[9px] text-slate-400">
+                                                  <span className="font-extrabold uppercase text-indigo-500 tracking-wider">{t.eventType}</span>
+                                                  <span>{new Date(t.createdAt).toLocaleDateString()}</span>
+                                                </div>
+                                                <h5 className="text-[10px] font-bold text-slate-800">{t.title}</h5>
+                                                <p className="text-[10px] text-slate-500 leading-normal">"{t.description}"</p>
+                                              </div>
+                                            ))
+                                          )}
+                                        </div>
+                                      </div>
+                                    </div>
+
+                                    {/* Right: Private Teacher Notes */}
+                                    <div className="space-y-4">
+                                      <div className="p-4 border border-slate-200 rounded-2xl space-y-3 bg-amber-50/10">
+                                        <h4 className="text-xs font-bold text-slate-855 flex items-center gap-1.5">
+                                          <FileText className="w-4 h-4 text-amber-600" />
+                                          Private Teacher Observations
+                                        </h4>
+                                        <p className="text-[10px] text-slate-400 leading-normal">
+                                          These notes remain strictly confidential. Guardians and students do not have visibility into this record.
+                                        </p>
+                                        <textarea
+                                          rows={3}
+                                          placeholder="Write internal observations (e.g. Discuss with counsellor)..."
+                                          value={newNoteText}
+                                          onChange={(e) => setNewNoteText(e.target.value)}
+                                          className="w-full px-2.5 py-1.5 border border-slate-200 rounded text-[11px] bg-white focus:outline-none focus:ring-1 focus:ring-amber-500 font-sans"
+                                        />
+                                        <button
+                                          type="button"
+                                          disabled={addingLog || !newNoteText.trim()}
+                                          onClick={async () => {
+                                            setAddingLog(true);
+                                            try {
+                                              const res = await fetch('/api/communication/notes', {
+                                                method: 'POST',
+                                                headers: { 'Content-Type': 'application/json' },
+                                                body: JSON.stringify({
+                                                  schoolId: session.school.id,
+                                                  studentId: viewingStudent.id,
+                                                  note: newNoteText.trim()
+                                                })
+                                              });
+                                              if (res.ok) {
+                                                setNewNoteText('');
+                                                // Reload wellbeing details
+                                                const wRes = await fetch(`/api/wellbeing?schoolId=${session.school.id}&studentId=${viewingStudent.id}`);
+                                                const wJson = await wRes.json();
+                                                if (wRes.ok) setWellbeingData(wJson.data);
+                                              }
+                                            } catch (err) {
+                                              console.error(err);
+                                            } finally {
+                                              setAddingLog(false);
+                                            }
+                                          }}
+                                          className="w-full py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded text-[11px] font-bold transition-all disabled:opacity-50"
+                                        >
+                                          {addingLog ? 'Saving Observation...' : 'Save Private Note'}
+                                        </button>
+                                      </div>
+
+                                      {/* Private Notes feed */}
+                                      <div className="space-y-2 pt-2">
+                                        <h4 className="text-xs font-bold text-slate-800">Observations History</h4>
+                                        <div className="space-y-2.5 max-h-[300px] overflow-y-auto pr-1">
+                                          {wellbeingData.latestWeeklyReport?.comment && (
+                                            <div className="p-3 bg-slate-50 border border-slate-150 rounded-xl">
+                                              <div className="flex justify-between items-center text-[9px] text-slate-400 uppercase font-black">
+                                                <span>Weekly Progress Remarks</span>
+                                                <span>Week {wellbeingData.latestWeeklyReport.weekNumber}</span>
+                                              </div>
+                                              <p className="text-[10px] text-slate-650 mt-1 italic">"{wellbeingData.latestWeeklyReport.comment}"</p>
+                                            </div>
+                                          )}
+                                          {(!wellbeingData.behaviourLogs || wellbeingData.behaviourLogs.length === 0) ? (
+                                            <p className="text-[10px] text-slate-400 italic">No historical observations logged.</p>
+                                          ) : (
+                                            wellbeingData.behaviourLogs.map((b: any) => (
+                                              <div key={b.id} className="p-3 bg-slate-50 border border-slate-150 rounded-xl space-y-1 animate-fadeIn">
+                                                <div className="flex justify-between items-center text-[9px] text-slate-400 font-extrabold uppercase">
+                                                  <span>{b.category} ({b.severity})</span>
+                                                  <span>{new Date(b.createdAt).toLocaleDateString()}</span>
+                                                </div>
+                                                <h5 className="text-[10px] font-bold text-slate-700">{b.title}</h5>
+                                                <p className="text-[10px] text-slate-500 italic">"{b.description}"</p>
+                                              </div>
+                                            ))
+                                          )}
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+                              ) : (
+                                <div className="py-8 text-center text-slate-400 text-xs font-semibold">
+                                  No wellbeing details parsed for this student.
                                 </div>
                               )}
                             </div>
