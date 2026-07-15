@@ -149,7 +149,7 @@ export async function POST(req: NextRequest) {
 export async function PATCH(req: NextRequest) {
   try {
     const body = await req.json();
-    const { schoolId, meetingId, status, suggestedDate, suggestedTime } = body;
+    const { schoolId, meetingId, status, statusReason, suggestedDate, suggestedTime } = body;
 
     const session = await requireAuth(req);
 
@@ -184,15 +184,18 @@ export async function PATCH(req: NextRequest) {
         where: { id: meetingId },
         data: {
           status,
+          statusReason: statusReason || null,
           suggestedDate: status === 'SUGGESTED' ? suggestedDate : null,
           suggestedTime: status === 'SUGGESTED' ? suggestedTime : null
         }
       });
 
       // Timeline logs
-      let logDesc = `Meeting request was ${status.toLowerCase()} by the teacher.`;
-      if (status === 'SUGGESTED') {
-        logDesc = `Teacher suggested alternative date ${suggestedDate} at ${suggestedTime}.`;
+      let logDesc = `Meeting request was ${status.toLowerCase()} by the staff.`;
+      if (statusReason) {
+        logDesc += ` Reason: "${statusReason}"`;
+      } else if (status === 'SUGGESTED') {
+        logDesc = `Teacher/Admin suggested alternative date ${suggestedDate} at ${suggestedTime}.`;
       }
 
       await tx.studentTimeline.create({
@@ -212,9 +215,11 @@ export async function PATCH(req: NextRequest) {
           where: { id: session.userId },
           select: { firstName: true, lastName: true }
         });
-        const staffName = sender ? `${sender.firstName} ${sender.lastName}` : 'Teacher';
+        const staffName = sender ? `${sender.firstName} ${sender.lastName}` : 'Staff';
         let alertMessage = `Your meeting request regarding ${meeting.student.firstName} was ${status.toLowerCase()} by ${staffName}.`;
-        if (status === 'SUGGESTED') {
+        if (statusReason) {
+          alertMessage += ` Reason: "${statusReason}"`;
+        } else if (status === 'SUGGESTED') {
           alertMessage = `${staffName} suggested an alternative meeting slot for ${meeting.student.firstName}: ${suggestedDate} at ${suggestedTime}.`;
         }
 

@@ -160,6 +160,20 @@ export async function GET(req: NextRequest) {
         })
       : null;
 
+    const schoolAdmins = await prisma.user.findMany({
+      where: {
+        schoolId,
+        role: { in: ['SCHOOL_ADMIN', 'SUPER_ADMIN'] },
+        status: 'ACTIVE'
+      },
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        role: true
+      }
+    });
+
     // 10. Trend graphs points (historical weeks data)
     // Build array of last 5 weeks for trends
     const academicTrend = weeklyReports.slice(0, 5).reverse().map(r => ({
@@ -195,6 +209,7 @@ export async function GET(req: NextRequest) {
         upcomingEvents,
         classTeacher,
         teachers: teacherAssignments,
+        schoolAdmins,
         trends: {
           academic: academicTrend.length > 0 ? academicTrend : [{ label: 'Wk 1', value: 80 }, { label: 'Wk 2', value: 85 }],
           attendance: attendanceTrend.length > 0 ? attendanceTrend : [{ label: 'Wk 1', value: 92 }, { label: 'Wk 2', value: 96 }],

@@ -727,6 +727,7 @@ model MeetingRequest {
   preferredDate String // YYYY-MM-DD
   preferredTime String // HH:MM
   status        String   @default("PENDING") // PENDING, APPROVED, DECLINED, SUGGESTED
+  statusReason  String?
   suggestedDate String?
   suggestedTime String?
   createdAt     DateTime @default(now())

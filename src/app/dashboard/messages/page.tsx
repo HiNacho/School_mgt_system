@@ -79,6 +79,7 @@ interface MeetingRequest {
   preferredDate: string;
   preferredTime: string;
   status: string;
+  statusReason: string | null;
   suggestedDate: string | null;
   suggestedTime: string | null;
   createdAt: string;
@@ -151,6 +152,10 @@ export default function RebuiltMessagesHub() {
   const [meetingReason, setMeetingReason] = useState('');
   const [meetingDate, setMeetingDate] = useState('');
   const [meetingTime, setMeetingTime] = useState('');
+  
+  // Meeting actions modal states
+  const [selectedMeetingForAction, setSelectedMeetingForAction] = useState<{ id: string; status: 'APPROVED' | 'DECLINED' } | null>(null);
+  const [actionReason, setActionReason] = useState('');
 
   // Chat initiation states (parent only)
   const [showNewChatModal, setShowNewChatModal] = useState(false);
@@ -300,6 +305,10 @@ export default function RebuiltMessagesHub() {
           if (t.teacher && t.teacher.id !== json.data.classTeacher?.id) {
             list.push({ ...t.teacher, label: `${t.subject?.name || 'Subject'} Teacher` });
           }
+        });
+        // Add School Administrators and Super Administrators
+        (json.data.schoolAdmins || []).forEach((adm: any) => {
+          list.push({ ...adm, label: adm.role === 'SUPER_ADMIN' ? 'Platform Admin' : 'School Admin' });
         });
         setAvailableTeachers(list);
         if (list.length > 0) {
@@ -483,7 +492,7 @@ export default function RebuiltMessagesHub() {
   };
 
   // Meeting actions (Approve / Decline / Suggest another time)
-  const handleMeetingAction = async (meetingId: string, status: string, suggestedDate?: string, suggestedTime?: string) => {
+  const handleMeetingAction = async (meetingId: string, status: string, statusReason?: string, suggestedDate?: string, suggestedTime?: string) => {
     if (!school) return;
     setErrorMsg('');
     setSuccessMsg('');
@@ -495,6 +504,7 @@ export default function RebuiltMessagesHub() {
           schoolId: school.id,
           meetingId,
           status,
+          statusReason,
           suggestedDate,
           suggestedTime
         })
@@ -623,21 +633,51 @@ export default function RebuiltMessagesHub() {
         {/* Tab Selection */}
         <div className="flex bg-slate-100 p-1 rounded-lg self-start md:self-center">
           <button 
-            onClick={() => setActiveTab('chats')} 
+            onClick={() => {
+              setActiveTab('chats');
+              if (school) {
+                fetch(`/api/communication?schoolId=${school.id}`)
+                  .then(res => res.json())
+                  .then(json => {
+                    if (json.success) setConversations(json.data.conversations || []);
+                  })
+                  .catch(console.error);
+              }
+            }} 
             className={`px-3 py-1.5 rounded-md text-xs font-semibold flex items-center gap-1.5 transition-all ${activeTab === 'chats' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
           >
             <MessageSquare className="w-3.5 h-3.5" />
             Direct Messages
           </button>
           <button 
-            onClick={() => setActiveTab('broadcasts')} 
+            onClick={() => {
+              setActiveTab('broadcasts');
+              if (school && currentUser) {
+                fetch(`/api/messages?schoolId=${school.id}&userId=${currentUser.id}&mode=inbox`)
+                  .then(res => res.json())
+                  .then(json => {
+                    if (json.success) setBroadcasts(json.data || []);
+                  })
+                  .catch(console.error);
+              }
+            }} 
             className={`px-3 py-1.5 rounded-md text-xs font-semibold flex items-center gap-1.5 transition-all ${activeTab === 'broadcasts' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
           >
             <Megaphone className="w-3.5 h-3.5" />
             Announcements
           </button>
           <button 
-            onClick={() => setActiveTab('meetings')} 
+            onClick={() => {
+              setActiveTab('meetings');
+              if (school) {
+                fetch(`/api/communication/meetings?schoolId=${school.id}`)
+                  .then(res => res.json())
+                  .then(json => {
+                    if (json.success) setMeetings(json.data || []);
+                  })
+                  .catch(console.error);
+              }
+            }} 
             className={`px-3 py-1.5 rounded-md text-xs font-semibold flex items-center gap-1.5 transition-all ${activeTab === 'meetings' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
           >
             <Calendar className="w-3.5 h-3.5" />
@@ -1057,17 +1097,36 @@ export default function RebuiltMessagesHub() {
                           </div>
                         )}
 
+                        {meet.statusReason && (
+                          <div className={`p-2.5 rounded-lg text-[10px] border leading-normal ${
+                            meet.status === 'APPROVED' 
+                              ? 'bg-emerald-50/50 text-emerald-800 border-emerald-150' 
+                              : 'bg-red-50/50 text-red-800 border-red-150'
+                          }`}>
+                            <span className="font-extrabold uppercase tracking-wider text-[9px] block mb-0.5">
+                              {meet.status === 'APPROVED' ? '✅ Approval Note' : '❌ Rejection Reason'}
+                            </span>
+                            {meet.statusReason}
+                          </div>
+                        )}
+
                         {/* Action buttons (for teachers/admins on pending requests) */}
                         {currentUser?.role !== 'PARENT' && meet.status === 'PENDING' && (
                           <div className="flex gap-2 mt-2 pt-2 border-t border-slate-100">
                             <button
-                              onClick={() => handleMeetingAction(meet.id, 'APPROVED')}
+                              onClick={() => {
+                                setSelectedMeetingForAction({ id: meet.id, status: 'APPROVED' });
+                                setActionReason('');
+                              }}
                               className="flex-1 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded text-[10px] font-bold transition-all"
                             >
                               Approve
                             </button>
                             <button
-                              onClick={() => handleMeetingAction(meet.id, 'DECLINED')}
+                              onClick={() => {
+                                setSelectedMeetingForAction({ id: meet.id, status: 'DECLINED' });
+                                setActionReason('');
+                              }}
                               className="flex-1 py-1 bg-red-600 hover:bg-red-700 text-white rounded text-[10px] font-bold transition-all"
                             >
                               Decline
@@ -1308,7 +1367,7 @@ export default function RebuiltMessagesHub() {
                 <label className="block text-[10px] font-black uppercase tracking-wider text-slate-400 mb-1">Select Teacher</label>
                 <select
                   value={meetingTeacherId}
-                  onChange={(e) => setNewChatTeacherId(e.target.value)}
+                  onChange={(e) => setMeetingTeacherId(e.target.value)}
                   className="w-full px-3 py-2 border border-slate-250 rounded-lg text-xs bg-slate-50"
                 >
                   {availableTeachers.map(t => (
@@ -1399,6 +1458,77 @@ export default function RebuiltMessagesHub() {
                   <p className="text-[10px] text-slate-500">{tmpl.content}</p>
                 </div>
               ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ==================== MEETING STATUS REASON MODAL (Teachers/Admins) ==================== */}
+      {selectedMeetingForAction && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4">
+          <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-xl w-full max-w-md space-y-4 animate-scaleUp">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <h3 className="text-xs font-black uppercase text-slate-800 tracking-wider">
+                {selectedMeetingForAction.status === 'APPROVED' ? 'Approve Meeting Slot' : 'Decline Meeting Slot'}
+              </h3>
+              <button 
+                onClick={() => setSelectedMeetingForAction(null)}
+                className="text-slate-400 hover:text-slate-600 text-lg font-bold"
+              >
+                &times;
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              <p className="text-xs text-slate-500 leading-relaxed">
+                {selectedMeetingForAction.status === 'APPROVED' 
+                  ? 'Confirm meeting schedule. You can optionally add a brief note or confirmation instructions for the parent.'
+                  : 'Please state the reason for rejecting or declining this meeting request. The parent will be notified.'
+                }
+              </p>
+
+              <div>
+                <label className="block text-[10px] font-black uppercase tracking-wider text-slate-400 mb-1">
+                  {selectedMeetingForAction.status === 'APPROVED' ? 'Approval Note (Optional)' : 'Decline Reason'}
+                </label>
+                <textarea
+                  required={selectedMeetingForAction.status === 'DECLINED'}
+                  rows={4}
+                  value={actionReason}
+                  onChange={(e) => setActionReason(e.target.value)}
+                  placeholder={selectedMeetingForAction.status === 'APPROVED' 
+                    ? "e.g. Approved. Please ask for the Principal's office upon arrival..." 
+                    : "e.g. I am unavailable at this time due to teacher training. Please suggest another day..."
+                  }
+                  className="w-full px-3 py-2 border border-slate-250 rounded-lg text-xs bg-slate-50 focus:outline-none focus:ring-1 focus:ring-indigo-500 font-sans"
+                />
+              </div>
+            </div>
+
+            <div className="flex gap-3 justify-end pt-2 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => setSelectedMeetingForAction(null)}
+                className="px-3.5 py-1.5 border border-slate-200 hover:bg-slate-50 rounded-lg text-xs font-bold text-slate-600 transition-all"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={async () => {
+                  if (selectedMeetingForAction.status === 'DECLINED' && !actionReason.trim()) {
+                    alert('Please specify a rejection reason.');
+                    return;
+                  }
+                  await handleMeetingAction(selectedMeetingForAction.id, selectedMeetingForAction.status, actionReason.trim());
+                  setSelectedMeetingForAction(null);
+                }}
+                className={`px-4 py-1.5 rounded-lg text-xs font-bold text-white transition-all ${
+                  selectedMeetingForAction.status === 'APPROVED' ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-red-600 hover:bg-red-700'
+                }`}
+              >
+                Confirm {selectedMeetingForAction.status === 'APPROVED' ? 'Approval' : 'Decline'}
+              </button>
             </div>
           </div>
         </div>
