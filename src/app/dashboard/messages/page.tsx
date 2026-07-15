@@ -247,6 +247,37 @@ export default function RebuiltMessagesHub() {
             fetchTeachersForStudent(schoolId, wards[0].id);
           }
         }
+      } else {
+        // Load school students for teacher/admin to start chats
+        const studentRes = await fetch(`/api/students?schoolId=${schoolId}`);
+        const studentJson = await studentRes.json();
+        if (studentRes.ok && studentJson.success) {
+          const loadedStudents = studentJson.data || [];
+          const formatted = loadedStudents.map((s: any) => ({
+            id: s.id,
+            firstName: s.firstName,
+            lastName: s.lastName,
+            className: s.class?.name || '',
+            armName: s.arm?.name || '',
+            parent: s.parent
+          }));
+          setMyWards(formatted);
+          
+          if (formatted.length > 0) {
+            setNewChatStudentId(formatted[0].id);
+            setMeetingStudentId(formatted[0].id);
+            const firstKid = formatted[0];
+            if (firstKid.parent) {
+              setAvailableTeachers([{
+                id: firstKid.parent.id,
+                firstName: firstKid.parent.firstName,
+                lastName: firstKid.parent.lastName,
+                label: 'Parent'
+              }]);
+              setNewChatTeacherId(firstKid.parent.id);
+            }
+          }
+        }
       }
     } catch (e: any) {
       setErrorMsg(e.message || 'Failed to retrieve communication logs');
@@ -282,10 +313,25 @@ export default function RebuiltMessagesHub() {
   };
 
   useEffect(() => {
-    if (newChatStudentId && school) {
+    if (!newChatStudentId || !school || !currentUser) return;
+    if (currentUser.role === 'PARENT') {
       fetchTeachersForStudent(school.id, newChatStudentId);
+    } else {
+      const kid = myWards.find((w: any) => w.id === newChatStudentId);
+      if (kid && kid.parent) {
+        setAvailableTeachers([{
+          id: kid.parent.id,
+          firstName: kid.parent.firstName,
+          lastName: kid.parent.lastName,
+          label: 'Parent'
+        }]);
+        setNewChatTeacherId(kid.parent.id);
+      } else {
+        setAvailableTeachers([]);
+        setNewChatTeacherId('');
+      }
     }
-  }, [newChatStudentId]);
+  }, [newChatStudentId, school, currentUser, myWards]);
 
   // Load chat messages when a conversation is clicked
   const handleSelectConversation = async (conv: ChatConversation) => {
@@ -641,7 +687,7 @@ export default function RebuiltMessagesHub() {
                   <div className="p-4 border-b border-slate-200 space-y-3 bg-white">
                     <div className="flex items-center justify-between">
                       <h2 className="text-sm font-bold text-slate-800">Conversations</h2>
-                      {currentUser?.role === 'PARENT' && (
+                      {currentUser?.role !== 'STUDENT' && (
                         <button 
                           onClick={() => setShowNewChatModal(true)} 
                           className="px-2 py-1 bg-indigo-600 hover:bg-indigo-700 text-white rounded text-[11px] font-bold flex items-center gap-1 transition-all"
@@ -1163,7 +1209,9 @@ export default function RebuiltMessagesHub() {
               </div>
 
               <div>
-                <label className="block text-[10px] font-black uppercase tracking-wider text-slate-400 mb-1">Select Teacher Recipient</label>
+                <label className="block text-[10px] font-black uppercase tracking-wider text-slate-400 mb-1">
+                  {currentUser?.role === 'PARENT' ? 'Select Teacher Recipient' : 'Select Parent Recipient'}
+                </label>
                 <select
                   value={newChatTeacherId}
                   onChange={(e) => setNewChatTeacherId(e.target.value)}
