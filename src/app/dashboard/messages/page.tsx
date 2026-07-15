@@ -1354,7 +1354,13 @@ export default function RebuiltMessagesHub() {
                 <label className="block text-[10px] font-black uppercase tracking-wider text-slate-400 mb-1">Select Child (Ward)</label>
                 <select
                   value={meetingStudentId}
-                  onChange={(e) => setMeetingStudentId(e.target.value)}
+                  onChange={(e) => {
+                    const studentId = e.target.value;
+                    setMeetingStudentId(studentId);
+                    if (school) {
+                      fetchTeachersForStudent(school.id, studentId);
+                    }
+                  }}
                   className="w-full px-3 py-2 border border-slate-250 rounded-lg text-xs bg-slate-50"
                 >
                   {myWards.map(w => (
@@ -1364,7 +1370,7 @@ export default function RebuiltMessagesHub() {
               </div>
 
               <div>
-                <label className="block text-[10px] font-black uppercase tracking-wider text-slate-400 mb-1">Select Teacher</label>
+                <label className="block text-[10px] font-black uppercase tracking-wider text-slate-400 mb-1">Select Staff</label>
                 <select
                   value={meetingTeacherId}
                   onChange={(e) => setMeetingTeacherId(e.target.value)}
