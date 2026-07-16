@@ -554,6 +554,38 @@ export default function RebuiltMessagesHub() {
     }
   };
 
+  // Close chat thread
+  const handleCloseConversation = async (conversationId: string) => {
+    if (!school) return;
+    setErrorMsg('');
+    setSuccessMsg('');
+    try {
+      const res = await fetch('/api/communication', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          schoolId: school.id,
+          conversationId,
+          status: 'CLOSED'
+        })
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || 'Failed to close conversation thread');
+
+      setSuccessMsg('Conversation thread successfully closed');
+      
+      // Update local state conversation status
+      setConversations(prev => 
+        prev.map(c => c.id === conversationId ? { ...c, status: 'CLOSED' } : c)
+      );
+      if (selectedConversation && selectedConversation.id === conversationId) {
+        setSelectedConversation({ ...selectedConversation, status: 'CLOSED' });
+      }
+    } catch (err: any) {
+      setErrorMsg(err.message || 'Failed to close conversation thread');
+    }
+  };
+
   // Save Settings (Admin only)
   const handleSaveSettings = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -860,7 +892,7 @@ export default function RebuiltMessagesHub() {
                         </div>
                         {currentUser?.role !== 'PARENT' && selectedConversation.status !== 'CLOSED' && (
                           <button
-                            onClick={() => handleMeetingAction(selectedConversation.id, 'CLOSED')}
+                            onClick={() => handleCloseConversation(selectedConversation.id)}
                             className="px-2.5 py-1 border border-slate-200 rounded text-[10px] font-semibold text-slate-600 hover:bg-slate-50 transition-all"
                           >
                             Close Thread
