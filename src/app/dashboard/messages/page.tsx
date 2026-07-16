@@ -244,12 +244,20 @@ export default function RebuiltMessagesHub() {
         if (parentRes.ok && parentJson.success && parentJson.data?.length > 0) {
           const parentObj = parentJson.data[0];
           const wards = parentObj.students || [];
-          setMyWards(wards);
+          const formatted = wards.map((s: any) => ({
+            id: s.id,
+            firstName: s.firstName,
+            lastName: s.lastName,
+            className: s.class?.name || '',
+            armName: s.arm?.name || '',
+            parent: parentObj
+          }));
+          setMyWards(formatted);
           
-          if (wards.length > 0) {
-            setNewChatStudentId(wards[0].id);
-            setMeetingStudentId(wards[0].id);
-            fetchTeachersForStudent(schoolId, wards[0].id);
+          if (formatted.length > 0) {
+            setNewChatStudentId(formatted[0].id);
+            setMeetingStudentId(formatted[0].id);
+            fetchTeachersForStudent(schoolId, formatted[0].id);
           }
         }
       } else {

@@ -9,7 +9,7 @@ import { generateUniqueUsername, generateTempPassword } from '@/lib/auth-utils';
 export async function GET(req: NextRequest) {
   try {
     const session = await requireAuth(req);
-    requireRole(session, ['SUPER_ADMIN', 'SCHOOL_ADMIN', 'HEAD_TEACHER', 'CLASS_TEACHER', 'SUBJECT_TEACHER']);
+    requireRole(session, ['SUPER_ADMIN', 'SCHOOL_ADMIN', 'HEAD_TEACHER', 'CLASS_TEACHER', 'SUBJECT_TEACHER', 'PARENT']);
 
     const { searchParams } = new URL(req.url);
     const schoolId = searchParams.get('schoolId');
@@ -20,8 +20,17 @@ export async function GET(req: NextRequest) {
 
     requireSchoolScope(session, schoolId);
 
+    let query: any = { schoolId };
+    const email = searchParams.get('email');
+
+    if (session.role === 'PARENT') {
+      query.userId = session.userId;
+    } else if (email) {
+      query.user = { email };
+    }
+
     const parents = await prisma.parent.findMany({
-      where: { schoolId },
+      where: query,
       include: {
         students: {
           include: {
