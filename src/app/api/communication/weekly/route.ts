@@ -211,3 +211,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: error.message || 'Failed to submit weekly progress report' }, { status: 500 });
   }
 }
+
+export const dynamic = 'force-dynamic';
+

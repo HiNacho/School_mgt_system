@@ -154,3 +154,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: error.message || 'Failed to record behaviour log' }, { status: 500 });
   }
 }
+
+export const dynamic = 'force-dynamic';
+

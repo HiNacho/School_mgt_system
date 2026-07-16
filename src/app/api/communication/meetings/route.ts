@@ -247,3 +247,6 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json({ error: error.message || 'Failed to update meeting status' }, { status: 500 });
   }
 }
+
+export const dynamic = 'force-dynamic';
+

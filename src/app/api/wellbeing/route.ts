@@ -223,3 +223,6 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: error.message || 'Failed to aggregate well-being metrics' }, { status: 500 });
   }
 }
+
+export const dynamic = 'force-dynamic';
+
