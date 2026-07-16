@@ -125,7 +125,10 @@ export async function GET(req: NextRequest) {
     );
   } catch (error: any) {
     console.error('Staff GET Error:', error);
-    return NextResponse.json({ error: 'Failed to fetch school staff registry' }, { status: 500 });
+    if (error.name === 'AuthError' || error.status) {
+      return NextResponse.json({ error: error.message }, { status: error.status || 401 });
+    }
+    return NextResponse.json({ error: `Failed to fetch school staff registry: ${error.message || error}` }, { status: 500 });
   }
 }
 
