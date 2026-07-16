@@ -132,9 +132,20 @@ export async function GET(req: NextRequest) {
         redirectUrl = '/dashboard';
       }
 
+      let title = 'System Alert';
+      if (msgLower.includes('meeting') || msgLower.includes('appointment')) {
+        title = 'Meeting Planner Alert';
+      } else if (msgLower.includes('message') || msgLower.includes('chat') || msgLower.includes('conversation')) {
+        title = 'New Message Alert';
+      } else if (msgLower.includes('report card') || msgLower.includes('published') || msgLower.includes('approval') || msgLower.includes('score') || msgLower.includes('result')) {
+        title = 'Report Card Alert';
+      } else if (msgLower.includes('announcement') || msgLower.includes('broadcast')) {
+        title = 'Announcement Alert';
+      }
+
       return {
         messageId: n.id,
-        title: 'Report Card Alert',
+        title,
         body: n.message,
         messageType: 'ALERT',
         priority: 'HIGH',
