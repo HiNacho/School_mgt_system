@@ -36,6 +36,21 @@ export default function LandingPage() {
   const [regSuccess, setRegSuccess] = useState(false);
   const [registeredCredentials, setRegisteredCredentials] = useState<any>(null);
 
+  // School selection states for dynamic demo portals
+  const [schools, setSchools] = useState<any[]>([]);
+  const [selectedSchoolSlug, setSelectedSchoolSlug] = useState<string>('nacho-secondary');
+
+  useEffect(() => {
+    fetch('/api/schools')
+      .then(res => res.json())
+      .then(json => {
+        if (json.success && Array.isArray(json.data)) {
+          setSchools(json.data);
+        }
+      })
+      .catch(err => console.error('Failed to load school tenants:', err));
+  }, []);
+
   // Helper to reset registration form
   const resetRegForm = () => {
     setRegStep(1);
@@ -1419,6 +1434,24 @@ export default function LandingPage() {
                 </p>
               </div>
 
+              {/* Active School Selector for Demo Bypass */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 bg-slate-100/70 border border-slate-200 rounded-2xl">
+                <div>
+                  <span className="text-[10px] font-black uppercase text-indigo-500 tracking-wider block">Active School Workspace</span>
+                  <span className="text-[11px] text-slate-500 font-semibold leading-relaxed block mt-0.5">Select school to log in with direct bypass:</span>
+                </div>
+                <select
+                  value={selectedSchoolSlug}
+                  onChange={(e) => setSelectedSchoolSlug(e.target.value)}
+                  className="text-xs font-bold text-slate-700 bg-white border border-slate-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer shadow-sm min-w-[220px]"
+                >
+                  <option value="nacho-secondary">Nacho Secondary Academy (Default)</option>
+                  {schools.map((s: any) => (
+                    <option key={s.id} value={s.slug}>{s.name} ({s.slug})</option>
+                  ))}
+                </select>
+              </div>
+
               {/* Roles Grid */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {[
@@ -1483,7 +1516,7 @@ export default function LandingPage() {
                             const res = await fetch('/api/auth', {
                               method: 'POST',
                               headers: { 'Content-Type': 'application/json' },
-                              body: JSON.stringify({ bypassRole: persona.role, schoolSlug: 'nacho-secondary' }),
+                              body: JSON.stringify({ bypassRole: persona.role, schoolSlug: selectedSchoolSlug }),
                             });
                             const resData = await res.json();
                             if (res.ok) {

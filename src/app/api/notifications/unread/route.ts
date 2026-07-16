@@ -109,38 +109,39 @@ export async function GET(req: NextRequest) {
       const msgLower = n.message.toLowerCase();
       const role = receiverRole;
 
-      if (role === 'SCHOOL_ADMIN' || role === 'SUPER_ADMIN') {
+      if (
+        msgLower.includes('message') ||
+        msgLower.includes('chat') ||
+        msgLower.includes('conversation') ||
+        msgLower.includes('meeting') ||
+        msgLower.includes('appointment')
+      ) {
+        redirectUrl = '/dashboard/messages';
+      } else if (role === 'SCHOOL_ADMIN' || role === 'SUPER_ADMIN') {
         if (msgLower.includes('score submission') || msgLower.includes('pending review') || msgLower.includes('approval')) {
           redirectUrl = '/dashboard/compile';
         } else if (msgLower.includes('class') || msgLower.includes('arm') || msgLower.includes('roster')) {
           redirectUrl = '/dashboard/classes';
         } else if (msgLower.includes('teachers') || msgLower.includes('staff')) {
           redirectUrl = '/dashboard/teachers';
-        } else {
-          redirectUrl = '/dashboard';
         }
       } else if (role === 'CLASS_TEACHER' || role === 'SUBJECT_TEACHER') {
         if (msgLower.includes('scores') || msgLower.includes('published') || msgLower.includes('marks')) {
           redirectUrl = '/dashboard/scores';
         } else if (msgLower.includes('report card') || msgLower.includes('approved') || msgLower.includes('released')) {
           redirectUrl = '/dashboard/compile';
-        } else {
-          redirectUrl = '/dashboard';
         }
-      } else {
-        // PARENT or STUDENT goes directly to home dashboard overview
-        redirectUrl = '/dashboard';
       }
 
       let title = 'System Alert';
-      if (msgLower.includes('meeting') || msgLower.includes('appointment')) {
+      if (msgLower.includes('announcement') || msgLower.includes('broadcast')) {
+        title = 'Announcement Alert';
+      } else if (msgLower.includes('meeting') || msgLower.includes('appointment')) {
         title = 'Meeting Planner Alert';
       } else if (msgLower.includes('message') || msgLower.includes('chat') || msgLower.includes('conversation')) {
         title = 'New Message Alert';
       } else if (msgLower.includes('report card') || msgLower.includes('published') || msgLower.includes('approval') || msgLower.includes('score') || msgLower.includes('result')) {
         title = 'Report Card Alert';
-      } else if (msgLower.includes('announcement') || msgLower.includes('broadcast')) {
-        title = 'Announcement Alert';
       }
 
       return {
