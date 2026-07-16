@@ -239,18 +239,44 @@ export default function RebuiltMessagesHub() {
 
       // If user is a Parent, load their wards and child teachers for composing messages
       if (user.role === 'PARENT') {
-        const parentRes = await fetch(`/api/parents?schoolId=${schoolId}&email=${user.email}`);
-        const parentJson = await parentRes.json();
-        if (parentRes.ok && parentJson.success && parentJson.data?.length > 0) {
-          const parentObj = parentJson.data[0];
-          const wards = parentObj.students || [];
+        let loadedFromApi = false;
+        try {
+          const parentRes = await fetch(`/api/parents?schoolId=${schoolId}&email=${user.email}`);
+          const parentJson = await parentRes.json();
+          if (parentRes.ok && parentJson.success && parentJson.data?.length > 0) {
+            const parentObj = parentJson.data[0];
+            const wards = parentObj.students || [];
+            const formatted = wards.map((s: any) => ({
+              id: s.id,
+              firstName: s.firstName,
+              lastName: s.lastName,
+              className: s.class?.name || '',
+              armName: s.arm?.name || '',
+              parent: parentObj
+            }));
+            setMyWards(formatted);
+            
+            if (formatted.length > 0) {
+              setNewChatStudentId(formatted[0].id);
+              setMeetingStudentId(formatted[0].id);
+              fetchTeachersForStudent(schoolId, formatted[0].id);
+            }
+            loadedFromApi = true;
+          }
+        } catch (err) {
+          console.error('Failed to load parent registry via API:', err);
+        }
+
+        // Fallback to local session user details if API request returns empty or fails
+        if (!loadedFromApi && user.parent) {
+          const wards = user.parent.students || [];
           const formatted = wards.map((s: any) => ({
             id: s.id,
             firstName: s.firstName,
             lastName: s.lastName,
             className: s.class?.name || '',
             armName: s.arm?.name || '',
-            parent: parentObj
+            parent: user.parent
           }));
           setMyWards(formatted);
           

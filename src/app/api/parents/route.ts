@@ -24,7 +24,7 @@ export async function GET(req: NextRequest) {
     const email = searchParams.get('email');
 
     if (session.role === 'PARENT') {
-      query.userId = session.userId;
+      query.user = { id: session.userId };
     } else if (email) {
       query.user = { email };
     }
