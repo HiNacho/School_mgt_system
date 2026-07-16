@@ -81,7 +81,12 @@ export async function GET(req: NextRequest) {
 
     if (session.role === 'PARENT') {
       conversationsQuery.parentId = session.userId;
-    } else if (session.role === 'CLASS_TEACHER' || session.role === 'SUBJECT_TEACHER') {
+    } else if (
+      session.role === 'CLASS_TEACHER' || 
+      session.role === 'SUBJECT_TEACHER' || 
+      session.role === 'HEAD_TEACHER' || 
+      session.role === 'TEACHER'
+    ) {
       conversationsQuery.teacherId = session.userId;
     }
 
