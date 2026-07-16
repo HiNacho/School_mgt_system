@@ -335,11 +335,6 @@ export default function RebuiltMessagesHub() {
         if (json.data.classTeacher) {
           list.push({ ...json.data.classTeacher, label: 'Class Teacher' });
         }
-        (json.data.teachers || []).forEach((t: any) => {
-          if (t.teacher && t.teacher.id !== json.data.classTeacher?.id) {
-            list.push({ ...t.teacher, label: `${t.subject?.name || 'Subject'} Teacher` });
-          }
-        });
         // Add School Administrators and Super Administrators
         (json.data.schoolAdmins || []).forEach((adm: any) => {
           list.push({ ...adm, label: adm.role === 'SUPER_ADMIN' ? 'Platform Admin' : 'School Admin' });
