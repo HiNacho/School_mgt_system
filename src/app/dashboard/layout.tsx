@@ -106,7 +106,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           }
           init.headers = headers;
         }
-        return originalFetch(input, init);
+        const response = await originalFetch(input, init);
+        if (response.status === 401 && typeof window !== 'undefined') {
+          console.warn("Session expired or unauthorized. Redirecting to login...");
+          localStorage.removeItem('report_auth_token');
+          localStorage.removeItem('report_user_session');
+          document.cookie = 'report_auth_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax';
+          window.location.href = '/login?expired=true';
+        }
+        return response;
       };
       (authDecoratedFetch as any).__authDecorated = true;
       window.fetch = authDecoratedFetch;

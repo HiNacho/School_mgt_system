@@ -27,6 +27,11 @@ export default function LoginPage() {
     localStorage.removeItem('report_auth_token');
     localStorage.removeItem('report_user_session');
     document.cookie = 'report_auth_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('expired') === 'true') {
+      setError('Your session has expired. Please log in again to continue.');
+    }
   }, []);
 
   const handleLoginSubmit = async (e: React.FormEvent) => {
