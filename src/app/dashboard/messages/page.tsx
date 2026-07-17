@@ -198,6 +198,25 @@ export default function RebuiltMessagesHub() {
     return () => clearInterval(pollInterval);
   }, [selectedConversation?.id, activeTab, school]);
 
+  // Polling interval for live announcements (broadcasts)
+  useEffect(() => {
+    if (activeTab !== 'broadcasts' || !school || !currentUser) return;
+
+    const pollBroadInterval = setInterval(async () => {
+      try {
+        const broadRes = await fetch(`/api/messages?schoolId=${school.id}&userId=${currentUser.id}&mode=inbox`);
+        const broadJson = await broadRes.json();
+        if (broadRes.ok && broadJson.success) {
+          setBroadcasts(broadJson.data || []);
+        }
+      } catch (err) {
+        console.error('Error polling announcements:', err);
+      }
+    }, 5000); // Poll every 5 seconds
+
+    return () => clearInterval(pollBroadInterval);
+  }, [activeTab, school, currentUser]);
+
   // Meeting scheduler states
   const [meetings, setMeetings] = useState<MeetingRequest[]>([]);
   const [showMeetingModal, setShowMeetingModal] = useState(false);
