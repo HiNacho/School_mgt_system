@@ -252,6 +252,30 @@ export async function POST(req: NextRequest) {
       targetRecipientUserIds = studentsInArm
         .map(s => s.user?.id)
         .filter((id): id is string => !!id && id !== senderId);
+    } else if (targetAudience === 'CLASS_ARM_PARENTS' && armId) {
+      // Parents of all active students in this specific class arm
+      const studentsInArm = await prisma.student.findMany({
+        where: {
+          schoolId,
+          armId,
+          status: 'ACTIVE'
+        },
+        include: {
+          parent: {
+            include: {
+              user: {
+                select: { id: true }
+              }
+            }
+          }
+        }
+      });
+
+      const parentUserIds = studentsInArm
+        .map(s => s.parent?.user?.id)
+        .filter((id): id is string => !!id && id !== senderId);
+
+      targetRecipientUserIds = Array.from(new Set(parentUserIds));
     } else {
       // Default: ALL active school users except sender
       const allUsers = await prisma.user.findMany({

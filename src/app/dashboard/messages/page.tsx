@@ -376,6 +376,12 @@ export default function RebuiltMessagesHub() {
           if (profileRes.ok && profileJson.success) {
             staffProfileData = profileJson.data;
             setFullStaffProfile(staffProfileData);
+            
+            if (user.role === 'CLASS_TEACHER' && staffProfileData?.classTeacherArms?.length > 0) {
+              setBroadcastAudience(`CLASS_ARM_PARENTS:${staffProfileData.classTeacherArms[0].id}`);
+            } else if (user.role !== 'SCHOOL_ADMIN' && user.role !== 'SUPER_ADMIN' && user.role !== 'HEAD_TEACHER') {
+              setBroadcastAudience('TEACHERS');
+            }
           }
         } catch (err) {
           console.error('Failed to load profile:', err);
@@ -756,10 +762,18 @@ export default function RebuiltMessagesHub() {
     }
   };
 
-  // Submit Broadcast Announcement (Admin / Head Teacher only)
+  // Submit Broadcast Announcement (Admin / Teachers)
   const handleSendBroadcast = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!broadcastTitle.trim() || !broadcastBody.trim() || !school) return;
+
+    let targetAud = broadcastAudience;
+    let targetArmId = '';
+
+    if (broadcastAudience.startsWith('CLASS_ARM_PARENTS:')) {
+      targetAud = 'CLASS_ARM_PARENTS';
+      targetArmId = broadcastAudience.split(':')[1];
+    }
 
     setSending(true);
     setErrorMsg('');
@@ -773,7 +787,8 @@ export default function RebuiltMessagesHub() {
           senderId: currentUser.id,
           title: broadcastTitle.trim(),
           body: broadcastBody.trim(),
-          targetAudience: broadcastAudience,
+          targetAudience: targetAud,
+          armId: targetArmId,
           priority: broadcastPriority,
           isPinned: broadcastPinned,
           messageType: 'ANNOUNCEMENT'
@@ -1142,7 +1157,7 @@ export default function RebuiltMessagesHub() {
             {activeTab === 'broadcasts' && (
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
                 {/* Form to dispatch announcement (Admin/Teachers) */}
-                {(currentUser?.role === 'SCHOOL_ADMIN' || currentUser?.role === 'SUPER_ADMIN' || currentUser?.role === 'HEAD_TEACHER') && (
+                {(currentUser?.role !== 'PARENT' && currentUser?.role !== 'STUDENT') && (
                   <div className="lg:col-span-5 bg-white border border-slate-200 rounded-xl p-5 shadow-sm space-y-4">
                     <div className="flex items-center gap-1.5 border-b border-slate-100 pb-3">
                       <Megaphone className="w-4 h-4 text-indigo-600" />
@@ -1170,9 +1185,24 @@ export default function RebuiltMessagesHub() {
                             onChange={(e) => setBroadcastAudience(e.target.value)}
                             className="w-full px-3 py-2 border border-slate-200 rounded-lg text-xs bg-slate-50 focus:outline-none"
                           >
-                            <option value="ALL">All (Everyone)</option>
-                            <option value="PARENTS">Parents Only</option>
-                            <option value="TEACHERS">Teachers Only</option>
+                            {(currentUser?.role === 'SCHOOL_ADMIN' || currentUser?.role === 'SUPER_ADMIN' || currentUser?.role === 'HEAD_TEACHER') ? (
+                              <>
+                                <option value="ALL">All (Everyone)</option>
+                                <option value="PARENTS">Parents Only</option>
+                                <option value="TEACHERS">Teachers Only</option>
+                              </>
+                            ) : currentUser?.role === 'CLASS_TEACHER' && fullStaffProfile?.classTeacherArms?.length > 0 ? (
+                              <>
+                                {fullStaffProfile.classTeacherArms.map((arm: any) => (
+                                  <option key={arm.id} value={`CLASS_ARM_PARENTS:${arm.id}`}>
+                                    My Class Parents ({arm.class?.name || ''} {arm.name})
+                                  </option>
+                                ))}
+                                <option value="TEACHERS">Staff / Teachers Only</option>
+                              </>
+                            ) : (
+                              <option value="TEACHERS">Staff / Teachers Only</option>
+                            )}
                           </select>
                         </div>
                         <div>
