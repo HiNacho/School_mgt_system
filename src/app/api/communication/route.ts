@@ -240,7 +240,7 @@ export async function POST(req: NextRequest) {
     const result = await prisma.$transaction(async (tx) => {
       // 1. Resolve or create conversation
       if (!targetConversationId) {
-        if (!studentId || !recipientId || !category || !subject) {
+        if (!studentId || !recipientId) {
           throw new Error('Missing parameters to establish a new chat thread');
         }
 
@@ -256,15 +256,16 @@ export async function POST(req: NextRequest) {
           teacherId = session.userId;
         }
 
-        // Check if an open thread already exists for student + parent + teacher + category
+        const categoryVal = category || 'GENERAL';
+        const subjectVal = subject || 'Direct Chat';
+
+        // Check if a conversation thread already exists for student + parent + teacher
         const existing = await tx.chatConversation.findFirst({
           where: {
             schoolId,
             studentId,
             parentId,
-            teacherId,
-            category,
-            status: { in: ['OPEN', 'PENDING'] }
+            teacherId
           }
         });
 
@@ -277,8 +278,8 @@ export async function POST(req: NextRequest) {
               studentId,
               parentId,
               teacherId,
-              category,
-              subject,
+              category: categoryVal,
+              subject: subjectVal,
               status: 'OPEN'
             }
           });

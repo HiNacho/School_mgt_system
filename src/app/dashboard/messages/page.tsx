@@ -488,7 +488,7 @@ export default function RebuiltMessagesHub() {
   // Create new conversation (Parent only)
   const handleCreateNewChat = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newChatStudentId || !newChatTeacherId || !newChatSubject.trim() || !newChatBody.trim() || !school) return;
+    if (!newChatStudentId || !newChatTeacherId || !newChatBody.trim() || !school) return;
 
     setSending(true);
     setErrorMsg('');
@@ -501,8 +501,8 @@ export default function RebuiltMessagesHub() {
           schoolId: school.id,
           studentId: newChatStudentId,
           recipientId: newChatTeacherId,
-          category: newChatCategory,
-          subject: newChatSubject.trim(),
+          category: 'GENERAL',
+          subject: 'Direct Chat',
           messageBody: newChatBody.trim()
         })
       });
@@ -521,7 +521,7 @@ export default function RebuiltMessagesHub() {
         const chats: ChatConversation[] = refreshJson.data.conversations || [];
         setConversations(chats);
         // Find and select the new conversation
-        const matched = chats.find(c => c.messages.some(m => m.id === json.data.id));
+        const matched = chats.find(c => c.id === json.data.conversationId);
         if (matched) {
           handleSelectConversation(matched);
         }
@@ -928,28 +928,33 @@ export default function RebuiltMessagesHub() {
                       {/* Active conversation Header */}
                       <div className="p-4 border-b border-slate-200 flex items-center justify-between bg-slate-50/30">
                         <div>
-                          <div className="flex items-center gap-2">
-                            <span className="px-2 py-0.5 bg-indigo-100 text-indigo-700 rounded text-[9px] font-black uppercase tracking-wider">
-                              {selectedConversation.category}
-                            </span>
-                            <span className={`px-2 py-0.5 rounded text-[9px] font-bold ${selectedConversation.status === 'CLOSED' ? 'bg-slate-200 text-slate-600' : 'bg-emerald-100 text-emerald-700'}`}>
-                              {selectedConversation.status}
-                            </span>
-                          </div>
-                          <h2 className="text-sm font-bold text-slate-900 mt-1">{selectedConversation.subject}</h2>
-                          <p className="text-[11px] text-slate-500 mt-0.5">
-                            Focus: <span className="font-semibold text-slate-700">{selectedConversation.student.firstName} {selectedConversation.student.lastName}</span> | 
-                            {currentUser?.role === 'PARENT' 
-                              ? ` ${selectedConversation.teacher.role === 'SCHOOL_ADMIN' || selectedConversation.teacher.role === 'SUPER_ADMIN' ? 'Admin' : 'Teacher'}: ${selectedConversation.teacher.firstName} ${selectedConversation.teacher.lastName}` 
-                              : ` Parent: ${selectedConversation.parent.firstName} ${selectedConversation.parent.lastName}`}
-                          </p>
+                          {(() => {
+                            const displayRole = selectedConversation.teacher.role === 'SCHOOL_ADMIN' ? 'admin' :
+                                                selectedConversation.teacher.role === 'SUPER_ADMIN' ? 'developer' :
+                                                selectedConversation.teacher.role === 'CLASS_TEACHER' ? 'class teacher' :
+                                                selectedConversation.teacher.role === 'SUBJECT_TEACHER' ? 'subject teacher' :
+                                                selectedConversation.teacher.role === 'HEAD_TEACHER' ? 'head teacher' : 'teacher';
+
+                            const displayTitle = currentUser?.role === 'PARENT' 
+                              ? `${selectedConversation.teacher.firstName} ${selectedConversation.teacher.lastName} (${displayRole})`
+                              : `${selectedConversation.parent.firstName} ${selectedConversation.parent.lastName} (parent)`;
+
+                            return (
+                              <>
+                                <h2 className="text-sm font-bold text-slate-900">{displayTitle}</h2>
+                                <p className="text-[11px] text-slate-500 mt-1">
+                                  Focus: <span className="font-semibold text-slate-700">{selectedConversation.student.firstName} {selectedConversation.student.lastName}</span> ({selectedConversation.student.className} {selectedConversation.student.armName})
+                                </p>
+                              </>
+                            );
+                          })()}
                         </div>
                         {currentUser?.role !== 'PARENT' && selectedConversation.status !== 'CLOSED' && (
                           <button
                             onClick={() => handleCloseConversation(selectedConversation.id)}
-                            className="px-2.5 py-1 border border-slate-200 rounded text-[10px] font-semibold text-slate-600 hover:bg-slate-50 transition-all"
+                            className="px-2.5 py-1 border border-slate-200 rounded text-[10px] font-semibold text-slate-650 hover:bg-slate-50 transition-all"
                           >
-                            Close Thread
+                            Close Conversation
                           </button>
                         )}
                       </div>
@@ -1398,34 +1403,7 @@ export default function RebuiltMessagesHub() {
                 </select>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-[10px] font-black uppercase tracking-wider text-slate-400 mb-1">Category</label>
-                  <select
-                    value={newChatCategory}
-                    onChange={(e) => setNewChatCategory(e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-250 rounded-lg text-xs bg-slate-50"
-                  >
-                    <option value="Academic Performance">Academic Performance</option>
-                    <option value="Attendance">Attendance</option>
-                    <option value="Behaviour">Behaviour</option>
-                    <option value="Homework">Homework</option>
-                    <option value="Health">Health</option>
-                    <option value="General Question">General Question</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-[10px] font-black uppercase tracking-wider text-slate-400 mb-1">Subject</label>
-                  <input
-                    type="text"
-                    required
-                    value={newChatSubject}
-                    onChange={(e) => setNewChatSubject(e.target.value)}
-                    placeholder="Subject title..."
-                    className="w-full px-3 py-2 border border-slate-250 rounded-lg text-xs bg-slate-50"
-                  />
-                </div>
-              </div>
+
 
               <div>
                 <label className="block text-[10px] font-black uppercase tracking-wider text-slate-400 mb-1">Message Body</label>
