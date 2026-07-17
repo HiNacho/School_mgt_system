@@ -715,26 +715,42 @@ export default function RebuiltMessagesHub() {
     }
   };
 
-  // Filter conversations based on category and search query
+  // Filter conversations based on category and search query (any order matches)
   const filteredConversations = conversations.filter(c => {
     const matchesCategory = chatCategoryFilter === 'ALL' || c.category === chatCategoryFilter;
-    const searchLower = searchQuery.toLowerCase();
-    const matchesSearch = 
-      c.subject.toLowerCase().includes(searchLower) ||
-      c.student.firstName.toLowerCase().includes(searchLower) ||
-      c.student.lastName.toLowerCase().includes(searchLower) ||
-      c.teacher.firstName.toLowerCase().includes(searchLower) ||
-      c.teacher.lastName.toLowerCase().includes(searchLower) ||
-      c.parent.firstName.toLowerCase().includes(searchLower) ||
-      c.parent.lastName.toLowerCase().includes(searchLower);
+    const searchTerms = searchQuery.toLowerCase().split(/\s+/).filter(Boolean);
+    if (searchTerms.length === 0) return matchesCategory;
+
+    const studentFirst = c.student.firstName.toLowerCase();
+    const studentLast = c.student.lastName.toLowerCase();
+    const teacherFirst = c.teacher.firstName.toLowerCase();
+    const teacherLast = c.teacher.lastName.toLowerCase();
+    const parentFirst = c.parent.firstName.toLowerCase();
+    const parentLast = c.parent.lastName.toLowerCase();
+    const subjectLower = c.subject.toLowerCase();
+
+    const matchesSearch = searchTerms.every(term => 
+      studentFirst.includes(term) ||
+      studentLast.includes(term) ||
+      teacherFirst.includes(term) ||
+      teacherLast.includes(term) ||
+      parentFirst.includes(term) ||
+      parentLast.includes(term) ||
+      subjectLower.includes(term)
+    );
 
     return matchesCategory && matchesSearch;
   });
 
-  // Filter students based on search query in the Start Chat modal
+  // Filter students based on search query in the Start Chat modal (any order matches)
   const filteredWards = myWards.filter(w => {
-    const fullName = `${w.firstName} ${w.lastName}`.toLowerCase();
-    return fullName.includes(studentSearchQuery.toLowerCase());
+    const firstNameLower = w.firstName.toLowerCase();
+    const lastNameLower = w.lastName.toLowerCase();
+    const searchTerms = studentSearchQuery.toLowerCase().split(/\s+/).filter(Boolean);
+    
+    return searchTerms.every(term => 
+      firstNameLower.includes(term) || lastNameLower.includes(term)
+    );
   });
 
   return (
