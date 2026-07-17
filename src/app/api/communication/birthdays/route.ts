@@ -52,11 +52,52 @@ export async function GET(req: NextRequest) {
       }
     });
 
-    // Helper to check if date string matches target month-day
+    // Helper to check if date string matches target month-day (supports MM-DD, July 17, YYYY-MM-DD, etc.)
     const isBirthday = (dobString: string | null | undefined) => {
       if (!dobString) return false;
-      const clean = dobString.replace(/\//g, '-'); // replace slashes with hyphens
-      return clean.includes(targetMonthDay);
+      const clean = dobString.trim().toLowerCase().replace(/\s+/g, ' ').replace(/\//g, '-');
+      
+      const day = today.getDate();
+      const monthNum = today.getMonth() + 1; // 1-12
+      const monthNames = [
+        'january', 'february', 'march', 'april', 'may', 'june', 
+        'july', 'august', 'september', 'october', 'november', 'december'
+      ];
+      const monthAbbrs = [
+        'jan', 'feb', 'mar', 'apr', 'may', 'jun', 
+        'jul', 'aug', 'sep', 'oct', 'nov', 'dec'
+      ];
+      
+      const currentMonthName = monthNames[monthNum - 1];
+      const currentMonthAbbr = monthAbbrs[monthNum - 1];
+      
+      // Check numeric MM-DD format e.g. "07-17" or "7-17" or "17-07" or "17-7"
+      const parts = clean.split('-');
+      if (parts.length >= 2) {
+        const p1 = parseInt(parts[0], 10);
+        const p2 = parseInt(parts[1], 10);
+        
+        // Scenario 1: MM-DD
+        if (p1 === monthNum && p2 === day) return true;
+        // Scenario 2: DD-MM
+        if (p1 === day && p2 === monthNum) return true;
+        // Scenario 3: YYYY-MM-DD
+        if (parts.length === 3 && parseInt(parts[0], 10) > 31) {
+          const m = parseInt(parts[1], 10);
+          const d = parseInt(parts[2], 10);
+          if (m === monthNum && d === day) return true;
+        }
+      }
+
+      // Check text-based format: e.g. "july 17" or "17 july" or "jul 17" or "17 jul"
+      if (clean.includes(currentMonthName) && clean.includes(String(day))) return true;
+      if (clean.includes(currentMonthAbbr) && clean.includes(String(day))) return true;
+      
+      // Fallback: simple substring check
+      const tMonthDay = `${String(monthNum).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+      if (clean.includes(tMonthDay)) return true;
+      
+      return false;
     };
 
     // Filter birthday students and parents
