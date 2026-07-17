@@ -17,6 +17,7 @@ export default function UserProfilePage() {
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [passportPhoto, setPassportPhoto] = useState<string | null>(null);
+  const [dateOfBirth, setDateOfBirth] = useState('');
   
   // Password change states
   const [currentPassword, setCurrentPassword] = useState('');
@@ -46,6 +47,7 @@ export default function UserProfilePage() {
         setEmail(sessionObj.user.email || '');
         setPhone(sessionObj.user.phone || '');
         setPassportPhoto(sessionObj.user.passportPhoto || null);
+        setDateOfBirth(sessionObj.user.dateOfBirth || '');
       } catch (e) {
         setErrorMsg('Failed to parse user session parameters.');
       }
@@ -96,7 +98,8 @@ export default function UserProfilePage() {
           lastName,
           email,
           phone,
-          passportPhoto
+          passportPhoto,
+          dateOfBirth
         })
       });
 
@@ -112,7 +115,8 @@ export default function UserProfilePage() {
         lastName,
         email,
         phone,
-        passportPhoto
+        passportPhoto,
+        dateOfBirth
       };
       
       localStorage.setItem('report_user_session', JSON.stringify({
@@ -377,6 +381,18 @@ export default function UserProfilePage() {
                   onChange={(e) => setPhone(e.target.value)}
                   placeholder="E.g., +234 803 999 8888"
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-slate-800 font-bold focus:outline-none focus:border-slate-300"
+                />
+              </div>
+
+              {/* Date of Birth */}
+              <div>
+                <label className="block text-[10px] font-extrabold uppercase tracking-wider text-slate-400 mb-1.5">Date of Birth</label>
+                <input
+                  type="text"
+                  value={dateOfBirth}
+                  onChange={(e) => setDateOfBirth(e.target.value)}
+                  placeholder="E.g., July 17 or 07-17"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-slate-800 font-bold focus:outline-none focus:border-slate-300 font-mono"
                 />
               </div>
             </div>

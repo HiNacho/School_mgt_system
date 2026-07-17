@@ -366,6 +366,85 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     otherItems.push({ name: 'Audit Logs', href: '/dashboard/logs', icon: FileText });
   }
 
+  const isTodayBirthday = (dobString: string | null | undefined) => {
+    if (!dobString) return false;
+    const clean = dobString.trim().toLowerCase().replace(/\s+/g, ' ').replace(/\//g, '-');
+    const today = new Date();
+    const day = today.getDate();
+    const monthNum = today.getMonth() + 1; // 1-12
+    const monthNames = [
+      'january', 'february', 'march', 'april', 'may', 'june', 
+      'july', 'august', 'september', 'october', 'november', 'december'
+    ];
+    const monthAbbrs = [
+      'jan', 'feb', 'mar', 'apr', 'may', 'jun', 
+      'jul', 'aug', 'sep', 'oct', 'nov', 'dec'
+    ];
+    
+    const currentMonthName = monthNames[monthNum - 1];
+    const currentMonthAbbr = monthAbbrs[monthNum - 1];
+    
+    const parts = clean.split('-');
+    if (parts.length >= 2) {
+      const p1 = parseInt(parts[0], 10);
+      const p2 = parseInt(parts[1], 10);
+      if (p1 === monthNum && p2 === day) return true;
+      if (p1 === day && p2 === monthNum) return true;
+      if (parts.length === 3 && parseInt(parts[0], 10) > 31) {
+        const m = parseInt(parts[1], 10);
+        const d = parseInt(parts[2], 10);
+        if (m === monthNum && d === day) return true;
+      }
+    }
+    if (clean.includes(currentMonthName) && clean.includes(String(day))) return true;
+    if (clean.includes(currentMonthAbbr) && clean.includes(String(day))) return true;
+    
+    const tMonthDay = `${String(monthNum).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    return clean.includes(tMonthDay);
+  };
+
+  const getBirthdayMessages = () => {
+    if (!session?.user) return [];
+    const messages: string[] = [];
+    const user = session.user;
+
+    const userDob = user.dateOfBirth || user.parent?.dateOfBirth;
+    if (isTodayBirthday(userDob)) {
+      messages.push(`Happy Birthday, ${user.firstName}! 🎂`);
+    }
+
+    if (user.parent?.students) {
+      user.parent.students.forEach((s: any) => {
+        if (isTodayBirthday(s.dateOfBirth)) {
+          messages.push(`Happy Birthday, ${s.firstName}! 🎈`);
+        }
+      });
+    }
+
+    return messages;
+  };
+
+  const birthdayMessages = getBirthdayMessages();
+
+  const balloonColors = [
+    'from-pink-400 to-rose-500',
+    'from-sky-400 to-indigo-500',
+    'from-amber-300 to-yellow-500',
+    'from-purple-400 to-fuchsia-600',
+    'from-emerald-400 to-teal-600',
+    'from-violet-400 to-purple-600'
+  ];
+
+  const balloons = Array.from({ length: 12 }).map((_, idx) => {
+    const color = balloonColors[idx % balloonColors.length];
+    const delay = idx * 1.8; // stagger start
+    const duration = 12 + (idx % 4) * 2; // stagger speed (12s to 18s)
+    const leftPosition = 5 + (idx * 8) % 90; // spread across screen
+    const size = 65 + (idx % 3) * 15; // sizes 65px to 95px
+    const message = birthdayMessages.length > 0 ? birthdayMessages[idx % birthdayMessages.length] : '';
+    return { id: idx, color, delay, duration, leftPosition, size, message };
+  });
+
   return (
     <div className="min-h-screen flex flex-col font-sans overflow-hidden bg-[#f8f9fa]">
       <style>{`
@@ -531,6 +610,26 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         }
         .animate-float-slow {
           animation: float-slow 7s ease-in-out infinite;
+        }
+
+        @keyframes floatUp {
+          0% {
+            transform: translateY(115vh) translateX(0) rotate(0deg);
+            opacity: 0;
+          }
+          5% {
+            opacity: 0.95;
+          }
+          90% {
+            opacity: 0.95;
+          }
+          100% {
+            transform: translateY(-115vh) translateX(25px) rotate(15deg);
+            opacity: 0;
+          }
+        }
+        .animate-floatUp {
+          animation: floatUp 15s linear infinite;
         }
       `}</style>
       {/* Impersonation Banner */}
@@ -1077,6 +1176,38 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               </form>
             )}
           </div>
+        </div>
+      )}
+      
+      {/* Birthday Floating Balloons Overlay */}
+      {birthdayMessages.length > 0 && (
+        <div className="fixed inset-0 pointer-events-none z-[9999] overflow-hidden select-none">
+          {balloons.map(b => (
+            <div
+              key={b.id}
+              className="absolute bottom-0 flex flex-col items-center animate-floatUp"
+              style={{
+                left: `${b.leftPosition}%`,
+                animationDelay: `${b.delay}s`,
+                animationDuration: `${b.duration}s`,
+                width: `${b.size}px`,
+              }}
+            >
+              {/* Balloon Bubble */}
+              <div className={`relative rounded-full bg-gradient-to-b ${b.color} shadow-lg flex items-center justify-center text-center p-2 text-[9px] font-black uppercase text-white tracking-wider`}
+                   style={{
+                     width: `${b.size}px`,
+                     height: `${b.size * 1.25}px`,
+                     borderRadius: '50% 50% 50% 50% / 40% 40% 60% 60%'
+                   }}>
+                <span className="leading-tight px-1 font-sans">{b.message}</span>
+                {/* Knot / Triangle */}
+                <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-b-[8px] border-b-slate-700/10 rotate-180" />
+              </div>
+              {/* Balloon String */}
+              <div className="w-[1.5px] h-20 bg-slate-300/40 rounded-full" />
+            </div>
+          ))}
         </div>
       )}
     </div>

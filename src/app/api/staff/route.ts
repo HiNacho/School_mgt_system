@@ -342,15 +342,19 @@ export async function PUT(req: NextRequest) {
 // 4. PATCH: Update Staff Details (firstName, lastName, email, phone, role, classTeacherArmId, subjectAssignments)
 export async function PATCH(req: NextRequest) {
   try {
-    // Enforce auth, roles, and school scope
     const session = await requireAuth(req);
-    requireRole(session, ['SUPER_ADMIN', 'SCHOOL_ADMIN']);
 
     const body = await req.json();
     const { 
       staffId, schoolId, firstName, lastName, title, email, phone, passportPhoto,
-      role, classTeacherArmId, subjectAssignments 
+      role, classTeacherArmId, subjectAssignments, dateOfBirth
     } = body;
+
+    // Allow self-updates without requiring admin role permissions
+    const isSelfUpdate = session.id === staffId;
+    if (!isSelfUpdate) {
+      requireRole(session, ['SUPER_ADMIN', 'SCHOOL_ADMIN']);
+    }
 
     if (!staffId || (!schoolId && session.role !== 'SUPER_ADMIN')) {
       return NextResponse.json({ error: 'Staff ID and School ID are required' }, { status: 400 });
@@ -390,8 +394,9 @@ export async function PATCH(req: NextRequest) {
           title: title !== undefined ? (title ? title.trim() : null) : undefined,
           email: email !== undefined ? email.toLowerCase().trim() : undefined,
           phone: phone !== undefined ? (phone ? phone.trim() : null) : undefined,
-          role: role !== undefined ? role : undefined,
+          role: (!isSelfUpdate && role !== undefined) ? role : undefined,
           passportPhoto: passportPhoto !== undefined ? (passportPhoto ? passportPhoto : null) : undefined,
+          dateOfBirth: dateOfBirth !== undefined ? (dateOfBirth ? dateOfBirth.trim() : null) : undefined,
         }
       });
 
