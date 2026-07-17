@@ -80,8 +80,11 @@ export async function GET(req: NextRequest) {
     if (session.role === 'PARENT') {
       conversationsQuery.parentId = session.userId;
     } else {
-      // All staff (teachers, administrators, super admins) can only see chats where they are direct participants
-      conversationsQuery.teacherId = session.userId;
+      // All staff (teachers, administrators, super admins) can see chats where they are direct participants
+      conversationsQuery.OR = [
+        { teacherId: session.userId },
+        { parentId: session.userId }
+      ];
     }
 
     const conversations = await prisma.chatConversation.findMany({
