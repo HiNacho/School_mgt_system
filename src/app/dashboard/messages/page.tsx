@@ -939,7 +939,9 @@ export default function RebuiltMessagesHub() {
                           <h2 className="text-sm font-bold text-slate-900 mt-1">{selectedConversation.subject}</h2>
                           <p className="text-[11px] text-slate-500 mt-0.5">
                             Focus: <span className="font-semibold text-slate-700">{selectedConversation.student.firstName} {selectedConversation.student.lastName}</span> | 
-                            {currentUser?.role === 'PARENT' ? ` Teacher: ${selectedConversation.teacher.firstName} ${selectedConversation.teacher.lastName}` : ` Parent: ${selectedConversation.parent.firstName} ${selectedConversation.parent.lastName}`}
+                            {currentUser?.role === 'PARENT' 
+                              ? ` ${selectedConversation.teacher.role === 'SCHOOL_ADMIN' || selectedConversation.teacher.role === 'SUPER_ADMIN' ? 'Admin' : 'Teacher'}: ${selectedConversation.teacher.firstName} ${selectedConversation.teacher.lastName}` 
+                              : ` Parent: ${selectedConversation.parent.firstName} ${selectedConversation.parent.lastName}`}
                           </p>
                         </div>
                         {currentUser?.role !== 'PARENT' && selectedConversation.status !== 'CLOSED' && (
@@ -1197,7 +1199,7 @@ export default function RebuiltMessagesHub() {
                             <p>Date: <span className="font-semibold text-slate-700">{meet.preferredDate}</span> at <span className="font-semibold text-slate-700">{meet.preferredTime}</span></p>
                             <p>
                               {currentUser?.role === 'PARENT' 
-                                ? `Teacher: ${meet.teacher.firstName} ${meet.teacher.lastName}` 
+                                ? `${meet.teacher.role === 'SCHOOL_ADMIN' || meet.teacher.role === 'SUPER_ADMIN' ? 'Admin' : 'Teacher'}: ${meet.teacher.firstName} ${meet.teacher.lastName}` 
                                 : `Parent: ${meet.parent.firstName} ${meet.parent.lastName}`
                               }
                             </p>
@@ -1207,7 +1209,7 @@ export default function RebuiltMessagesHub() {
                         {/* Meeting suggestions notice */}
                         {meet.status === 'SUGGESTED' && (
                           <div className="p-2 bg-amber-50 border border-amber-200 rounded text-[10px] text-amber-700">
-                            Teacher suggested: <strong>{meet.suggestedDate}</strong> at <strong>{meet.suggestedTime}</strong>
+                            {meet.teacher.role === 'SCHOOL_ADMIN' || meet.teacher.role === 'SUPER_ADMIN' ? 'Admin' : 'Teacher'} suggested: <strong>{meet.suggestedDate}</strong> at <strong>{meet.suggestedTime}</strong>
                           </div>
                         )}
 
