@@ -152,6 +152,52 @@ export default function RebuiltMessagesHub() {
     scrollToBottom();
   }, [activeChatMessages]);
 
+  const refreshActiveConversation = async (convId: string) => {
+    if (!school) return;
+    try {
+      const res = await fetch(`/api/communication?schoolId=${school.id}&conversationId=${convId}`);
+      const json = await res.json();
+      if (res.ok && json.success) {
+        const newMessages = json.data.messages || [];
+        setActiveChatMessages(prev => {
+          if (prev.length !== newMessages.length || (prev.length > 0 && prev[prev.length - 1].id !== newMessages[newMessages.length - 1].id)) {
+            return newMessages;
+          }
+          return prev;
+        });
+      }
+    } catch (e) {
+      console.error('Error polling conversation:', e);
+    }
+  };
+
+  const refreshConversationsList = async () => {
+    if (!school) return;
+    try {
+      const res = await fetch(`/api/communication?schoolId=${school.id}`);
+      const json = await res.json();
+      if (res.ok && json.success) {
+        setConversations(json.data.conversations || []);
+      }
+    } catch (e) {
+      console.error('Error polling conversations list:', e);
+    }
+  };
+
+  // Near-real-time polling interval for live message delivery (like WhatsApp)
+  useEffect(() => {
+    if (activeTab !== 'chats' || !school) return;
+
+    const pollInterval = setInterval(() => {
+      refreshConversationsList();
+      if (selectedConversation) {
+        refreshActiveConversation(selectedConversation.id);
+      }
+    }, 4000); // Poll every 4 seconds
+
+    return () => clearInterval(pollInterval);
+  }, [selectedConversation?.id, activeTab, school]);
+
   // Meeting scheduler states
   const [meetings, setMeetings] = useState<MeetingRequest[]>([]);
   const [showMeetingModal, setShowMeetingModal] = useState(false);
