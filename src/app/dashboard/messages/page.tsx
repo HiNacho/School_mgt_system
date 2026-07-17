@@ -862,21 +862,9 @@ export default function RebuiltMessagesHub() {
                         type="text" 
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
-                        placeholder="Search student, teacher, category..."
+                        placeholder="Search conversations..."
                         className="w-full pl-8 pr-3 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500"
                       />
-                    </div>
-                    {/* Category Filter Pill Grid */}
-                    <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-thin">
-                      {['ALL', 'Academic Performance', 'Attendance', 'Behaviour', 'Homework'].map((cat) => (
-                        <button
-                          key={cat}
-                          onClick={() => setChatCategoryFilter(cat)}
-                          className={`px-2.5 py-0.5 rounded-full text-[10px] font-semibold flex-shrink-0 transition-all ${chatCategoryFilter === cat ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}
-                        >
-                          {cat}
-                        </button>
-                      ))}
                     </div>
                   </div>
 
@@ -891,34 +879,41 @@ export default function RebuiltMessagesHub() {
                       filteredConversations.map((conv) => {
                         const isUnread = conv.messages.some(m => !m.isRead && m.senderId !== currentUser?.id);
                         const latestMsg = conv.messages[0];
+
+                        const displayRole = conv.teacher.role === 'SCHOOL_ADMIN' ? 'admin' :
+                                            conv.teacher.role === 'SUPER_ADMIN' ? 'developer' :
+                                            conv.teacher.role === 'CLASS_TEACHER' ? 'class teacher' :
+                                            conv.teacher.role === 'SUBJECT_TEACHER' ? 'subject teacher' :
+                                            conv.teacher.role === 'HEAD_TEACHER' ? 'head teacher' : 'teacher';
+
+                        const displayTitle = currentUser?.role === 'PARENT' 
+                          ? `${conv.teacher.firstName} ${conv.teacher.lastName} (${displayRole})`
+                          : `${conv.parent.firstName} ${conv.parent.lastName} (parent)`;
+                        
+                        const lastSnippet = latestMsg?.body || conv.subject;
+
                         return (
                           <div
                             key={conv.id}
                             onClick={() => handleSelectConversation(conv)}
-                            className={`p-3.5 cursor-pointer transition-all flex flex-col gap-1.5 hover:bg-slate-100/70 ${selectedConversation?.id === conv.id ? 'bg-indigo-50/50 border-l-2 border-indigo-600' : ''}`}
+                            className={`p-3.5 cursor-pointer transition-all flex flex-col gap-1 hover:bg-slate-100/70 ${selectedConversation?.id === conv.id ? 'bg-indigo-50/50 border-l-2 border-indigo-600' : ''}`}
                           >
-                            <div className="flex items-center justify-between">
-                              <span className="text-[10px] font-black uppercase text-indigo-500 tracking-wider">
-                                {conv.category}
-                              </span>
-                              <span className="text-[9px] font-mono text-slate-400">
-                                {new Date(conv.lastActivity).toLocaleDateString()}
+                            <div className="flex items-start justify-between gap-2">
+                              <h3 className={`text-xs font-bold truncate flex-1 text-slate-800 ${isUnread ? 'text-slate-950 font-black font-extrabold' : ''}`}>
+                                {displayTitle}
+                              </h3>
+                              <span className="text-[9px] font-medium text-slate-400 flex-shrink-0 mt-0.5">
+                                {new Date(conv.lastActivity).toLocaleDateString([], { month: 'short', day: 'numeric' })}
                               </span>
                             </div>
-                            <h3 className={`text-xs font-bold truncate ${isUnread ? 'text-slate-950 font-black' : 'text-slate-700'}`}>
-                              {conv.subject}
-                            </h3>
-                            <div className="flex items-center justify-between gap-2 mt-1">
-                              <p className="text-[11px] text-slate-500 truncate">
-                                Ward: <span className="font-semibold text-slate-700">{conv.student.firstName} {conv.student.lastName}</span> ({conv.student.className} {conv.student.armName})
+                            <div className="flex items-center justify-between gap-2 mt-0.5">
+                              <p className={`text-[11px] truncate flex-1 ${isUnread ? 'text-slate-900 font-semibold' : 'text-slate-500'}`}>
+                                {lastSnippet}
                               </p>
                               {isUnread && (
-                                <span className="w-2 h-2 bg-rose-500 rounded-full flex-shrink-0 animate-pulse" />
+                                <span className="w-2.5 h-2.5 bg-emerald-500 rounded-full flex-shrink-0 flex items-center justify-center text-[7px] text-white font-bold animate-pulse" />
                               )}
                             </div>
-                            <p className="text-[10px] text-slate-400 italic truncate mt-0.5">
-                              {currentUser?.role === 'PARENT' ? `Teacher: ${conv.teacher.firstName} ${conv.teacher.lastName}` : `Parent: ${conv.parent.firstName} ${conv.parent.lastName}`}
-                            </p>
                           </div>
                         );
                       })
