@@ -219,6 +219,7 @@ export default function RebuiltMessagesHub() {
   const [newChatStudentId, setNewChatStudentId] = useState('');
   const [newChatTeacherId, setNewChatTeacherId] = useState('');
   const [newChatBody, setNewChatBody] = useState('');
+  const [studentSearchQuery, setStudentSearchQuery] = useState('');
 
   // Dropdown list resources
   const [myWards, setMyWards] = useState<any[]>([]);
@@ -730,6 +731,12 @@ export default function RebuiltMessagesHub() {
     return matchesCategory && matchesSearch;
   });
 
+  // Filter students based on search query in the Start Chat modal
+  const filteredWards = myWards.filter(w => {
+    const fullName = `${w.firstName} ${w.lastName}`.toLowerCase();
+    return fullName.includes(studentSearchQuery.toLowerCase());
+  });
+
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800 font-sans antialiased">
       {/* 1. Header Banner */}
@@ -845,7 +852,7 @@ export default function RebuiltMessagesHub() {
                       <h2 className="text-sm font-bold text-slate-800">Conversations</h2>
                       {currentUser?.role !== 'STUDENT' && (
                         <button 
-                          onClick={() => setShowNewChatModal(true)} 
+                          onClick={() => { setStudentSearchQuery(''); setShowNewChatModal(true); }} 
                           className="px-2 py-1 bg-indigo-600 hover:bg-indigo-700 text-white rounded text-[11px] font-bold flex items-center gap-1 transition-all"
                         >
                           <Plus className="w-3.5 h-3.5" />
@@ -1375,15 +1382,38 @@ export default function RebuiltMessagesHub() {
             <form onSubmit={handleCreateNewChat} className="space-y-4">
               <div>
                 <label className="block text-[10px] font-black uppercase tracking-wider text-slate-400 mb-1">Select Child (Ward)</label>
+                {currentUser?.role !== 'PARENT' && (
+                  <input
+                    type="text"
+                    value={studentSearchQuery}
+                    onChange={(e) => {
+                      const query = e.target.value;
+                      setStudentSearchQuery(query);
+                      
+                      // Auto-select first matched student in dropdown
+                      const matched = myWards.find(w => 
+                        `${w.firstName} ${w.lastName}`.toLowerCase().includes(query.toLowerCase())
+                      );
+                      if (matched) {
+                        setNewChatStudentId(matched.id);
+                      }
+                    }}
+                    placeholder="Type to search child name..."
+                    className="w-full px-3 py-1.5 border border-slate-200 rounded-lg text-xs bg-slate-50 mb-2 focus:outline-none focus:ring-1 focus:ring-indigo-500 font-sans font-medium"
+                  />
+                )}
                 <select
                   value={newChatStudentId}
                   onChange={(e) => setNewChatStudentId(e.target.value)}
                   className="w-full px-3 py-2 border border-slate-250 rounded-lg text-xs bg-slate-50"
                 >
-                  {myWards.map(w => (
+                  {filteredWards.map(w => (
                     <option key={w.id} value={w.id}>{w.firstName} {w.lastName} ({w.className} {w.armName})</option>
                   ))}
                 </select>
+                {filteredWards.length === 0 && (
+                  <p className="text-[10px] text-rose-500 font-semibold mt-1">No child matching search term found.</p>
+                )}
               </div>
 
               <div>
