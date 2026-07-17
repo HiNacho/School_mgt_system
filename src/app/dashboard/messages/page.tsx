@@ -364,12 +364,12 @@ export default function RebuiltMessagesHub() {
             const firstKid = formatted[0];
             if (firstKid.parent) {
               setAvailableTeachers([{
-                id: firstKid.parent.id,
+                id: firstKid.parent.user?.id || firstKid.parent.id,
                 firstName: firstKid.parent.firstName,
                 lastName: firstKid.parent.lastName,
                 label: 'Parent'
               }]);
-              setNewChatTeacherId(firstKid.parent.id);
+              setNewChatTeacherId(firstKid.parent.user?.id || firstKid.parent.id);
             }
           }
         }
@@ -414,12 +414,12 @@ export default function RebuiltMessagesHub() {
       const kid = myWards.find((w: any) => w.id === newChatStudentId);
       if (kid && kid.parent) {
         setAvailableTeachers([{
-          id: kid.parent.id,
+          id: kid.parent.user?.id || kid.parent.id,
           firstName: kid.parent.firstName,
           lastName: kid.parent.lastName,
           label: 'Parent'
         }]);
-        setNewChatTeacherId(kid.parent.id);
+        setNewChatTeacherId(kid.parent.user?.id || kid.parent.id);
       } else {
         setAvailableTeachers([]);
         setNewChatTeacherId('');
@@ -1406,12 +1406,18 @@ export default function RebuiltMessagesHub() {
                       const query = e.target.value;
                       setStudentSearchQuery(query);
                       
-                      // Auto-select first matched student in dropdown
-                      const matched = myWards.find(w => 
-                        `${w.firstName} ${w.lastName}`.toLowerCase().includes(query.toLowerCase())
-                      );
-                      if (matched) {
-                        setNewChatStudentId(matched.id);
+                      const searchTerms = query.toLowerCase().split(/\s+/).filter(Boolean);
+                      if (searchTerms.length > 0) {
+                        const matched = myWards.find(w => {
+                          const firstNameLower = w.firstName.toLowerCase();
+                          const lastNameLower = w.lastName.toLowerCase();
+                          return searchTerms.every(term => 
+                            firstNameLower.includes(term) || lastNameLower.includes(term)
+                          );
+                        });
+                        if (matched) {
+                          setNewChatStudentId(matched.id);
+                        }
                       }
                     }}
                     placeholder="Type to search child name..."

@@ -24,7 +24,7 @@ export async function GET(req: NextRequest) {
         include: {
           class: true,
           arm: true,
-          parent: true,
+          parent: { include: { user: true } },
           user: true,
           scores: {
             include: {
@@ -102,7 +102,7 @@ export async function GET(req: NextRequest) {
       include: {
         class: true,
         arm: true,
-        parent: true,
+        parent: { include: { user: true } },
         user: true
       },
       orderBy: [
