@@ -98,10 +98,10 @@ export async function GET(req: NextRequest) {
           }
         },
         parent: {
-          select: { id: true, firstName: true, lastName: true, email: true }
+          select: { id: true, firstName: true, lastName: true, email: true, role: true }
         },
         teacher: {
-          select: { id: true, firstName: true, lastName: true, email: true }
+          select: { id: true, firstName: true, lastName: true, email: true, role: true }
         },
         messages: {
           orderBy: { createdAt: 'desc' },
