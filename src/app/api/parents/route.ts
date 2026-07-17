@@ -69,7 +69,7 @@ export async function POST(req: NextRequest) {
     requireRole(session, ['SUPER_ADMIN', 'SCHOOL_ADMIN']);
 
     const body = await req.json();
-    const { schoolId, firstName, lastName, email, phone, address, studentIds } = body;
+    const { schoolId, firstName, lastName, email, phone, address, dateOfBirth, studentIds } = body;
 
     if (!schoolId || !firstName || !lastName || !email) {
       return NextResponse.json({ error: 'Missing required parent fields' }, { status: 400 });
@@ -107,6 +107,7 @@ export async function POST(req: NextRequest) {
           lastName: lastName.trim(),
           phone: phone || null,
           address: address || null,
+          dateOfBirth: dateOfBirth || null,
           passwordHash
         }
       });
@@ -164,7 +165,7 @@ export async function PUT(req: NextRequest) {
     requireRole(session, ['SUPER_ADMIN', 'SCHOOL_ADMIN']);
 
     const body = await req.json();
-    const { id, firstName, lastName, email, phone, address, studentIds } = body;
+    const { id, firstName, lastName, email, phone, address, dateOfBirth, studentIds } = body;
 
     if (!id) {
       return NextResponse.json({ error: 'Parent ID is required for updates' }, { status: 400 });
@@ -203,7 +204,8 @@ export async function PUT(req: NextRequest) {
           lastName: lastName ? lastName.trim() : undefined,
           email: email ? email.toLowerCase().trim() : undefined,
           phone: phone !== undefined ? phone : undefined,
-          address: address !== undefined ? address : undefined
+          address: address !== undefined ? address : undefined,
+          dateOfBirth: dateOfBirth !== undefined ? dateOfBirth : undefined
         }
       });
 

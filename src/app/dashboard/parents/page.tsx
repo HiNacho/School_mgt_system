@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { 
-  Users, UserPlus, Search, ShieldCheck, RefreshCw, X, AlertCircle, Edit, Trash2, CheckCircle, Eye, Mail, Phone, MapPin, UserCheck, GraduationCap, Sparkles
+  Users, UserPlus, Search, ShieldCheck, RefreshCw, X, AlertCircle, Edit, Trash2, CheckCircle, Eye, Mail, Phone, MapPin, UserCheck, GraduationCap, Sparkles, Calendar
 } from 'lucide-react';
 
 import * as XLSX from 'xlsx';
@@ -30,6 +30,7 @@ interface ParentMember {
   email: string;
   phone: string;
   address: string;
+  dateOfBirth?: string | null;
   students: StudentChild[];
   createdAt: string;
 }
@@ -175,6 +176,7 @@ export default function ParentsRegistryPage() {
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [address, setAddress] = useState('');
+  const [dateOfBirth, setDateOfBirth] = useState('');
   const [selectedStudentIds, setSelectedStudentIds] = useState<string[]>([]);
   const [childSearchQuery, setChildSearchQuery] = useState('');
 
@@ -376,6 +378,7 @@ export default function ParentsRegistryPage() {
           email,
           phone,
           address,
+          dateOfBirth,
           studentIds: selectedStudentIds
         })
       });
@@ -424,6 +427,7 @@ export default function ParentsRegistryPage() {
     setEmail('');
     setPhone('');
     setAddress('');
+    setDateOfBirth('');
     setSelectedStudentIds([]);
     setChildSearchQuery('');
     setSelectedParent(null);
@@ -436,6 +440,7 @@ export default function ParentsRegistryPage() {
     setEmail(parent.email);
     setPhone(parent.phone || '');
     setAddress(parent.address || '');
+    setDateOfBirth(parent.dateOfBirth || '');
     setSelectedStudentIds(parent.students.map(s => s.id));
     setShowEditModal(true);
   };
@@ -759,6 +764,7 @@ export default function ParentsRegistryPage() {
               <div className="border-t border-slate-100 pt-3 space-y-2.5 text-xs font-semibold text-slate-500">
                 <p className="flex items-center gap-2"><Mail className="w-4 h-4 text-slate-400" /> <span className="text-slate-400">Email:</span> <strong className="text-slate-700 font-mono">{viewingParent.email}</strong></p>
                 <p className="flex items-center gap-2"><Phone className="w-4 h-4 text-slate-400" /> <span className="text-slate-400">Phone:</span> <strong className="text-slate-700 font-mono">{viewingParent.phone || 'None'}</strong></p>
+                <p className="flex items-center gap-2"><Calendar className="w-4 h-4 text-slate-400" /> <span className="text-slate-400">Date of Birth:</span> <strong className="text-slate-700 font-mono">{viewingParent.dateOfBirth || 'Not Listed'}</strong></p>
                 <p className="flex items-center gap-2"><MapPin className="w-4 h-4 text-slate-400" /> <span className="text-slate-400">Address:</span> <strong className="text-slate-700">{viewingParent.address || 'None'}</strong></p>
                 <p className="flex items-center gap-2"><UserCheck className="w-4 h-4 text-slate-400" /> <span className="text-slate-400">Join Date:</span> <strong className="text-slate-700">{new Date(viewingParent.createdAt).toLocaleDateString()}</strong></p>
               </div>
@@ -1028,15 +1034,27 @@ export default function ParentsRegistryPage() {
                   />
                 </div>
 
-                <div>
-                  <label className="block text-[10px] font-black uppercase tracking-wider text-slate-500 mb-1.5">Contact Phone</label>
-                  <input
-                    type="text"
-                    placeholder="e.g. +234 803 000 0000"
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-150 rounded-xl px-4 py-2.5 text-xs text-slate-700 focus:outline-none font-mono"
-                  />
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-[10px] font-black uppercase tracking-wider text-slate-500 mb-1.5">Contact Phone</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. +234 803 000 0000"
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
+                      className="w-full bg-slate-50 border border-slate-150 rounded-xl px-4 py-2.5 text-xs text-slate-700 focus:outline-none font-mono"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-black uppercase tracking-wider text-slate-500 mb-1.5">Date of Birth</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. July 17 or 07-17"
+                      value={dateOfBirth}
+                      onChange={(e) => setDateOfBirth(e.target.value)}
+                      className="w-full bg-slate-50 border border-slate-150 rounded-xl px-4 py-2.5 text-xs text-slate-700 focus:outline-none font-mono"
+                    />
+                  </div>
                 </div>
 
                 <div>
