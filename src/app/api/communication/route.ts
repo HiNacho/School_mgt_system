@@ -240,7 +240,19 @@ export async function POST(req: NextRequest) {
     const result = await prisma.$transaction(async (tx) => {
       // 1. Resolve or create conversation
       if (!targetConversationId) {
-        if (!studentId || !recipientId) {
+        // Resolve a dummy student in the school to satisfy foreign key constraints if studentId is not sent
+        let finalStudentId = studentId;
+        if (!finalStudentId) {
+          const dummy = await tx.student.findFirst({
+            where: { schoolId }
+          });
+          if (!dummy) {
+            throw new Error('No students exist in this school. Please register at least one student first.');
+          }
+          finalStudentId = dummy.id;
+        }
+
+        if (!recipientId) {
           throw new Error('Missing parameters to establish a new chat thread');
         }
 
@@ -263,7 +275,7 @@ export async function POST(req: NextRequest) {
         const existing = await tx.chatConversation.findFirst({
           where: {
             schoolId,
-            studentId,
+            studentId: finalStudentId,
             parentId,
             teacherId
           }
@@ -275,7 +287,7 @@ export async function POST(req: NextRequest) {
           const newConv = await tx.chatConversation.create({
             data: {
               schoolId,
-              studentId,
+              studentId: finalStudentId,
               parentId,
               teacherId,
               category: categoryVal,
@@ -289,10 +301,10 @@ export async function POST(req: NextRequest) {
           await tx.studentTimeline.create({
             data: {
               schoolId,
-              studentId,
+              studentId: finalStudentId,
               eventType: 'CHAT_MESSAGE',
-              title: `New Chat Thread: ${category}`,
-              description: `A direct communication channel opened: "${subject}"`,
+              title: `New Chat Thread: ${categoryVal}`,
+              description: `A direct communication channel opened: "${subjectVal}"`,
               referenceId: newConv.id
             }
           });

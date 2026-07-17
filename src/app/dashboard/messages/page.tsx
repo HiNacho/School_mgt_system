@@ -221,6 +221,9 @@ export default function RebuiltMessagesHub() {
   const [newChatBody, setNewChatBody] = useState('');
   const [studentSearchQuery, setStudentSearchQuery] = useState('');
   const [schoolStaff, setSchoolStaff] = useState<any[]>([]);
+  const [newChatType, setNewChatType] = useState<'parent' | 'staff'>('parent');
+  const [staffSearchQuery, setStaffSearchQuery] = useState('');
+  const [newChatStaffRecipientId, setNewChatStaffRecipientId] = useState('');
 
   // Dropdown list resources
   const [myWards, setMyWards] = useState<any[]>([]);
@@ -388,28 +391,17 @@ export default function RebuiltMessagesHub() {
               });
             }
 
-            if (user.role === 'SCHOOL_ADMIN' || user.role === 'SUPER_ADMIN') {
-              staffList.forEach((s: any) => {
-                if (s.id !== user.id) {
-                  const roleLabel = s.role === 'SCHOOL_ADMIN' ? 'Admin' :
-                                    s.role === 'SUPER_ADMIN' ? 'Platform Admin' :
-                                    s.role === 'CLASS_TEACHER' ? 'Class Teacher' :
-                                    s.role === 'SUBJECT_TEACHER' ? 'Subject Teacher' :
-                                    s.role === 'HEAD_TEACHER' ? 'Head Teacher' : 'Staff';
-                  list.push({
-                    id: s.id,
-                    firstName: s.firstName,
-                    lastName: s.lastName,
-                    label: roleLabel
-                  });
-                }
-              });
-            }
-
             setAvailableTeachers(list);
             if (list.length > 0) {
               setNewChatTeacherId(list[0].id);
             }
+          }
+        }
+
+        if (staffList.length > 0) {
+          const firstStaff = staffList.find((s: any) => s.id !== user.id);
+          if (firstStaff) {
+            setNewChatStaffRecipientId(firstStaff.id);
           }
         }
       }
@@ -461,24 +453,6 @@ export default function RebuiltMessagesHub() {
         });
       }
 
-      if (currentUser.role === 'SCHOOL_ADMIN' || currentUser.role === 'SUPER_ADMIN') {
-        schoolStaff.forEach((s: any) => {
-          if (s.id !== currentUser.id) {
-            const roleLabel = s.role === 'SCHOOL_ADMIN' ? 'Admin' :
-                              s.role === 'SUPER_ADMIN' ? 'Platform Admin' :
-                              s.role === 'CLASS_TEACHER' ? 'Class Teacher' :
-                              s.role === 'SUBJECT_TEACHER' ? 'Subject Teacher' :
-                              s.role === 'HEAD_TEACHER' ? 'Head Teacher' : 'Staff';
-            list.push({
-              id: s.id,
-              firstName: s.firstName,
-              lastName: s.lastName,
-              label: roleLabel
-            });
-          }
-        });
-      }
-
       setAvailableTeachers(list);
       if (list.length > 0) {
         setNewChatTeacherId(list[0].id);
@@ -486,7 +460,7 @@ export default function RebuiltMessagesHub() {
         setNewChatTeacherId('');
       }
     }
-  }, [newChatStudentId, school, currentUser, myWards, schoolStaff]);
+  }, [newChatStudentId, school, currentUser, myWards]);
 
   // Load chat messages when a conversation is clicked
   const handleSelectConversation = async (conv: ChatConversation) => {
@@ -548,7 +522,11 @@ export default function RebuiltMessagesHub() {
   // Create new conversation (Parent only)
   const handleCreateNewChat = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newChatStudentId || !newChatTeacherId || !newChatBody.trim() || !school) return;
+    
+    const finalStudentId = newChatType === 'parent' ? newChatStudentId : '';
+    const finalRecipientId = newChatType === 'parent' ? newChatTeacherId : newChatStaffRecipientId;
+
+    if (!finalRecipientId || !newChatBody.trim() || !school) return;
 
     setSending(true);
     setErrorMsg('');
@@ -559,8 +537,8 @@ export default function RebuiltMessagesHub() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           schoolId: school.id,
-          studentId: newChatStudentId,
-          recipientId: newChatTeacherId,
+          studentId: finalStudentId,
+          recipientId: finalRecipientId,
           category: 'GENERAL',
           subject: 'Direct Chat',
           messageBody: newChatBody.trim()
@@ -1456,62 +1434,145 @@ export default function RebuiltMessagesHub() {
             </div>
 
             <form onSubmit={handleCreateNewChat} className="space-y-4">
-              <div>
-                <label className="block text-[10px] font-black uppercase tracking-wider text-slate-400 mb-1">Select Child (Ward)</label>
-                {currentUser?.role !== 'PARENT' && (
-                  <input
-                    type="text"
-                    value={studentSearchQuery}
-                    onChange={(e) => {
-                      const query = e.target.value;
-                      setStudentSearchQuery(query);
-                      
-                      const searchTerms = query.toLowerCase().split(/\s+/).filter(Boolean);
-                      if (searchTerms.length > 0) {
-                        const matched = myWards.find(w => {
-                          const firstNameLower = w.firstName.toLowerCase();
-                          const lastNameLower = w.lastName.toLowerCase();
-                          return searchTerms.every(term => 
-                            firstNameLower.includes(term) || lastNameLower.includes(term)
-                          );
-                        });
-                        if (matched) {
-                          setNewChatStudentId(matched.id);
-                        }
-                      }
+              {currentUser?.role !== 'PARENT' && (
+                <div className="flex bg-slate-100 p-1 rounded-lg border border-slate-200">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setNewChatType('parent');
+                      setStudentSearchQuery('');
                     }}
-                    placeholder="Type to search child name..."
-                    className="w-full px-3 py-1.5 border border-slate-200 rounded-lg text-xs bg-slate-50 mb-2 focus:outline-none focus:ring-1 focus:ring-indigo-500 font-sans font-medium"
-                  />
-                )}
-                <select
-                  value={newChatStudentId}
-                  onChange={(e) => setNewChatStudentId(e.target.value)}
-                  className="w-full px-3 py-2 border border-slate-250 rounded-lg text-xs bg-slate-50"
-                >
-                  {filteredWards.map(w => (
-                    <option key={w.id} value={w.id}>{w.firstName} {w.lastName} ({w.className} {w.armName})</option>
-                  ))}
-                </select>
-                {filteredWards.length === 0 && (
-                  <p className="text-[10px] text-rose-500 font-semibold mt-1">No child matching search term found.</p>
-                )}
-              </div>
+                    className={`flex-1 py-1.5 rounded-md text-[10px] font-black uppercase tracking-wider transition-all ${newChatType === 'parent' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
+                  >
+                    Communicating with Ward
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setNewChatType('staff');
+                      setStaffSearchQuery('');
+                    }}
+                    className={`flex-1 py-1.5 rounded-md text-[10px] font-black uppercase tracking-wider transition-all ${newChatType === 'staff' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
+                  >
+                    Communicating with Staff
+                  </button>
+                </div>
+              )}
 
-              <div>
-                <label className="block text-[10px] font-black uppercase tracking-wider text-slate-400 mb-1">
-                  {currentUser?.role === 'PARENT' ? 'Select Teacher Recipient' : 'Select Parent Recipient'}
-                </label>
-                <select
-                  value={newChatTeacherId}
-                  onChange={(e) => setNewChatTeacherId(e.target.value)}
-                  className="w-full px-3 py-2 border border-slate-250 rounded-lg text-xs bg-slate-50"
-                >
-                  {availableTeachers.map(t => (
-                    <option key={t.id} value={t.id}>{t.firstName} {t.lastName} ({t.label})</option>
-                  ))}
-                </select>
-              </div>
+              {newChatType === 'parent' ? (
+                <>
+                  <div>
+                    <label className="block text-[10px] font-black uppercase tracking-wider text-slate-400 mb-1">Select Child (Ward)</label>
+                    {currentUser?.role !== 'PARENT' && (
+                      <input
+                        type="text"
+                        value={studentSearchQuery}
+                        onChange={(e) => {
+                          const query = e.target.value;
+                          setStudentSearchQuery(query);
+                          
+                          const searchTerms = query.toLowerCase().split(/\s+/).filter(Boolean);
+                          if (searchTerms.length > 0) {
+                            const matched = myWards.find(w => {
+                              const firstNameLower = w.firstName.toLowerCase();
+                              const lastNameLower = w.lastName.toLowerCase();
+                              return searchTerms.every(term => 
+                                firstNameLower.includes(term) || lastNameLower.includes(term)
+                              );
+                            });
+                            if (matched) {
+                              setNewChatStudentId(matched.id);
+                            }
+                          }
+                        }}
+                        placeholder="Type to search child name..."
+                        className="w-full px-3 py-1.5 border border-slate-200 rounded-lg text-xs bg-slate-50 mb-2 focus:outline-none focus:ring-1 focus:ring-indigo-500 font-sans font-medium"
+                      />
+                    )}
+                    <select
+                      value={newChatStudentId}
+                      onChange={(e) => setNewChatStudentId(e.target.value)}
+                      className="w-full px-3 py-2 border border-slate-250 rounded-lg text-xs bg-slate-50"
+                    >
+                      {filteredWards.map(w => (
+                        <option key={w.id} value={w.id}>{w.firstName} {w.lastName} ({w.className} {w.armName})</option>
+                      ))}
+                    </select>
+                    {filteredWards.length === 0 && (
+                      <p className="text-[10px] text-rose-500 font-semibold mt-1">No child matching search term found.</p>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] font-black uppercase tracking-wider text-slate-400 mb-1">
+                      {currentUser?.role === 'PARENT' ? 'Select Teacher Recipient' : 'Select Parent Recipient'}
+                    </label>
+                    <select
+                      value={newChatTeacherId}
+                      onChange={(e) => setNewChatTeacherId(e.target.value)}
+                      className="w-full px-3 py-2 border border-slate-250 rounded-lg text-xs bg-slate-50"
+                    >
+                      {availableTeachers.map(t => (
+                        <option key={t.id} value={t.id}>{t.firstName} {t.lastName} ({t.label})</option>
+                      ))}
+                    </select>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div>
+                    <label className="block text-[10px] font-black uppercase tracking-wider text-slate-400 mb-1">Select Staff Recipient</label>
+                    <input
+                      type="text"
+                      value={staffSearchQuery}
+                      onChange={(e) => {
+                        const query = e.target.value;
+                        setStaffSearchQuery(query);
+                        
+                        const searchTerms = query.toLowerCase().split(/\s+/).filter(Boolean);
+                        if (searchTerms.length > 0) {
+                          const matched = schoolStaff.find(s => {
+                            const fullName = `${s.firstName} ${s.lastName}`.toLowerCase();
+                            return searchTerms.every(term => fullName.includes(term));
+                          });
+                          if (matched) {
+                            setNewChatStaffRecipientId(matched.id);
+                          }
+                        }
+                      }}
+                      placeholder="Type to search staff name..."
+                      className="w-full px-3 py-1.5 border border-slate-200 rounded-lg text-xs bg-slate-50 mb-2 focus:outline-none focus:ring-1 focus:ring-indigo-500 font-sans font-medium"
+                    />
+                    <select
+                      value={newChatStaffRecipientId}
+                      onChange={(e) => setNewChatStaffRecipientId(e.target.value)}
+                      className="w-full px-3 py-2 border border-slate-250 rounded-lg text-xs bg-slate-50"
+                    >
+                      {schoolStaff.filter(s => {
+                        const fullName = `${s.firstName} ${s.lastName}`.toLowerCase();
+                        const searchTerms = staffSearchQuery.toLowerCase().split(/\s+/).filter(Boolean);
+                        return searchTerms.every(term => fullName.includes(term));
+                      }).map(s => {
+                        const roleLabel = s.role === 'SCHOOL_ADMIN' ? 'Admin' :
+                                          s.role === 'SUPER_ADMIN' ? 'Platform Admin' :
+                                          s.role === 'CLASS_TEACHER' ? 'Class Teacher' :
+                                          s.role === 'SUBJECT_TEACHER' ? 'Subject Teacher' :
+                                          s.role === 'HEAD_TEACHER' ? 'Head Teacher' : 'Staff';
+                        return (
+                          <option key={s.id} value={s.id}>{s.firstName} {s.lastName} ({roleLabel})</option>
+                        );
+                      })}
+                    </select>
+                    {schoolStaff.filter(s => {
+                      const fullName = `${s.firstName} ${s.lastName}`.toLowerCase();
+                      const searchTerms = staffSearchQuery.toLowerCase().split(/\s+/).filter(Boolean);
+                      return searchTerms.every(term => fullName.includes(term));
+                    }).length === 0 && (
+                      <p className="text-[10px] text-rose-500 font-semibold mt-1">No staff matching search term found.</p>
+                    )}
+                  </div>
+                </>
+              )}
 
 
 
