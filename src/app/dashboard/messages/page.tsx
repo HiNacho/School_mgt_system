@@ -509,7 +509,6 @@ export default function RebuiltMessagesHub() {
       if (!res.ok) throw new Error(json.error || 'Failed to start chat thread');
 
       setSuccessMsg('Chat thread successfully created!');
-      setNewChatSubject('');
       setNewChatBody('');
       setShowNewChatModal(false);
 
