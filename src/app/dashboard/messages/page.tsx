@@ -245,6 +245,11 @@ export default function RebuiltMessagesHub() {
   const [newChatStaffRecipientId, setNewChatStaffRecipientId] = useState('');
   const [fullStaffProfile, setFullStaffProfile] = useState<any>(null);
 
+  // Birthday automation states
+  const [birthdayData, setBirthdayData] = useState<any>(null);
+  const [wishesSent, setWishesSent] = useState(false);
+  const [sendingWishes, setSendingWishes] = useState(false);
+
   // Dropdown list resources
   const [myWards, setMyWards] = useState<any[]>([]);
   const [availableTeachers, setAvailableTeachers] = useState<any[]>([]);
@@ -385,6 +390,19 @@ export default function RebuiltMessagesHub() {
           }
         } catch (err) {
           console.error('Failed to load profile:', err);
+        }
+      }
+
+      // Load birthday records for admin trigger panel
+      if (user.role === 'SCHOOL_ADMIN' || user.role === 'SUPER_ADMIN') {
+        try {
+          const bRes = await fetch(`/api/communication/birthdays?schoolId=${schoolId}&dryRun=true`);
+          const bJson = await bRes.json();
+          if (bRes.ok && bJson.success) {
+            setBirthdayData(bJson);
+          }
+        } catch (err) {
+          console.error('Failed to load birthday records:', err);
         }
       }
 
@@ -762,6 +780,34 @@ export default function RebuiltMessagesHub() {
     }
   };
 
+  const triggerBirthdayWishes = async () => {
+    if (!school) return;
+    setSendingWishes(true);
+    setErrorMsg('');
+    setSuccessMsg('');
+    try {
+      const res = await fetch(`/api/communication/birthdays?schoolId=${school.id}`);
+      const json = await res.json();
+      if (res.ok && json.success) {
+        setWishesSent(true);
+        setSuccessMsg('Automated birthday wishes successfully dispatched to all celebrating parents!');
+        
+        // Refresh conversations to update chats list
+        const refreshRes = await fetch(`/api/communication?schoolId=${school.id}`);
+        const refreshJson = await refreshRes.json();
+        if (refreshRes.ok && refreshJson.success) {
+          setConversations(refreshJson.data.conversations || []);
+        }
+      } else {
+        throw new Error(json.error || 'Failed to dispatch wishes');
+      }
+    } catch (err: any) {
+      setErrorMsg(err.message || 'Error executing birthday automation');
+    } finally {
+      setSendingWishes(false);
+    }
+  };
+
   // Submit Broadcast Announcement (Admin / Teachers)
   const handleSendBroadcast = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -984,6 +1030,45 @@ export default function RebuiltMessagesHub() {
                         </button>
                       )}
                     </div>
+
+                    {/* Today's Birthday Celebrations Panel (Admin only) */}
+                    {(currentUser?.role === 'SCHOOL_ADMIN' || currentUser?.role === 'SUPER_ADMIN') && birthdayData && (birthdayData.birthdayStudentsCount > 0 || birthdayData.birthdayParentsCount > 0) && (
+                      <div className="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-250 rounded-lg p-2.5 space-y-2 animate-fadeIn">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-base">🎂</span>
+                            <div>
+                              <h4 className="text-[10px] font-bold text-amber-900 leading-none">Today's Celebrations</h4>
+                              <p className="text-[9px] text-amber-600 font-medium mt-0.5">
+                                {birthdayData.birthdayStudentsCount} {birthdayData.birthdayStudentsCount === 1 ? 'student' : 'students'} & {birthdayData.birthdayParentsCount} {birthdayData.birthdayParentsCount === 1 ? 'parent' : 'parents'} celebrating!
+                              </p>
+                            </div>
+                          </div>
+                          <button
+                            onClick={triggerBirthdayWishes}
+                            disabled={sendingWishes || wishesSent}
+                            className={`px-2 py-1 rounded text-[9px] font-black uppercase tracking-wider transition-all flex items-center gap-1 ${wishesSent ? 'bg-amber-100 text-amber-800' : 'bg-amber-600 hover:bg-amber-700 text-white shadow-sm disabled:opacity-50'}`}
+                          >
+                            {sendingWishes ? 'Sending...' : wishesSent ? '✓ Sent' : 'Wish Them'}
+                          </button>
+                        </div>
+                        <div className="text-[9px] text-amber-800 leading-tight space-y-1 font-medium bg-white/50 p-1.5 rounded border border-amber-100/50">
+                          {birthdayData.birthdayStudents.map((s: string, idx: number) => (
+                            <div key={`s-${idx}`} className="flex items-center gap-1">
+                              <span>👶</span>
+                              <span className="truncate">{s.split(' (')[0]} (Student)</span>
+                            </div>
+                          ))}
+                          {birthdayData.birthdayParents.map((p: string, idx: number) => (
+                            <div key={`p-${idx}`} className="flex items-center gap-1">
+                              <span>👪</span>
+                              <span className="truncate">{p.split(' (')[0]} (Parent)</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
                     {/* Search and Filters */}
                     <div className="relative">
                       <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-2.5" />
