@@ -55,9 +55,15 @@ export default function SchoolTenantsPage() {
   const [leads, setLeads] = useState<any[]>([]);
   
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'schools' | 'payments' | 'usage' | 'leads'>('schools');
+  const [activeTab, setActiveTab] = useState<'schools' | 'payments' | 'usage' | 'leads' | 'broadcasts'>('schools');
   const [searchLeadQuery, setSearchLeadQuery] = useState('');
   const [resendingLeadId, setResendingLeadId] = useState<string | null>(null);
+
+  // System Broadcast State
+  const [broadcastTarget, setBroadcastTarget] = useState('ALL');
+  const [broadcastTitle, setBroadcastTitle] = useState('');
+  const [broadcastBody, setBroadcastBody] = useState('');
+  const [sendingBroadcast, setSendingBroadcast] = useState(false);
   
   // Registration Form State
   const [showRegModal, setShowRegModal] = useState(false);
@@ -127,6 +133,38 @@ export default function SchoolTenantsPage() {
       setErrorMsg(e.message || 'Error loading platform separation matrix databases');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleSendSystemBroadcast = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!broadcastTitle || !broadcastBody) return;
+
+    setSendingBroadcast(true);
+    setErrorMsg('');
+    setSuccessMsg('');
+
+    try {
+      const res = await fetch('/api/superadmin/messages', {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({
+          schoolId: broadcastTarget,
+          title: broadcastTitle,
+          body: broadcastBody
+        })
+      });
+
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || 'Failed to dispatch system broadcast.');
+
+      setSuccessMsg(`System broadcast dispatched successfully to school administrators!`);
+      setBroadcastTitle('');
+      setBroadcastBody('');
+    } catch (err: any) {
+      setErrorMsg(err.message || 'Error sending system broadcast.');
+    } finally {
+      setSendingBroadcast(false);
     }
   };
 
@@ -695,6 +733,17 @@ The NachoEd Support Team
         >
           <Activity className="w-3.5 h-3.5" /> Telemetry Logs
         </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab('broadcasts')}
+          className={`pb-3 text-xs font-bold transition-all border-b-2 cursor-pointer flex items-center gap-1.5 ${
+            activeTab === 'broadcasts' 
+              ? 'border-emerald-600 text-emerald-600 font-black' 
+              : 'border-transparent text-slate-400 hover:text-slate-650'
+          }`}
+        >
+          <Sparkles className="w-3.5 h-3.5" /> System Broadcasts
+        </button>
       </div>
 
       {/* Loading fallback */}
@@ -989,6 +1038,79 @@ The NachoEd Support Team
                   <span>Open Leads CRM Funnel</span>
                   <ArrowRightLeft className="w-4 h-4" />
                 </Link>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 5: SYSTEM BROADCASTS & MESSAGING */}
+          {activeTab === 'broadcasts' && (
+            <div className="space-y-6 animate-fadeIn">
+              <div className="bg-white border border-slate-200/80 rounded-3xl p-6 shadow-sm max-w-2xl mx-auto">
+                <div className="flex items-center gap-2 mb-4 border-b border-slate-100 pb-3">
+                  <Sparkles className="w-5 h-5 text-emerald-600 animate-pulse" />
+                  <div>
+                    <h3 className="text-sm font-black uppercase text-slate-800 tracking-wider">Superadmin Messaging Cockpit</h3>
+                    <p className="text-[10px] text-slate-500 font-semibold mt-0.5">Send feature updates, alerts, and system notices directly to school administrator inboxes.</p>
+                  </div>
+                </div>
+
+                <form onSubmit={handleSendSystemBroadcast} className="space-y-4 text-xs font-semibold">
+                  <div>
+                    <label className="block text-[10px] font-black uppercase tracking-wider text-slate-500 mb-1.5 font-sans">Target Schools</label>
+                    <select
+                      value={broadcastTarget}
+                      onChange={(e) => setBroadcastTarget(e.target.value)}
+                      className="w-full bg-slate-50 border border-slate-150 rounded-xl px-4 py-2.5 text-xs text-slate-700 focus:outline-none"
+                    >
+                      <option value="ALL">All Registered Schools ({tenants.length})</option>
+                      {tenants.map(t => (
+                        <option key={t.id} value={t.id}>{t.name} ({t.slug})</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] font-black uppercase tracking-wider text-slate-500 mb-1.5 font-sans">Broadcast Title / Subject</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. System Update: Dynamic Portals and Balloon Celebrations Released!"
+                      value={broadcastTitle}
+                      onChange={(e) => setBroadcastTitle(e.target.value)}
+                      className="w-full bg-slate-50 border border-slate-150 rounded-xl px-4 py-2.5 text-xs text-slate-700 focus:outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] font-black uppercase tracking-wider text-slate-500 mb-1.5 font-sans">Message Body</label>
+                    <textarea
+                      required
+                      rows={6}
+                      placeholder="Write your update description here..."
+                      value={broadcastBody}
+                      onChange={(e) => setBroadcastBody(e.target.value)}
+                      className="w-full bg-slate-50 border border-slate-150 rounded-xl px-4 py-2.5 text-xs text-slate-700 focus:outline-none"
+                    />
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={sendingBroadcast}
+                    className="w-full py-3 bg-[#1e293b] hover:bg-[#0f172a] disabled:opacity-50 text-white font-bold text-xs uppercase tracking-widest transition-all shadow-md flex items-center justify-center gap-1.5"
+                  >
+                    {sendingBroadcast ? (
+                      <>
+                        <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                        <span>Broadcasting Message...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="w-3.5 h-3.5" />
+                        <span>Dispatch System Broadcast</span>
+                      </>
+                    )}
+                  </button>
+                </form>
               </div>
             </div>
           )}
