@@ -218,8 +218,6 @@ export default function RebuiltMessagesHub() {
   const [showNewChatModal, setShowNewChatModal] = useState(false);
   const [newChatStudentId, setNewChatStudentId] = useState('');
   const [newChatTeacherId, setNewChatTeacherId] = useState('');
-  const [newChatCategory, setNewChatCategory] = useState('Academic Performance');
-  const [newChatSubject, setNewChatSubject] = useState('');
   const [newChatBody, setNewChatBody] = useState('');
 
   // Dropdown list resources
