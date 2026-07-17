@@ -224,6 +224,7 @@ export default function RebuiltMessagesHub() {
   const [newChatType, setNewChatType] = useState<'parent' | 'staff'>('parent');
   const [staffSearchQuery, setStaffSearchQuery] = useState('');
   const [newChatStaffRecipientId, setNewChatStaffRecipientId] = useState('');
+  const [fullStaffProfile, setFullStaffProfile] = useState<any>(null);
 
   // Dropdown list resources
   const [myWards, setMyWards] = useState<any[]>([]);
@@ -347,22 +348,38 @@ export default function RebuiltMessagesHub() {
           }
         }
       } else {
-        // Load school staff list if user is an administrator
-        let staffList: any[] = [];
-        if (user.role === 'SCHOOL_ADMIN' || user.role === 'SUPER_ADMIN') {
-          try {
-            const staffRes = await fetch(`/api/staff?schoolId=${schoolId}`);
-            const staffJson = await staffRes.json();
-            if (staffRes.ok && staffJson.success) {
-              staffList = staffJson.data || [];
-              setSchoolStaff(staffList);
-            }
-          } catch (err) {
-            console.error('Failed to load staff list:', err);
+      // 1. Fetch profile details first if staff
+      let staffProfileData = null;
+      if (user.role !== 'PARENT') {
+        try {
+          const profileRes = await fetch(`/api/staff?schoolId=${schoolId}&staffId=${user.id}`);
+          const profileJson = await profileRes.json();
+          if (profileRes.ok && profileJson.success) {
+            staffProfileData = profileJson.data;
+            setFullStaffProfile(staffProfileData);
           }
+        } catch (err) {
+          console.error('Failed to load profile:', err);
         }
+      }
 
-        // Load school students for teacher/admin to start chats
+      // 2. Fetch staff list if user is a staff member
+      let staffList: any[] = [];
+      if (user.role !== 'PARENT') {
+        try {
+          const staffRes = await fetch(`/api/staff?schoolId=${schoolId}`);
+          const staffJson = await staffRes.json();
+          if (staffRes.ok && staffJson.success) {
+            staffList = staffJson.data || [];
+            setSchoolStaff(staffList);
+          }
+        } catch (err) {
+          console.error('Failed to load staff list:', err);
+        }
+      }
+
+      // 3. Load school students for teacher/admin to start chats
+      if (user.role !== 'PARENT') {
         const studentRes = await fetch(`/api/students?schoolId=${schoolId}`);
         const studentJson = await studentRes.json();
         if (studentRes.ok && studentJson.success) {
@@ -373,14 +390,24 @@ export default function RebuiltMessagesHub() {
             lastName: s.lastName,
             className: s.class?.name || '',
             armName: s.arm?.name || '',
-            parent: s.parent
+            parent: s.parent,
+            classId: s.classId,
+            armId: s.armId
           }));
           setMyWards(formatted);
           
-          if (formatted.length > 0) {
-            setNewChatStudentId(formatted[0].id);
-            setMeetingStudentId(formatted[0].id);
-            const firstKid = formatted[0];
+          // Re-filter student list if class teacher
+          const teacherWards = formatted.filter((w: any) => {
+            if (user.role === 'CLASS_TEACHER' && staffProfileData?.classTeacherArms) {
+              return staffProfileData.classTeacherArms.some((arm: any) => arm.id === w.armId);
+            }
+            return true;
+          });
+
+          if (teacherWards.length > 0) {
+            setNewChatStudentId(teacherWards[0].id);
+            setMeetingStudentId(teacherWards[0].id);
+            const firstKid = teacherWards[0];
             const list = [];
             if (firstKid.parent) {
               list.push({
@@ -404,6 +431,7 @@ export default function RebuiltMessagesHub() {
             setNewChatStaffRecipientId(firstStaff.id);
           }
         }
+      }
       }
     } catch (e: any) {
       setErrorMsg(e.message || 'Failed to retrieve communication logs');
@@ -460,7 +488,7 @@ export default function RebuiltMessagesHub() {
         setNewChatTeacherId('');
       }
     }
-  }, [newChatStudentId, school, currentUser, myWards]);
+  }, [newChatStudentId, school, currentUser, myWards, fullStaffProfile]);
 
   // Load chat messages when a conversation is clicked
   const handleSelectConversation = async (conv: ChatConversation) => {
@@ -782,6 +810,14 @@ export default function RebuiltMessagesHub() {
 
   // Filter students based on search query in the Start Chat modal (any order matches)
   const filteredWards = myWards.filter(w => {
+    // If user is a class teacher, restrict to their class teacher arms
+    if (currentUser?.role === 'CLASS_TEACHER' && fullStaffProfile?.classTeacherArms) {
+      const isAssigned = fullStaffProfile.classTeacherArms.some((arm: any) => 
+        arm.id === w.armId
+      );
+      if (!isAssigned) return false;
+    }
+
     const firstNameLower = w.firstName.toLowerCase();
     const lastNameLower = w.lastName.toLowerCase();
     const searchTerms = studentSearchQuery.toLowerCase().split(/\s+/).filter(Boolean);
