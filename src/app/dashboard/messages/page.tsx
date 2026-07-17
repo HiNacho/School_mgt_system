@@ -220,6 +220,7 @@ export default function RebuiltMessagesHub() {
   const [newChatTeacherId, setNewChatTeacherId] = useState('');
   const [newChatBody, setNewChatBody] = useState('');
   const [studentSearchQuery, setStudentSearchQuery] = useState('');
+  const [schoolStaff, setSchoolStaff] = useState<any[]>([]);
 
   // Dropdown list resources
   const [myWards, setMyWards] = useState<any[]>([]);
@@ -343,6 +344,21 @@ export default function RebuiltMessagesHub() {
           }
         }
       } else {
+        // Load school staff list if user is an administrator
+        let staffList: any[] = [];
+        if (user.role === 'SCHOOL_ADMIN' || user.role === 'SUPER_ADMIN') {
+          try {
+            const staffRes = await fetch(`/api/staff?schoolId=${schoolId}`);
+            const staffJson = await staffRes.json();
+            if (staffRes.ok && staffJson.success) {
+              staffList = staffJson.data || [];
+              setSchoolStaff(staffList);
+            }
+          } catch (err) {
+            console.error('Failed to load staff list:', err);
+          }
+        }
+
         // Load school students for teacher/admin to start chats
         const studentRes = await fetch(`/api/students?schoolId=${schoolId}`);
         const studentJson = await studentRes.json();
@@ -362,14 +378,37 @@ export default function RebuiltMessagesHub() {
             setNewChatStudentId(formatted[0].id);
             setMeetingStudentId(formatted[0].id);
             const firstKid = formatted[0];
+            const list = [];
             if (firstKid.parent) {
-              setAvailableTeachers([{
+              list.push({
                 id: firstKid.parent.user?.id || firstKid.parent.id,
                 firstName: firstKid.parent.firstName,
                 lastName: firstKid.parent.lastName,
                 label: 'Parent'
-              }]);
-              setNewChatTeacherId(firstKid.parent.user?.id || firstKid.parent.id);
+              });
+            }
+
+            if (user.role === 'SCHOOL_ADMIN' || user.role === 'SUPER_ADMIN') {
+              staffList.forEach((s: any) => {
+                if (s.id !== user.id) {
+                  const roleLabel = s.role === 'SCHOOL_ADMIN' ? 'Admin' :
+                                    s.role === 'SUPER_ADMIN' ? 'Platform Admin' :
+                                    s.role === 'CLASS_TEACHER' ? 'Class Teacher' :
+                                    s.role === 'SUBJECT_TEACHER' ? 'Subject Teacher' :
+                                    s.role === 'HEAD_TEACHER' ? 'Head Teacher' : 'Staff';
+                  list.push({
+                    id: s.id,
+                    firstName: s.firstName,
+                    lastName: s.lastName,
+                    label: roleLabel
+                  });
+                }
+              });
+            }
+
+            setAvailableTeachers(list);
+            if (list.length > 0) {
+              setNewChatTeacherId(list[0].id);
             }
           }
         }
@@ -412,20 +451,42 @@ export default function RebuiltMessagesHub() {
       fetchTeachersForStudent(school.id, newChatStudentId);
     } else {
       const kid = myWards.find((w: any) => w.id === newChatStudentId);
+      const list = [];
       if (kid && kid.parent) {
-        setAvailableTeachers([{
+        list.push({
           id: kid.parent.user?.id || kid.parent.id,
           firstName: kid.parent.firstName,
           lastName: kid.parent.lastName,
           label: 'Parent'
-        }]);
-        setNewChatTeacherId(kid.parent.user?.id || kid.parent.id);
+        });
+      }
+
+      if (currentUser.role === 'SCHOOL_ADMIN' || currentUser.role === 'SUPER_ADMIN') {
+        schoolStaff.forEach((s: any) => {
+          if (s.id !== currentUser.id) {
+            const roleLabel = s.role === 'SCHOOL_ADMIN' ? 'Admin' :
+                              s.role === 'SUPER_ADMIN' ? 'Platform Admin' :
+                              s.role === 'CLASS_TEACHER' ? 'Class Teacher' :
+                              s.role === 'SUBJECT_TEACHER' ? 'Subject Teacher' :
+                              s.role === 'HEAD_TEACHER' ? 'Head Teacher' : 'Staff';
+            list.push({
+              id: s.id,
+              firstName: s.firstName,
+              lastName: s.lastName,
+              label: roleLabel
+            });
+          }
+        });
+      }
+
+      setAvailableTeachers(list);
+      if (list.length > 0) {
+        setNewChatTeacherId(list[0].id);
       } else {
-        setAvailableTeachers([]);
         setNewChatTeacherId('');
       }
     }
-  }, [newChatStudentId, school, currentUser, myWards]);
+  }, [newChatStudentId, school, currentUser, myWards, schoolStaff]);
 
   // Load chat messages when a conversation is clicked
   const handleSelectConversation = async (conv: ChatConversation) => {
@@ -900,15 +961,15 @@ export default function RebuiltMessagesHub() {
                         const isUnread = conv.messages.some(m => !m.isRead && m.senderId !== currentUser?.id);
                         const latestMsg = conv.messages[0];
 
-                        const displayRole = conv.teacher.role === 'SCHOOL_ADMIN' ? 'admin' :
-                                            conv.teacher.role === 'SUPER_ADMIN' ? 'developer' :
-                                            conv.teacher.role === 'CLASS_TEACHER' ? 'class teacher' :
-                                            conv.teacher.role === 'SUBJECT_TEACHER' ? 'subject teacher' :
-                                            conv.teacher.role === 'HEAD_TEACHER' ? 'head teacher' : 'teacher';
+                        const otherParticipant = conv.parent.id === currentUser?.id ? conv.teacher : conv.parent;
+                        const otherRole = otherParticipant.role === 'SCHOOL_ADMIN' ? 'admin' :
+                                          otherParticipant.role === 'SUPER_ADMIN' ? 'developer' :
+                                          otherParticipant.role === 'CLASS_TEACHER' ? 'class teacher' :
+                                          otherParticipant.role === 'SUBJECT_TEACHER' ? 'subject teacher' :
+                                          otherParticipant.role === 'HEAD_TEACHER' ? 'head teacher' :
+                                          otherParticipant.role === 'PARENT' ? 'parent' : 'teacher';
 
-                        const displayTitle = currentUser?.role === 'PARENT' 
-                          ? `${conv.teacher.firstName} ${conv.teacher.lastName} (${displayRole})`
-                          : `${conv.parent.firstName} ${conv.parent.lastName} (parent)`;
+                        const displayTitle = `${otherParticipant.firstName} ${otherParticipant.lastName} (${otherRole})`;
                         
                         const lastSnippet = latestMsg?.body || conv.subject;
 
@@ -949,15 +1010,15 @@ export default function RebuiltMessagesHub() {
                       <div className="p-4 border-b border-slate-200 flex items-center justify-between bg-slate-50/30">
                         <div>
                           {(() => {
-                            const displayRole = selectedConversation.teacher.role === 'SCHOOL_ADMIN' ? 'admin' :
-                                                selectedConversation.teacher.role === 'SUPER_ADMIN' ? 'developer' :
-                                                selectedConversation.teacher.role === 'CLASS_TEACHER' ? 'class teacher' :
-                                                selectedConversation.teacher.role === 'SUBJECT_TEACHER' ? 'subject teacher' :
-                                                selectedConversation.teacher.role === 'HEAD_TEACHER' ? 'head teacher' : 'teacher';
+                            const otherParticipant = selectedConversation.parent.id === currentUser?.id ? selectedConversation.teacher : selectedConversation.parent;
+                            const otherRole = otherParticipant.role === 'SCHOOL_ADMIN' ? 'admin' :
+                                              otherParticipant.role === 'SUPER_ADMIN' ? 'developer' :
+                                              otherParticipant.role === 'CLASS_TEACHER' ? 'class teacher' :
+                                              otherParticipant.role === 'SUBJECT_TEACHER' ? 'subject teacher' :
+                                              otherParticipant.role === 'HEAD_TEACHER' ? 'head teacher' :
+                                              otherParticipant.role === 'PARENT' ? 'parent' : 'teacher';
 
-                            const displayTitle = currentUser?.role === 'PARENT' 
-                              ? `${selectedConversation.teacher.firstName} ${selectedConversation.teacher.lastName} (${displayRole})`
-                              : `${selectedConversation.parent.firstName} ${selectedConversation.parent.lastName} (parent)`;
+                            const displayTitle = `${otherParticipant.firstName} ${otherParticipant.lastName} (${otherRole})`;
 
                             return (
                               <>
