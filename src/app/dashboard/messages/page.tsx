@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { 
   MessageSquare, Send, CheckCircle, AlertCircle, Users, 
   RefreshCw, Calendar, Megaphone, Inbox, Bookmark, Eye,
@@ -140,6 +140,17 @@ export default function RebuiltMessagesHub() {
   const [templates, setTemplates] = useState<CommunicationTemplate[]>([]);
   const [showTemplatePicker, setShowTemplatePicker] = useState(false);
   const [selectedTemplateText, setSelectedTemplateText] = useState('');
+
+  // Scrolling ref to keep chat input visible and auto-scroll message list to bottom (like WhatsApp)
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [activeChatMessages]);
 
   // Meeting scheduler states
   const [meetings, setMeetings] = useState<MeetingRequest[]>([]);
@@ -784,7 +795,7 @@ export default function RebuiltMessagesHub() {
             {activeTab === 'chats' && (
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm h-[75vh]">
                 {/* Left Side: Conversations list (col 4) */}
-                <div className="lg:col-span-4 border-r border-slate-200 flex flex-col h-full bg-slate-50/50">
+                <div className="lg:col-span-4 border-r border-slate-200 flex flex-col h-full bg-slate-50/50 min-h-0">
                   <div className="p-4 border-b border-slate-200 space-y-3 bg-white">
                     <div className="flex items-center justify-between">
                       <h2 className="text-sm font-bold text-slate-800">Conversations</h2>
@@ -870,7 +881,7 @@ export default function RebuiltMessagesHub() {
                 </div>
 
                 {/* Right Side: Message Thread (col 8) */}
-                <div className="lg:col-span-8 flex flex-col h-full bg-white">
+                <div className="lg:col-span-8 flex flex-col h-full bg-white min-h-0">
                   {selectedConversation ? (
                     <>
                       {/* Active conversation Header */}
@@ -916,6 +927,7 @@ export default function RebuiltMessagesHub() {
                             </div>
                           );
                         })}
+                        <div ref={messagesEndRef} />
                       </div>
 
                       {/* Thread Reply Input Form */}

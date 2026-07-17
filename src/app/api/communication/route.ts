@@ -45,10 +45,8 @@ export async function GET(req: NextRequest) {
         return NextResponse.json({ error: 'Conversation thread not found' }, { status: 404 });
       }
 
-      // Authorization guard: verify session user is parent, teacher, or admin for this conversation
+      // Authorization guard: verify session user is the parent or teacher for this conversation
       const isAuthorized =
-        session.role === 'SCHOOL_ADMIN' ||
-        session.role === 'SUPER_ADMIN' ||
         conversation.parentId === session.userId ||
         conversation.teacherId === session.userId;
 
@@ -81,12 +79,8 @@ export async function GET(req: NextRequest) {
 
     if (session.role === 'PARENT') {
       conversationsQuery.parentId = session.userId;
-    } else if (
-      session.role === 'CLASS_TEACHER' || 
-      session.role === 'SUBJECT_TEACHER' || 
-      session.role === 'HEAD_TEACHER' || 
-      session.role === 'TEACHER'
-    ) {
+    } else {
+      // All staff (teachers, administrators, super admins) can only see chats where they are direct participants
       conversationsQuery.teacherId = session.userId;
     }
 

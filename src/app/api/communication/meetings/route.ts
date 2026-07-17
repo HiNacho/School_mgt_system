@@ -24,12 +24,8 @@ export async function GET(req: NextRequest) {
     // Role filters
     if (session.role === 'PARENT') {
       query.parentId = session.userId;
-    } else if (
-      session.role === 'CLASS_TEACHER' || 
-      session.role === 'SUBJECT_TEACHER' || 
-      session.role === 'HEAD_TEACHER' || 
-      session.role === 'TEACHER'
-    ) {
+    } else {
+      // All staff (teachers, administrators, super admins) can only see meetings they are direct participants in
       query.teacherId = session.userId;
     }
 
