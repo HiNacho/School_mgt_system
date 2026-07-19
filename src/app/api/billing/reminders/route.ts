@@ -63,7 +63,7 @@ export async function GET(req: NextRequest) {
             schoolId: school.id,
             senderId: null, // System automated sender
             title: `Subscription Renewal Warning: ${diffDays} Day(s) Left`,
-            body: `Dear School Administration,\n\nThis is an automated notification that your school's Antigravity Portal subscription expires in ${diffDays} day(s) on ${expiry.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}.\n\nPlease navigate to the Billing & Subscription portal to process your renewal and avoid any service interruptions for your staff, teachers, and parents.\n\nBest regards,\nAntigravity Accounts Team`,
+            body: `Dear School Administration,\n\nThis is an automated notification that your school's Operon Portal subscription expires in ${diffDays} day(s) on ${expiry.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}.\n\nPlease navigate to the Billing & Subscription portal to process your renewal and avoid any service interruptions for your staff, teachers, and parents.\n\nBest regards,\nOperon Accounts Team`,
             messageType: 'AUTOMATED',
             targetAudience: 'ALL',
             priority: 'HIGH'
