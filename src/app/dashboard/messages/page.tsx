@@ -599,18 +599,30 @@ export default function RebuiltMessagesHub() {
     setActiveChatMessages([]);
     setErrorMsg('');
     try {
-      const res = await fetch(`/api/communication?schoolId=${school.id}&conversationId=${conv.id}`);
-      const json = await res.json();
-      if (res.ok && json.success) {
-        setActiveChatMessages(json.data.messages || []);
-        // Refresh conversations to update read badges
-        const refreshRes = await fetch(`/api/communication?schoolId=${school.id}`);
-        const refreshJson = await refreshRes.json();
-        if (refreshRes.ok && refreshJson.success) {
-          setConversations(refreshJson.data.conversations || []);
+      if (currentUser?.role === 'SUPER_ADMIN') {
+        const res = await fetch(`/api/superadmin/messages`, { headers: getAuthHeaders(null) });
+        const json = await res.json();
+        if (res.ok && json.success) {
+          const updated = json.data.find((c: any) => c.id === conv.id);
+          if (updated) {
+            setActiveChatMessages(updated.messages || []);
+          }
         }
       } else {
-        throw new Error(json.error || 'Failed to load messages');
+        if (!school) return;
+        const res = await fetch(`/api/communication?schoolId=${school.id}&conversationId=${conv.id}`, { headers: getAuthHeaders(null) });
+        const json = await res.json();
+        if (res.ok && json.success) {
+          setActiveChatMessages(json.data.messages || []);
+          // Refresh conversations to update read badges
+          const refreshRes = await fetch(`/api/communication?schoolId=${school.id}`, { headers: getAuthHeaders(null) });
+          const refreshJson = await refreshRes.json();
+          if (refreshRes.ok && refreshJson.success) {
+            setConversations(refreshJson.data.conversations || []);
+          }
+        } else {
+          throw new Error(json.error || 'Failed to load messages');
+        }
       }
     } catch (e: any) {
       setErrorMsg(e.message || 'Error fetching conversation thread');
@@ -784,15 +796,17 @@ export default function RebuiltMessagesHub() {
 
   // Close chat thread
   const handleCloseConversation = async (conversationId: string) => {
-    if (!school) return;
+    if (!school && currentUser?.role !== 'SUPER_ADMIN') return;
+    const targetSchoolId = currentUser?.role === 'SUPER_ADMIN' ? selectedConversation?.schoolId : school.id;
+
     setErrorMsg('');
     setSuccessMsg('');
     try {
       const res = await fetch('/api/communication', {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders(),
         body: JSON.stringify({
-          schoolId: school.id,
+          schoolId: targetSchoolId,
           conversationId,
           status: 'CLOSED'
         })
@@ -803,11 +817,9 @@ export default function RebuiltMessagesHub() {
       setSuccessMsg('Conversation thread successfully closed');
       
       // Update local state conversation status
-      setConversations(prev => 
-        prev.map(c => c.id === conversationId ? { ...c, status: 'CLOSED' } : c)
-      );
-      if (selectedConversation && selectedConversation.id === conversationId) {
-        setSelectedConversation({ ...selectedConversation, status: 'CLOSED' });
+      setConversations(prev => prev.map(c => c.id === conversationId ? { ...c, status: 'CLOSED' } : c));
+      if (selectedConversation?.id === conversationId) {
+        setSelectedConversation(prev => prev ? { ...prev, status: 'CLOSED' } : null);
       }
     } catch (err: any) {
       setErrorMsg(err.message || 'Failed to close conversation thread');
