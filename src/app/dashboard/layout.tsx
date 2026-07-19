@@ -180,7 +180,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       STUDENT: ['/dashboard', '/dashboard/attendance', '/dashboard/messages', '/dashboard/profile']
     };
 
-    const currentBaseRoute = '/' + pathname.split('/').filter(Boolean).slice(0, 2).join('/');
+    const currentBaseRoute = pathname 
+      ? '/' + pathname.split('/').filter(Boolean).slice(0, 2).join('/')
+      : '/dashboard';
     const allowedRoutes = allowedRoutesByRole[role] || ['/dashboard'];
     
     if (!allowedRoutes.includes(currentBaseRoute)) {
