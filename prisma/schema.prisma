@@ -75,7 +75,9 @@ model User {
   role         String // SUPER_ADMIN, SCHOOL_ADMIN, HEAD_TEACHER, CLASS_TEACHER, SUBJECT_TEACHER
   phone        String?
   passportPhoto String?
+  dateOfBirth  String? // format: YYYY-MM-DD or MM-DD
   status       String   @default("ACTIVE") // ACTIVE, INACTIVE
+  tokenVersion Int      @default(0)
   isActive     Boolean  @default(true)
   isFirstLogin Boolean  @default(true)
   lastLogin    DateTime?

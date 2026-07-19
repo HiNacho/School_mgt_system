@@ -83,11 +83,12 @@ export async function POST(req: NextRequest) {
         }
       }
 
-      // Generate secure JWT session token containing only: userId, role, schoolId
+      // Generate secure JWT session token containing only: userId, role, schoolId, tokenVersion
       const token = await generateJWT({
         userId: user.id,
         role: user.role,
-        schoolId: user.schoolId
+        schoolId: user.schoolId,
+        tokenVersion: user.tokenVersion
       }, false);
 
       // Create Login Audit Log
@@ -204,11 +205,12 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Generate JWT token containing only: userId, role, schoolId
+    // Generate JWT token containing only: userId, role, schoolId, tokenVersion
     const token = await generateJWT({
       userId: user.id,
       role: user.role,
-      schoolId: user.schoolId
+      schoolId: user.schoolId,
+      tokenVersion: user.tokenVersion
     }, false);
 
     // Create Audit Log

@@ -42,14 +42,18 @@ export async function requireAuth(req: NextRequest): Promise<UserSession> {
   try {
     const session = await verifyJWT(token);
     
-    // Optionally check if the user is active in the database
+    // Optionally check if the user is active and session token version matches in the database
     const user = await prisma.user.findUnique({
       where: { id: session.userId },
-      select: { isActive: true }
+      select: { isActive: true, tokenVersion: true }
     });
 
     if (!user || !user.isActive) {
       throw new AuthError('Your account has been suspended or deactivated. Contact your administrator.', 403);
+    }
+
+    if (session.tokenVersion !== undefined && user.tokenVersion !== session.tokenVersion) {
+      throw new AuthError('Session expired. You have logged out from other devices. Please log in again.', 401);
     }
 
     return session;
