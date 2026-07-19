@@ -3,6 +3,42 @@ import prisma from '@/lib/db';
 import { requireAuth, requireRole } from '@/lib/auth-middleware';
 
 // POST: Allows superadmin to message school admins (specific school or broadcast to all)
+// GET: Retrieve all active support conversations involving superadmin
+export async function GET(req: NextRequest) {
+  try {
+    const session = await requireAuth(req);
+    requireRole(session, ['SUPER_ADMIN']);
+
+    const conversations = await prisma.chatConversation.findMany({
+      where: {
+        teacherId: session.userId // Superadmin maps to teacherId in support threads
+      },
+      include: {
+        school: { select: { name: true, slug: true } },
+        parent: { // Initiator (School Admin)
+          select: { id: true, firstName: true, lastName: true, email: true, role: true }
+        },
+        messages: {
+          orderBy: { createdAt: 'asc' },
+          include: {
+            sender: { select: { id: true, firstName: true, lastName: true, role: true } }
+          }
+        }
+      },
+      orderBy: { lastActivity: 'desc' }
+    });
+
+    return NextResponse.json({ success: true, data: conversations });
+  } catch (error: any) {
+    if (error.name === 'AuthError' || error.status) {
+      return NextResponse.json({ error: error.message || 'Unauthorized' }, { status: error.status || 401 });
+    }
+    console.error('Superadmin GET Messages Error:', error);
+    return NextResponse.json({ error: `Server error: ${error.message || error}` }, { status: 500 });
+  }
+}
+
+// POST: Allows superadmin to message school admins (specific school or broadcast to all)
 export async function POST(req: NextRequest) {
   try {
     const session = await requireAuth(req);
@@ -50,7 +86,7 @@ export async function POST(req: NextRequest) {
       const message = await prisma.message.create({
         data: {
           schoolId: school.id,
-          senderId: session.id, // linked to the superadmin User
+          senderId: session.userId, // linked to the superadmin User
           title: title.trim(),
           body: msgBody.trim(),
           messageType: 'ANNOUNCEMENT',

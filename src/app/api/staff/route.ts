@@ -98,7 +98,35 @@ export async function GET(req: NextRequest) {
       ]
     });
 
-    const formatted = staff.map(s => ({
+    const superAdmins = await prisma.user.findMany({
+      where: {
+        role: 'SUPER_ADMIN',
+        status: 'ACTIVE'
+      },
+      include: {
+        classTeacherArms: {
+          include: {
+            class: true
+          }
+        },
+        subjectAssignments: {
+          include: {
+            subject: {
+              select: { name: true, code: true }
+            },
+            arm: {
+              include: {
+                class: true
+              }
+            }
+          }
+        }
+      }
+    });
+
+    const combined = [...staff, ...superAdmins];
+
+    const formatted = combined.map(s => ({
       id: s.id,
       email: s.email,
       firstName: s.firstName,
