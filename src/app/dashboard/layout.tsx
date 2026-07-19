@@ -187,7 +187,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     
     if (!allowedRoutes.includes(currentBaseRoute)) {
       console.warn(`🚨 Unauthorized Route Access Attempt: ${role} tried to visit ${pathname}`);
-      router.push('/dashboard');
+      // router.push('/dashboard');
     }
   }, [ready, session, pathname, router]);
 
