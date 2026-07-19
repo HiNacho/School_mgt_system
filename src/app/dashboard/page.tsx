@@ -15,43 +15,12 @@ import SuperAdminDashboard from './SuperAdminDashboard';
 import nextDynamic from 'next/dynamic';
 
 const GenderRatioChart = nextDynamic(
-  () => Promise.resolve(({ data }: { data: any[] }) => (
-    <ResponsiveContainer width="100%" height="100%">
-      <PieChart>
-        <Pie
-          data={data}
-          cx="50%"
-          cy="50%"
-          innerRadius={55}
-          outerRadius={75}
-          paddingAngle={4}
-          dataKey="value"
-        >
-          {data.map((entry: any, idx: number) => (
-            <Cell key={`cell-${idx}`} fill={entry.color} />
-          ))}
-        </Pie>
-        <Tooltip contentStyle={{ backgroundColor: '#fff', borderRadius: '12px', border: '1px solid #f1f5f9', fontSize: '11px' }} />
-      </PieChart>
-    </ResponsiveContainer>
-  )),
+  () => import('./GenderRatioChart'),
   { ssr: false }
 );
 
 const WeeklyAttendanceChart = nextDynamic(
-  () => Promise.resolve(({ data }: { data: any[] }) => (
-    <ResponsiveContainer width="100%" height="100%">
-      <BarChart data={data} margin={{ top: 10, right: 5, left: -25, bottom: 0 }}>
-        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-        <XAxis dataKey="day" stroke="#94a3b8" fontSize={10} tickLine={false} axisLine={false} />
-        <YAxis stroke="#94a3b8" fontSize={10} tickLine={false} axisLine={false} />
-        <Tooltip contentStyle={{ backgroundColor: '#fff', borderRadius: '12px', border: '1px solid #f1f5f9', fontSize: '11px' }} />
-        <Legend iconType="circle" iconSize={6} wrapperStyle={{ fontSize: '10px', fontWeight: 'bold', paddingTop: '10px' }} />
-        <Bar dataKey="Present" fill="#10b981" radius={[4, 4, 0, 0]} barSize={12} name="Present" />
-        <Bar dataKey="Absent" fill="#f43f5e" radius={[4, 4, 0, 0]} barSize={12} name="Absent" />
-      </BarChart>
-    </ResponsiveContainer>
-  )),
+  () => import('./WeeklyAttendanceChart'),
   { ssr: false }
 );
 
@@ -829,9 +798,10 @@ export default function DashboardHome() {
                   <span className="px-2 py-0.5 rounded bg-blue-50 text-blue-600 text-[8px] font-extrabold">DEMOGRAPHICS</span>
                 </div>
 
-                <div className="relative h-44 flex items-center justify-center border border-dashed border-slate-200 rounded-2xl bg-slate-50/50">
-                  <div className="text-slate-400 text-xs font-semibold uppercase tracking-wider">Gender Demographics Ratio</div>
-                  <div className="absolute text-center hidden">
+                <div className="relative h-44 flex items-center justify-center">
+                  <GenderRatioChart data={genderDonutData} />
+
+                  <div className="absolute text-center">
                     <span className="block text-xl font-black text-slate-800">{totalBoysGirls}</span>
                     <span className="block text-[8px] font-bold text-slate-400 uppercase tracking-widest">Enrolled</span>
                   </div>
@@ -856,8 +826,8 @@ export default function DashboardHome() {
                   <span className="px-2 py-0.5 rounded bg-green-50 text-green-600 text-[8px] font-extrabold animate-pulse">LIVE • MON-FRI</span>
                 </div>
 
-                <div className="relative h-44 flex items-center justify-center border border-dashed border-slate-200 rounded-2xl bg-slate-50/50">
-                  <div className="text-slate-400 text-xs font-semibold uppercase tracking-wider">Weekly Attendance Statistics</div>
+                <div className="relative h-44 flex items-center justify-center">
+                  <WeeklyAttendanceChart data={attendanceBarData} />
                 </div>
 
                 <div className="flex justify-center gap-6 text-[10px] font-bold text-slate-500">
