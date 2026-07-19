@@ -11,11 +11,17 @@ export async function GET(req: NextRequest) {
 
     const conversations = await prisma.chatConversation.findMany({
       where: {
-        teacherId: session.userId // Superadmin maps to teacherId in support threads
+        OR: [
+          { parentId: session.userId },
+          { teacherId: session.userId }
+        ]
       },
       include: {
         school: { select: { name: true, slug: true } },
-        parent: { // Initiator (School Admin)
+        parent: {
+          select: { id: true, firstName: true, lastName: true, email: true, role: true }
+        },
+        teacher: {
           select: { id: true, firstName: true, lastName: true, email: true, role: true }
         },
         messages: {

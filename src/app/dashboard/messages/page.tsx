@@ -1286,7 +1286,7 @@ export default function RebuiltMessagesHub() {
                             <div key={msg.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
                               <div className={`max-w-[70%] rounded-xl p-3 shadow-sm text-xs ${isMe ? 'bg-indigo-600 text-white rounded-br-none' : 'bg-white border border-slate-200 text-slate-800 rounded-bl-none'}`}>
                                 <div className="flex items-center justify-between gap-4 mb-1 text-[9px] opacity-75 font-semibold">
-                                  <span>{msg.sender.firstName} ({msg.sender.role.replace('_', ' ')})</span>
+                                  <span>{msg.sender?.firstName || 'System'} ({(msg.sender?.role || 'SYSTEM').replace('_', ' ').toLowerCase()})</span>
                                   <span>{new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                                 </div>
                                 <p className="whitespace-pre-wrap leading-relaxed">{msg.body}</p>
