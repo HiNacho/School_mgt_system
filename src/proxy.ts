@@ -12,7 +12,8 @@ export async function proxy(req: NextRequest) {
   const isPublicApi = pathname.startsWith('/api/auth') || 
                       pathname.startsWith('/api/register') || 
                       pathname.startsWith('/api/setup') || 
-                      pathname.startsWith('/api/tester');
+                      pathname.startsWith('/api/tester') ||
+                      pathname.startsWith('/api/schools');
 
   // Comprehensive list of protected path prefixes
   const protectedPrefixes = [
