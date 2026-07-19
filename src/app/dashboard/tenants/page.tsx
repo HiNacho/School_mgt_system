@@ -108,6 +108,18 @@ export default function SchoolTenantsPage() {
         setCurrentUser(sessionObj.user);
       } catch (e) {}
     }
+
+    // Check if tab parameter is passed in URL query e.g. ?tab=broadcasts
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const tabParam = params.get('tab');
+      if (tabParam && ['schools', 'payments', 'usage', 'leads', 'broadcasts'].includes(tabParam)) {
+        setActiveTab(tabParam as any);
+        if (tabParam === 'broadcasts') {
+          setActiveSubTab('support'); // default to support ticket inbox view
+        }
+      }
+    }
   }, []);
 
   // Poll active support conversations when broadcasts/support tab is active
