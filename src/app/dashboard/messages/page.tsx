@@ -125,6 +125,10 @@ export default function RebuiltMessagesHub() {
   const [school, setSchool] = useState<any>(null);
   const [currentUser, setCurrentUser] = useState<any>(null);
 
+  // Superadmin broadcast targets & support state
+  const [tenants, setTenants] = useState<any[]>([]);
+  const [broadcastTarget, setBroadcastTarget] = useState('ALL');
+
   // Tabs layout
   const [activeTab, setActiveTab] = useState<'chats' | 'broadcasts' | 'meetings' | 'settings' | 'analytics'>('chats');
   
@@ -153,9 +157,12 @@ export default function RebuiltMessagesHub() {
   }, [activeChatMessages]);
 
   const refreshActiveConversation = async (convId: string) => {
+    if (currentUser?.role === 'SUPER_ADMIN') return; // Handled directly in refreshConversationsList
     if (!school) return;
     try {
-      const res = await fetch(`/api/communication?schoolId=${school.id}&conversationId=${convId}`);
+      const res = await fetch(`/api/communication?schoolId=${school.id}&conversationId=${convId}`, {
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('report_auth_token') || ''}` }
+      });
       const json = await res.json();
       if (res.ok && json.success) {
         const newMessages = json.data.messages || [];
@@ -172,12 +179,31 @@ export default function RebuiltMessagesHub() {
   };
 
   const refreshConversationsList = async () => {
-    if (!school) return;
     try {
-      const res = await fetch(`/api/communication?schoolId=${school.id}`);
-      const json = await res.json();
-      if (res.ok && json.success) {
-        setConversations(json.data.conversations || []);
+      if (currentUser?.role === 'SUPER_ADMIN') {
+        const res = await fetch(`/api/superadmin/messages`, {
+          headers: { 'Authorization': `Bearer ${localStorage.getItem('report_auth_token') || ''}` }
+        });
+        const json = await res.json();
+        if (res.ok && json.success) {
+          setConversations(json.data || []);
+          if (selectedConversation) {
+            const updated = json.data.find((c: any) => c.id === selectedConversation.id);
+            if (updated) {
+              setSelectedConversation(updated);
+              setActiveChatMessages(updated.messages || []);
+            }
+          }
+        }
+      } else {
+        if (!school) return;
+        const res = await fetch(`/api/communication?schoolId=${school.id}`, {
+          headers: { 'Authorization': `Bearer ${localStorage.getItem('report_auth_token') || ''}` }
+        });
+        const json = await res.json();
+        if (res.ok && json.success) {
+          setConversations(json.data.conversations || []);
+        }
       }
     } catch (e) {
       console.error('Error polling conversations list:', e);
@@ -186,17 +212,18 @@ export default function RebuiltMessagesHub() {
 
   // Near-real-time polling interval for live message delivery (like WhatsApp)
   useEffect(() => {
-    if (activeTab !== 'chats' || !school) return;
+    if (activeTab !== 'chats') return;
+    if (!school && currentUser?.role !== 'SUPER_ADMIN') return;
 
     const pollInterval = setInterval(() => {
       refreshConversationsList();
-      if (selectedConversation) {
+      if (selectedConversation && currentUser?.role !== 'SUPER_ADMIN') {
         refreshActiveConversation(selectedConversation.id);
       }
     }, 4000); // Poll every 4 seconds
 
     return () => clearInterval(pollInterval);
-  }, [selectedConversation?.id, activeTab, school]);
+  }, [selectedConversation?.id, activeTab, school, currentUser?.role]);
 
   // Polling interval for live announcements (broadcasts)
   useEffect(() => {
@@ -279,15 +306,28 @@ export default function RebuiltMessagesHub() {
   const [successMsg, setSuccessMsg] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
 
+  const getAuthHeaders = (contentType: string | null = 'application/json') => {
+    const token = typeof window !== 'undefined' ? localStorage.getItem('report_auth_token') || '' : '';
+    return {
+      ...(contentType ? { 'Content-Type': contentType } : {}),
+      ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+    };
+  };
+
   // 1. Session check on mount
   useEffect(() => {
     const sessionStr = localStorage.getItem('report_user_session');
     if (sessionStr) {
       try {
         const sessionObj = JSON.parse(sessionStr);
-        setSchool(sessionObj.school);
         setCurrentUser(sessionObj.user);
-        loadDashboardResources(sessionObj.school.id, sessionObj.user);
+        if (sessionObj.user.role === 'SUPER_ADMIN') {
+          setSchool(null);
+          loadDashboardResources(null, sessionObj.user);
+        } else {
+          setSchool(sessionObj.school);
+          loadDashboardResources(sessionObj.school.id, sessionObj.user);
+        }
       } catch (e) {
         setErrorMsg('Invalid session credentials.');
       }
@@ -295,31 +335,51 @@ export default function RebuiltMessagesHub() {
   }, []);
 
   // 2. Fetch all hub data based on role context
-  const loadDashboardResources = async (schoolId: string, user: any) => {
+  const loadDashboardResources = async (schoolId: string | null, user: any) => {
     setLoading(true);
     setErrorMsg('');
     try {
-      // Fetch Chats & Settings
-      const chatRes = await fetch(`/api/communication?schoolId=${schoolId}`);
-      const chatJson = await chatRes.json();
-      if (chatRes.ok && chatJson.success) {
-        setConversations(chatJson.data.conversations || []);
-        setTemplates(chatJson.data.templates || []);
-        if (chatJson.data.settings) setSettings(chatJson.data.settings);
-      }
+      const token = typeof window !== 'undefined' ? localStorage.getItem('report_auth_token') || '' : '';
+      const headers = { 'Authorization': `Bearer ${token}` };
 
-      // Fetch Meetings
-      const meetRes = await fetch(`/api/communication/meetings?schoolId=${schoolId}`);
-      const meetJson = await meetRes.json();
-      if (meetRes.ok && meetJson.success) {
-        setMeetings(meetJson.data || []);
-      }
+      if (user.role === 'SUPER_ADMIN') {
+        // Fetch Chats involving the Superadmin
+        const chatRes = await fetch(`/api/superadmin/messages`, { headers });
+        const chatJson = await chatRes.json();
+        if (chatRes.ok && chatJson.success) {
+          setConversations(chatJson.data || []);
+        }
+        
+        // Fetch all school tenants for superadmin announcement targets
+        const schoolsRes = await fetch('/api/schools', { headers });
+        const schoolsJson = await schoolsRes.json();
+        if (schoolsRes.ok && schoolsJson.success) {
+          setTenants(schoolsJson.data || []);
+        }
+      } else {
+        if (!schoolId) return;
+        // Fetch Chats & Settings
+        const chatRes = await fetch(`/api/communication?schoolId=${schoolId}`, { headers });
+        const chatJson = await chatRes.json();
+        if (chatRes.ok && chatJson.success) {
+          setConversations(chatJson.data.conversations || []);
+          setTemplates(chatJson.data.templates || []);
+          if (chatJson.data.settings) setSettings(chatJson.data.settings);
+        }
 
-      // Fetch Broadcast Announcements (Inbox mode)
-      const broadRes = await fetch(`/api/messages?schoolId=${schoolId}&userId=${user.id}&mode=inbox`);
-      const broadJson = await broadRes.json();
-      if (broadRes.ok && broadJson.success) {
-        setBroadcasts(broadJson.data || []);
+        // Fetch Meetings
+        const meetRes = await fetch(`/api/communication/meetings?schoolId=${schoolId}`, { headers });
+        const meetJson = await meetRes.json();
+        if (meetRes.ok && meetJson.success) {
+          setMeetings(meetJson.data || []);
+        }
+
+        // Fetch Broadcast Announcements (Inbox mode)
+        const broadRes = await fetch(`/api/messages?schoolId=${schoolId}&userId=${user.id}&mode=inbox`, { headers });
+        const broadJson = await broadRes.json();
+        if (broadRes.ok && broadJson.success) {
+          setBroadcasts(broadJson.data || []);
+        }
       }
 
       // If user is a Parent, load their wards and child teachers for composing messages
@@ -560,16 +620,19 @@ export default function RebuiltMessagesHub() {
   // Send reply message
   const handleSendReply = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!replyText.trim() || !selectedConversation || !school) return;
+    if (!replyText.trim() || !selectedConversation) return;
+    if (!school && currentUser?.role !== 'SUPER_ADMIN') return;
+
+    const targetSchoolId = currentUser?.role === 'SUPER_ADMIN' ? selectedConversation.schoolId : school.id;
 
     setSending(true);
     setErrorMsg('');
     try {
       const res = await fetch('/api/communication', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders(),
         body: JSON.stringify({
-          schoolId: school.id,
+          schoolId: targetSchoolId,
           conversationId: selectedConversation.id,
           messageBody: replyText.trim()
         })
@@ -811,48 +874,67 @@ export default function RebuiltMessagesHub() {
   // Submit Broadcast Announcement (Admin / Teachers)
   const handleSendBroadcast = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!broadcastTitle.trim() || !broadcastBody.trim() || !school) return;
-
-    let targetAud = broadcastAudience;
-    let targetArmId = '';
-
-    if (broadcastAudience.startsWith('CLASS_ARM_PARENTS:')) {
-      targetAud = 'CLASS_ARM_PARENTS';
-      targetArmId = broadcastAudience.split(':')[1];
-    }
+    if (!broadcastTitle.trim() || !broadcastBody.trim()) return;
 
     setSending(true);
     setErrorMsg('');
     setSuccessMsg('');
     try {
-      const res = await fetch('/api/messages', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          schoolId: school.id,
-          senderId: currentUser.id,
-          title: broadcastTitle.trim(),
-          body: broadcastBody.trim(),
-          targetAudience: targetAud,
-          armId: targetArmId,
-          priority: broadcastPriority,
-          isPinned: broadcastPinned,
-          messageType: 'ANNOUNCEMENT'
-        })
-      });
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.error || 'Failed to dispatch announcement');
+      if (currentUser?.role === 'SUPER_ADMIN') {
+        const res = await fetch('/api/superadmin/messages', {
+          method: 'POST',
+          headers: getAuthHeaders(),
+          body: JSON.stringify({
+            schoolId: broadcastTarget, // 'ALL' or specific school ID
+            title: broadcastTitle.trim(),
+            body: broadcastBody.trim()
+          })
+        });
+        const json = await res.json();
+        if (!res.ok) throw new Error(json.error || 'Failed to dispatch system broadcast');
 
-      setSuccessMsg('Announcement broadcasted successfully!');
-      setBroadcastTitle('');
-      setBroadcastBody('');
-      setBroadcastPinned(false);
+        setSuccessMsg('System broadcast announcement dispatched successfully to administrators!');
+        setBroadcastTitle('');
+        setBroadcastBody('');
+      } else {
+        if (!school) return;
+        let targetAud = broadcastAudience;
+        let targetArmId = '';
 
-      // Reload announcements list
-      const broadRes = await fetch(`/api/messages?schoolId=${school.id}&userId=${currentUser.id}&mode=inbox`);
-      const broadJson = await broadRes.json();
-      if (broadRes.ok && broadJson.success) {
-        setBroadcasts(broadJson.data || []);
+        if (broadcastAudience.startsWith('CLASS_ARM_PARENTS:')) {
+          targetAud = 'CLASS_ARM_PARENTS';
+          targetArmId = broadcastAudience.split(':')[1];
+        }
+
+        const res = await fetch('/api/messages', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            schoolId: school.id,
+            senderId: currentUser.id,
+            title: broadcastTitle.trim(),
+            body: broadcastBody.trim(),
+            targetAudience: targetAud,
+            armId: targetArmId,
+            priority: broadcastPriority,
+            isPinned: broadcastPinned,
+            messageType: 'ANNOUNCEMENT'
+          })
+        });
+        const json = await res.json();
+        if (!res.ok) throw new Error(json.error || 'Failed to dispatch announcement');
+
+        setSuccessMsg('Announcement broadcasted successfully!');
+        setBroadcastTitle('');
+        setBroadcastBody('');
+        setBroadcastPinned(false);
+
+        // Reload announcements list
+        const broadRes = await fetch(`/api/messages?schoolId=${school.id}&userId=${currentUser.id}&mode=inbox`);
+        const broadJson = await broadRes.json();
+        if (broadRes.ok && broadJson.success) {
+          setBroadcasts(broadJson.data || []);
+        }
       }
     } catch (err: any) {
       setErrorMsg(err.message || 'Failed to broadcast announcement');
@@ -916,10 +998,14 @@ export default function RebuiltMessagesHub() {
             <span className="p-1.5 bg-indigo-50 text-indigo-600 rounded-md">
               <MessageSquare className="w-5 h-5" />
             </span>
-            <h1 className="text-xl font-bold tracking-tight text-slate-900">School Communication Hub</h1>
+            <h1 className="text-xl font-bold tracking-tight text-slate-900">
+              {currentUser?.role === 'SUPER_ADMIN' ? 'Platform Communication Hub' : 'School Communication Hub'}
+            </h1>
           </div>
           <p className="text-slate-500 text-xs mt-1">
-            Structured parent-teacher messaging logs, school announcements, and parent appointment planner.
+            {currentUser?.role === 'SUPER_ADMIN' 
+              ? 'Support tickets, developer notifications, and superadmin announcement center.' 
+              : 'Structured parent-teacher messaging logs, school announcements, and parent appointment planner.'}
           </p>
         </div>
 
@@ -928,8 +1014,15 @@ export default function RebuiltMessagesHub() {
           <button 
             onClick={() => {
               setActiveTab('chats');
-              if (school) {
-                fetch(`/api/communication?schoolId=${school.id}`)
+              if (currentUser?.role === 'SUPER_ADMIN') {
+                fetch(`/api/superadmin/messages`, { headers: getAuthHeaders(null) })
+                  .then(res => res.json())
+                  .then(json => {
+                    if (json.success) setConversations(json.data || []);
+                  })
+                  .catch(console.error);
+              } else if (school) {
+                fetch(`/api/communication?schoolId=${school.id}`, { headers: getAuthHeaders(null) })
                   .then(res => res.json())
                   .then(json => {
                     if (json.success) setConversations(json.data.conversations || []);
@@ -945,8 +1038,8 @@ export default function RebuiltMessagesHub() {
           <button 
             onClick={() => {
               setActiveTab('broadcasts');
-              if (school && currentUser) {
-                fetch(`/api/messages?schoolId=${school.id}&userId=${currentUser.id}&mode=inbox`)
+              if (currentUser?.role !== 'SUPER_ADMIN' && school && currentUser) {
+                fetch(`/api/messages?schoolId=${school.id}&userId=${currentUser.id}&mode=inbox`, { headers: getAuthHeaders(null) })
                   .then(res => res.json())
                   .then(json => {
                     if (json.success) setBroadcasts(json.data || []);
@@ -959,31 +1052,35 @@ export default function RebuiltMessagesHub() {
             <Megaphone className="w-3.5 h-3.5" />
             Announcements
           </button>
-          <button 
-            onClick={() => {
-              setActiveTab('meetings');
-              if (school) {
-                fetch(`/api/communication/meetings?schoolId=${school.id}`)
-                  .then(res => res.json())
-                  .then(json => {
-                    if (json.success) setMeetings(json.data || []);
-                  })
-                  .catch(console.error);
-              }
-            }} 
-            className={`px-3 py-1.5 rounded-md text-xs font-semibold flex items-center gap-1.5 transition-all ${activeTab === 'meetings' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
-          >
-            <Calendar className="w-3.5 h-3.5" />
-            Meetings
-          </button>
-          {(currentUser?.role === 'SCHOOL_ADMIN' || currentUser?.role === 'SUPER_ADMIN') && (
-            <button 
-              onClick={() => setActiveTab('settings')} 
-              className={`px-3 py-1.5 rounded-md text-xs font-semibold flex items-center gap-1.5 transition-all ${activeTab === 'settings' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
-            >
-              <Settings className="w-3.5 h-3.5" />
-              Settings
-            </button>
+          {currentUser?.role !== 'SUPER_ADMIN' && (
+            <>
+              <button 
+                onClick={() => {
+                  setActiveTab('meetings');
+                  if (school) {
+                    fetch(`/api/communication/meetings?schoolId=${school.id}`, { headers: getAuthHeaders(null) })
+                      .then(res => res.json())
+                      .then(json => {
+                        if (json.success) setMeetings(json.data || []);
+                      })
+                      .catch(console.error);
+                  }
+                }} 
+                className={`px-3 py-1.5 rounded-md text-xs font-semibold flex items-center gap-1.5 transition-all ${activeTab === 'meetings' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
+              >
+                <Calendar className="w-3.5 h-3.5" />
+                Meetings
+              </button>
+              {currentUser?.role === 'SCHOOL_ADMIN' && (
+                <button 
+                  onClick={() => setActiveTab('settings')} 
+                  className={`px-3 py-1.5 rounded-md text-xs font-semibold flex items-center gap-1.5 transition-all ${activeTab === 'settings' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
+                >
+                  <Settings className="w-3.5 h-3.5" />
+                  Settings
+                </button>
+              )}
+            </>
           )}
         </div>
       </div>
@@ -1092,7 +1189,7 @@ export default function RebuiltMessagesHub() {
                     ) : (
                       filteredConversations.map((conv) => {
                         const isUnread = conv.messages.some(m => !m.isRead && m.senderId !== currentUser?.id);
-                        const latestMsg = conv.messages[0];
+                        const latestMsg = conv.messages[conv.messages.length - 1] || conv.messages[0];
 
                         const otherParticipant = conv.parent.id === currentUser?.id ? conv.teacher : conv.parent;
                         const otherRole = otherParticipant.role === 'SCHOOL_ADMIN' ? 'admin' :
@@ -1102,7 +1199,8 @@ export default function RebuiltMessagesHub() {
                                           otherParticipant.role === 'HEAD_TEACHER' ? 'head teacher' :
                                           otherParticipant.role === 'PARENT' ? 'parent' : 'teacher';
 
-                        const displayTitle = `${otherParticipant.firstName} ${otherParticipant.lastName} (${otherRole})`;
+                        const schoolLabel = (currentUser?.role === 'SUPER_ADMIN' && (conv as any).school) ? ` • ${(conv as any).school.slug.toUpperCase()}` : '';
+                        const displayTitle = `${otherParticipant.firstName} ${otherParticipant.lastName} (${otherRole})${schoolLabel}`;
                         
                         const lastSnippet = latestMsg?.body || conv.subject;
 
@@ -1151,14 +1249,21 @@ export default function RebuiltMessagesHub() {
                                               otherParticipant.role === 'HEAD_TEACHER' ? 'head teacher' :
                                               otherParticipant.role === 'PARENT' ? 'parent' : 'teacher';
 
-                            const displayTitle = `${otherParticipant.firstName} ${otherParticipant.lastName} (${otherRole})`;
+                            const currentSchoolLabel = (currentUser?.role === 'SUPER_ADMIN' && (selectedConversation as any).school) ? ` • ${(selectedConversation as any).school.slug.toUpperCase()}` : '';
+                            const displayTitle = `${otherParticipant.firstName} ${otherParticipant.lastName} (${otherRole})${currentSchoolLabel}`;
 
                             return (
                               <>
                                 <h2 className="text-sm font-bold text-slate-900">{displayTitle}</h2>
-                                <p className="text-[11px] text-slate-500 mt-1">
-                                  Focus: <span className="font-semibold text-slate-700">{selectedConversation.student.firstName} {selectedConversation.student.lastName}</span> ({selectedConversation.student.className} {selectedConversation.student.armName})
-                                </p>
+                                {currentUser?.role === 'SUPER_ADMIN' && (selectedConversation as any).school ? (
+                                  <p className="text-[11px] text-slate-500 mt-1">
+                                    School Tenant: <span className="font-semibold text-slate-700">{(selectedConversation as any).school.name}</span>
+                                  </p>
+                                ) : (
+                                  <p className="text-[11px] text-slate-500 mt-1">
+                                    Focus: <span className="font-semibold text-slate-700">{selectedConversation.student.firstName} {selectedConversation.student.lastName}</span> ({selectedConversation.student.className} {selectedConversation.student.armName})
+                                  </p>
+                                )}
                               </>
                             );
                           })()}
@@ -1262,47 +1367,63 @@ export default function RebuiltMessagesHub() {
                         />
                       </div>
 
-                      <div className="grid grid-cols-2 gap-4">
+                      {currentUser?.role === 'SUPER_ADMIN' ? (
                         <div>
-                          <label className="block text-[10px] font-black uppercase tracking-wider text-slate-400 mb-1">Target Audience</label>
+                          <label className="block text-[10px] font-black uppercase tracking-wider text-slate-400 mb-1">Target School Tenants</label>
                           <select
-                            value={broadcastAudience}
-                            onChange={(e) => setBroadcastAudience(e.target.value)}
+                            value={broadcastTarget}
+                            onChange={(e) => setBroadcastTarget(e.target.value)}
                             className="w-full px-3 py-2 border border-slate-200 rounded-lg text-xs bg-slate-50 focus:outline-none"
                           >
-                            {(currentUser?.role === 'SCHOOL_ADMIN' || currentUser?.role === 'SUPER_ADMIN' || currentUser?.role === 'HEAD_TEACHER') ? (
-                              <>
-                                <option value="ALL">All (Everyone)</option>
-                                <option value="PARENTS">Parents Only</option>
-                                <option value="TEACHERS">Teachers Only</option>
-                              </>
-                            ) : currentUser?.role === 'CLASS_TEACHER' && fullStaffProfile?.classTeacherArms?.length > 0 ? (
-                              <>
-                                {fullStaffProfile.classTeacherArms.map((arm: any) => (
-                                  <option key={arm.id} value={`CLASS_ARM_PARENTS:${arm.id}`}>
-                                    My Class Parents ({arm.class?.name || ''} {arm.name})
-                                  </option>
-                                ))}
+                            <option value="ALL">All Registered Schools ({tenants.length})</option>
+                            {tenants.map(t => (
+                              <option key={t.id} value={t.id}>{t.name} ({t.slug})</option>
+                            ))}
+                          </select>
+                        </div>
+                      ) : (
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <label className="block text-[10px] font-black uppercase tracking-wider text-slate-400 mb-1">Target Audience</label>
+                            <select
+                              value={broadcastAudience}
+                              onChange={(e) => setBroadcastAudience(e.target.value)}
+                              className="w-full px-3 py-2 border border-slate-200 rounded-lg text-xs bg-slate-50 focus:outline-none"
+                            >
+                              {(currentUser?.role === 'SCHOOL_ADMIN' || currentUser?.role === 'SUPER_ADMIN' || currentUser?.role === 'HEAD_TEACHER') ? (
+                                <>
+                                  <option value="ALL">All (Everyone)</option>
+                                  <option value="PARENTS">Parents Only</option>
+                                  <option value="TEACHERS">Teachers Only</option>
+                                </>
+                              ) : currentUser?.role === 'CLASS_TEACHER' && fullStaffProfile?.classTeacherArms?.length > 0 ? (
+                                <>
+                                  {fullStaffProfile.classTeacherArms.map((arm: any) => (
+                                    <option key={arm.id} value={`CLASS_ARM_PARENTS:${arm.id}`}>
+                                      My Class Parents ({arm.class?.name || ''} {arm.name})
+                                    </option>
+                                  ))}
+                                  <option value="TEACHERS">Staff / Teachers Only</option>
+                                </>
+                              ) : (
                                 <option value="TEACHERS">Staff / Teachers Only</option>
-                              </>
-                            ) : (
-                              <option value="TEACHERS">Staff / Teachers Only</option>
-                            )}
-                          </select>
+                              )}
+                            </select>
+                          </div>
+                          <div>
+                            <label className="block text-[10px] font-black uppercase tracking-wider text-slate-400 mb-1">Priority</label>
+                            <select
+                              value={broadcastPriority}
+                              onChange={(e) => setBroadcastPriority(e.target.value)}
+                              className="w-full px-3 py-2 border border-slate-200 rounded-lg text-xs bg-slate-50 focus:outline-none"
+                            >
+                              <option value="NORMAL">Normal</option>
+                              <option value="HIGH">High Priority</option>
+                              <option value="URGENT">Urgent Alert</option>
+                            </select>
+                          </div>
                         </div>
-                        <div>
-                          <label className="block text-[10px] font-black uppercase tracking-wider text-slate-400 mb-1">Priority</label>
-                          <select
-                            value={broadcastPriority}
-                            onChange={(e) => setBroadcastPriority(e.target.value)}
-                            className="w-full px-3 py-2 border border-slate-200 rounded-lg text-xs bg-slate-50 focus:outline-none"
-                          >
-                            <option value="NORMAL">Normal</option>
-                            <option value="HIGH">High Priority</option>
-                            <option value="URGENT">Urgent Alert</option>
-                          </select>
-                        </div>
-                      </div>
+                      )}
 
                       <div>
                         <label className="block text-[10px] font-black uppercase tracking-wider text-slate-400 mb-1">Message Body</label>
@@ -1342,20 +1463,30 @@ export default function RebuiltMessagesHub() {
 
                 {/* History feed of announcements */}
                 <div className={`${(currentUser?.role === 'SCHOOL_ADMIN' || currentUser?.role === 'SUPER_ADMIN' || currentUser?.role === 'HEAD_TEACHER') ? 'lg:col-span-7' : 'lg:col-span-12'} bg-white border border-slate-200 rounded-xl p-5 shadow-sm space-y-4`}>
-                  <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-                    <h2 className="text-sm font-bold text-slate-900">Announcements Feed</h2>
-                    <span className="text-[10px] font-bold text-slate-400 bg-slate-100 px-2.5 py-0.5 rounded-full">
-                      {broadcasts.length} Active
-                    </span>
-                  </div>
-
-                  <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-1">
-                    {broadcasts.length === 0 ? (
-                      <div className="p-8 text-center text-slate-400 text-xs">
-                        <Megaphone className="w-8 h-8 mx-auto mb-2 text-slate-300" />
-                        No announcements broadcasted yet.
+                  {currentUser?.role === 'SUPER_ADMIN' ? (
+                    <div className="text-center py-16 text-slate-400 space-y-3">
+                      <Megaphone className="w-12 h-12 mx-auto text-indigo-600 animate-pulse" />
+                      <h3 className="text-xs font-black uppercase text-slate-800 tracking-wider">Superadmin Announcements Console</h3>
+                      <p className="text-[11px] text-slate-500 max-w-sm mx-auto leading-relaxed">
+                        Use the composer on the left to dispatch platform announcements, maintenance notices, and system alerts to school administrators.
+                      </p>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                        <h2 className="text-sm font-bold text-slate-900">Announcements Feed</h2>
+                        <span className="text-[10px] font-bold text-slate-400 bg-slate-100 px-2.5 py-0.5 rounded-full">
+                          {broadcasts.length} Active
+                        </span>
                       </div>
-                    ) : (
+
+                      <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-1">
+                        {broadcasts.length === 0 ? (
+                          <div className="p-8 text-center text-slate-400 text-xs">
+                            <Megaphone className="w-8 h-8 mx-auto mb-2 text-slate-300" />
+                            No announcements broadcasted yet.
+                          </div>
+                        ) : (
                       broadcasts.map((broad) => (
                         <div key={broad.id} className={`p-4 border border-slate-150 rounded-xl hover:bg-slate-50/50 transition-all ${broad.isPinned ? 'border-l-4 border-l-amber-500' : ''}`}>
                           <div className="flex items-center justify-between gap-4">
@@ -1377,12 +1508,14 @@ export default function RebuiltMessagesHub() {
                             <span>{new Date(broad.createdAt).toLocaleDateString()}</span>
                           </div>
                         </div>
-                      ))
-                    )}
-                  </div>
-                </div>
+                        ))
+                      )}
+                    </div>
+                  </>
+                )}
               </div>
-            )}
+            </div>
+          )}
 
             {/* ==================== TAB 3: MEETING REQUESTS ==================== */}
             {activeTab === 'meetings' && (

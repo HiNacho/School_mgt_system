@@ -55,23 +55,9 @@ export default function SchoolTenantsPage() {
   const [leads, setLeads] = useState<any[]>([]);
   
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'schools' | 'payments' | 'usage' | 'leads' | 'broadcasts'>('schools');
+  const [activeTab, setActiveTab] = useState<'schools' | 'payments' | 'usage' | 'leads'>('schools');
   const [searchLeadQuery, setSearchLeadQuery] = useState('');
   const [resendingLeadId, setResendingLeadId] = useState<string | null>(null);
-
-  // System Broadcast & Support State
-  const [broadcastTarget, setBroadcastTarget] = useState('ALL');
-  const [broadcastTitle, setBroadcastTitle] = useState('');
-  const [broadcastBody, setBroadcastBody] = useState('');
-  const [sendingBroadcast, setSendingBroadcast] = useState(false);
-  const [activeSubTab, setActiveSubTab] = useState<'announcements' | 'support'>('announcements');
-
-  // Support Chats State
-  const [supportConversations, setSupportConversations] = useState<any[]>([]);
-  const [activeSupportConv, setActiveSupportConv] = useState<any | null>(null);
-  const [supportReplyText, setSupportReplyText] = useState('');
-  const [sendingSupportReply, setSendingSupportReply] = useState(false);
-  const [currentUser, setCurrentUser] = useState<any>(null);
   
   // Registration Form State
   const [showRegModal, setShowRegModal] = useState(false);
@@ -101,35 +87,7 @@ export default function SchoolTenantsPage() {
 
   useEffect(() => {
     loadAllSaaSData();
-    const sessionStr = localStorage.getItem('report_user_session');
-    if (sessionStr) {
-      try {
-        const sessionObj = JSON.parse(sessionStr);
-        setCurrentUser(sessionObj.user);
-      } catch (e) {}
-    }
-
-    // Check if tab parameter is passed in URL query e.g. ?tab=broadcasts
-    if (typeof window !== 'undefined') {
-      const params = new URLSearchParams(window.location.search);
-      const tabParam = params.get('tab');
-      if (tabParam && ['schools', 'payments', 'usage', 'leads', 'broadcasts'].includes(tabParam)) {
-        setActiveTab(tabParam as any);
-        if (tabParam === 'broadcasts') {
-          setActiveSubTab('support'); // default to support ticket inbox view
-        }
-      }
-    }
   }, []);
-
-  // Poll active support conversations when broadcasts/support tab is active
-  useEffect(() => {
-    if (activeTab === 'broadcasts') {
-      loadSupportChats();
-      const interval = setInterval(loadSupportChats, 6000);
-      return () => clearInterval(interval);
-    }
-  }, [activeTab, activeSupportConv?.id]);
 
   const getAuthHeaders = (contentType: string | null = 'application/json') => {
     const token = typeof window !== 'undefined' ? localStorage.getItem('report_auth_token') || '' : '';
@@ -204,55 +162,7 @@ export default function SchoolTenantsPage() {
     }
   };
 
-  const loadSupportChats = async () => {
-    try {
-      const res = await fetch('/api/superadmin/messages', {
-        headers: getAuthHeaders(null)
-      });
-      const json = await res.json();
-      if (res.ok && json.success) {
-        setSupportConversations(json.data || []);
-        
-        // Update active support thread details if selected
-        if (activeSupportConv) {
-          const updated = json.data.find((c: any) => c.id === activeSupportConv.id);
-          if (updated) {
-            setActiveSupportConv(updated);
-          }
-        }
-      }
-    } catch (err) {
-      console.error('Failed to load support chats:', err);
-    }
-  };
 
-  const handleSendSupportReply = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!activeSupportConv || !supportReplyText.trim()) return;
-
-    setSendingSupportReply(true);
-    try {
-      const res = await fetch('/api/communication', {
-        method: 'POST',
-        headers: getAuthHeaders(),
-        body: JSON.stringify({
-          schoolId: activeSupportConv.schoolId,
-          conversationId: activeSupportConv.id,
-          messageBody: supportReplyText.trim()
-        })
-      });
-
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.error || 'Failed to send reply');
-
-      setSupportReplyText('');
-      await loadSupportChats();
-    } catch (err: any) {
-      setErrorMsg(err.message || 'Error sending reply');
-    } finally {
-      setSendingSupportReply(false);
-    }
-  };
 
   const handleResendWelcomeEmail = async (lead: any) => {
     setResendingLeadId(lead.id);
@@ -819,17 +729,7 @@ The NachoEd Support Team
         >
           <Activity className="w-3.5 h-3.5" /> Telemetry Logs
         </button>
-        <button
-          type="button"
-          onClick={() => setActiveTab('broadcasts')}
-          className={`pb-3 text-xs font-bold transition-all border-b-2 cursor-pointer flex items-center gap-1.5 ${
-            activeTab === 'broadcasts' 
-              ? 'border-emerald-600 text-emerald-600 font-black' 
-              : 'border-transparent text-slate-400 hover:text-slate-650'
-          }`}
-        >
-          <Sparkles className="w-3.5 h-3.5" /> System Broadcasts
-        </button>
+
       </div>
 
       {/* Loading fallback */}
@@ -1128,209 +1028,7 @@ The NachoEd Support Team
             </div>
           )}
 
-          {/* TAB 5: SYSTEM BROADCASTS & MESSAGING */}
-          {activeTab === 'broadcasts' && (
-            <div className="space-y-6 animate-fadeIn">
-              {/* Sub-tab selection */}
-              <div className="flex bg-slate-100 p-1 rounded-xl self-start max-w-xs mx-auto mb-4">
-                <button
-                  onClick={() => setActiveSubTab('announcements')}
-                  className={`flex-1 px-4 py-2 rounded-lg text-xs font-black uppercase tracking-wider transition-all ${
-                    activeSubTab === 'announcements'
-                      ? 'bg-white text-slate-800 shadow-sm'
-                      : 'text-slate-500 hover:text-slate-800'
-                  }`}
-                >
-                  Announcements
-                </button>
-                <button
-                  onClick={() => setActiveSubTab('support')}
-                  className={`flex-1 px-4 py-2 rounded-lg text-xs font-black uppercase tracking-wider transition-all ${
-                    activeSubTab === 'support'
-                      ? 'bg-white text-slate-800 shadow-sm'
-                      : 'text-slate-500 hover:text-slate-800'
-                  }`}
-                >
-                  Support Inbox
-                </button>
-              </div>
 
-              {activeSubTab === 'announcements' ? (
-                <div className="bg-white border border-slate-200/80 rounded-3xl p-6 shadow-sm max-w-2xl mx-auto">
-                  <div className="flex items-center gap-2 mb-4 border-b border-slate-100 pb-3">
-                    <Sparkles className="w-5 h-5 text-emerald-600 animate-pulse" />
-                    <div>
-                      <h3 className="text-sm font-black uppercase text-slate-800 tracking-wider">Superadmin Messaging Cockpit</h3>
-                      <p className="text-[10px] text-slate-500 font-semibold mt-0.5">Send feature updates, alerts, and system notices directly to school administrator inboxes.</p>
-                    </div>
-                  </div>
-
-                  <form onSubmit={handleSendSystemBroadcast} className="space-y-4 text-xs font-semibold">
-                    <div>
-                      <label className="block text-[10px] font-black uppercase tracking-wider text-slate-500 mb-1.5 font-sans">Target Schools</label>
-                      <select
-                        value={broadcastTarget}
-                        onChange={(e) => setBroadcastTarget(e.target.value)}
-                        className="w-full bg-slate-50 border border-slate-150 rounded-xl px-4 py-2.5 text-xs text-slate-700 focus:outline-none"
-                      >
-                        <option value="ALL">All Registered Schools ({tenants.length})</option>
-                        {tenants.map(t => (
-                          <option key={t.id} value={t.id}>{t.name} ({t.slug})</option>
-                        ))}
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="block text-[10px] font-black uppercase tracking-wider text-slate-500 mb-1.5 font-sans">Broadcast Title / Subject</label>
-                      <input
-                        type="text"
-                        required
-                        placeholder="e.g. System Update: Dynamic Portals and Balloon Celebrations Released!"
-                        value={broadcastTitle}
-                        onChange={(e) => setBroadcastTitle(e.target.value)}
-                        className="w-full bg-slate-50 border border-slate-150 rounded-xl px-4 py-2.5 text-xs text-slate-700 focus:outline-none"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-[10px] font-black uppercase tracking-wider text-slate-500 mb-1.5 font-sans">Message Body</label>
-                      <textarea
-                        required
-                        rows={6}
-                        placeholder="Write your update description here..."
-                        value={broadcastBody}
-                        onChange={(e) => setBroadcastBody(e.target.value)}
-                        className="w-full bg-slate-50 border border-slate-150 rounded-xl px-4 py-2.5 text-xs text-slate-700 focus:outline-none"
-                      />
-                    </div>
-
-                    <button
-                      type="submit"
-                      disabled={sendingBroadcast}
-                      className="w-full py-3 bg-[#1e293b] hover:bg-[#0f172a] disabled:opacity-50 text-white font-bold text-xs uppercase tracking-widest transition-all shadow-md flex items-center justify-center gap-1.5"
-                    >
-                      {sendingBroadcast ? (
-                        <>
-                          <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                          <span>Broadcasting Message...</span>
-                        </>
-                      ) : (
-                        <>
-                          <Sparkles className="w-3.5 h-3.5" />
-                          <span>Dispatch System Broadcast</span>
-                        </>
-                      )}
-                    </button>
-                  </form>
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 bg-white border border-slate-200/80 rounded-3xl overflow-hidden shadow-sm h-[65vh] text-left">
-                  {/* Left panel: support conversations list */}
-                  <div className="lg:col-span-4 border-r border-slate-200 flex flex-col h-full bg-slate-50/50 min-h-0">
-                    <div className="p-4 border-b border-slate-200 bg-white">
-                      <h4 className="text-xs font-extrabold text-slate-800 uppercase tracking-wider">Support Threads</h4>
-                    </div>
-                    <div className="flex-1 overflow-y-auto divide-y divide-slate-100">
-                      {supportConversations.length === 0 ? (
-                        <div className="p-8 text-center text-slate-400 text-xs italic">No support tickets or chats found.</div>
-                      ) : (
-                        supportConversations.map(conv => {
-                          const latestMsg = conv.messages[conv.messages.length - 1];
-                          const isActive = activeSupportConv?.id === conv.id;
-                          return (
-                            <button
-                              key={conv.id}
-                              onClick={() => setActiveSupportConv(conv)}
-                              className={`w-full p-4 text-left transition-all hover:bg-slate-100 flex flex-col gap-1 ${
-                                isActive ? 'bg-indigo-50/50 border-l-4 border-indigo-600' : ''
-                              }`}
-                            >
-                              <div className="flex justify-between items-start">
-                                <span className="text-xs font-bold text-slate-800">{conv.parent.firstName} {conv.parent.lastName}</span>
-                                <span className="text-[9px] font-bold text-slate-450 uppercase tracking-wider bg-slate-200 px-1 py-0.5 rounded leading-none">{conv.school.slug}</span>
-                              </div>
-                              <span className="text-[10px] text-slate-400 font-bold truncate leading-none mt-0.5">{conv.school.name}</span>
-                              {latestMsg && (
-                                <p className="text-[11px] text-slate-500 truncate mt-1 leading-snug">
-                                  {latestMsg.body}
-                                </p>
-                              )}
-                            </button>
-                          );
-                        })
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Right panel: Active Chat Thread details */}
-                  <div className="lg:col-span-8 flex flex-col h-full bg-white min-h-0">
-                    {activeSupportConv ? (
-                      <>
-                        {/* Header */}
-                        <div className="p-4 border-b border-slate-200 flex justify-between items-center bg-slate-50">
-                          <div>
-                            <h4 className="text-xs font-black uppercase text-slate-850 tracking-wider">
-                              Support: {activeSupportConv.parent.firstName} {activeSupportConv.parent.lastName}
-                            </h4>
-                            <p className="text-[10px] text-slate-500 font-semibold mt-0.5">
-                              School Admin of {activeSupportConv.school.name}
-                            </p>
-                          </div>
-                        </div>
-
-                        {/* Messages List */}
-                        <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-slate-50/50">
-                          {activeSupportConv.messages.map((m: any) => {
-                            const isMe = m.senderId === currentUser?.id;
-                            return (
-                              <div
-                                key={m.id}
-                                className={`flex flex-col max-w-[75%] ${isMe ? 'ml-auto items-end' : 'mr-auto items-start'}`}
-                              >
-                                <div className={`p-3 rounded-2xl text-xs leading-normal font-semibold ${
-                                  isMe ? 'bg-indigo-600 text-white rounded-br-none shadow-sm' : 'bg-white border border-slate-200 text-slate-800 rounded-bl-none shadow-sm'
-                                }`}>
-                                  {m.body}
-                                </div>
-                                <span className="text-[9px] text-slate-400 font-bold mt-1 px-1">
-                                  {isMe ? 'You' : `${m.sender.firstName} (${m.sender.role.replace('_', ' ').toLowerCase()})`} • {new Date(m.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                </span>
-                              </div>
-                            );
-                          })}
-                        </div>
-
-                        {/* Reply Form */}
-                        <form onSubmit={handleSendSupportReply} className="p-4 border-t border-slate-200 flex gap-3 bg-white">
-                          <input
-                            type="text"
-                            required
-                            placeholder="Type support reply or release status..."
-                            value={supportReplyText}
-                            onChange={(e) => setSupportReplyText(e.target.value)}
-                            className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs text-slate-700 focus:outline-none"
-                          />
-                          <button
-                            type="submit"
-                            disabled={sendingSupportReply}
-                            className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs uppercase tracking-widest rounded-xl transition-all shadow-md flex items-center justify-center"
-                          >
-                            {sendingSupportReply ? 'Sending...' : 'Reply'}
-                          </button>
-                        </form>
-                      </>
-                    ) : (
-                      <div className="flex-1 flex flex-col items-center justify-center text-slate-400 p-8">
-                        <Sparkles className="w-10 h-10 mb-2 text-slate-350 animate-pulse" />
-                        <h4 className="text-xs font-black uppercase text-slate-800 tracking-wider">No Conversation Selected</h4>
-                        <p className="text-[10px] text-slate-400 mt-1 font-semibold">Select an incoming support conversation thread from the left list directory to respond.</p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
         </>
       )}
 

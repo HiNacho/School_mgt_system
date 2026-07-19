@@ -317,7 +317,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     menuItems = [
       { name: 'Home', href: '/dashboard', icon: Home },
       { name: 'Tenants', href: '/dashboard/tenants', icon: Layers },
-      { name: 'Broadcasts & Support', href: '/dashboard/tenants?tab=broadcasts', icon: Sparkles },
+      { name: 'Messages', href: '/dashboard/messages', icon: MessageSquare },
       { name: 'Global Rules', href: '/dashboard/global-rules', icon: Settings },
     ];
   } else if (role === 'SCHOOL_ADMIN') {
