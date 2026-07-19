@@ -9,11 +9,11 @@ const JWT_SECRET = new TextEncoder().encode(
  * Generate a JWT token containing userId, role, and schoolId.
  */
 export async function generateJWT(
-  payload: { userId: string; role: string; schoolId: string | null; tokenVersion?: number },
+  payload: { userId: string; role: string; schoolId: string | null },
   rememberMe: boolean
 ): Promise<string> {
   const expiry = rememberMe ? '7d' : '60m';
-  return new SignJWT(payload as any)
+  return new SignJWT(payload)
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()
     .setExpirationTime(expiry)
@@ -23,7 +23,7 @@ export async function generateJWT(
 /**
  * Verify a JWT token and extract the payload.
  */
-export async function verifyJWT(token: string): Promise<{ userId: string; role: string; schoolId: string | null; tokenVersion?: number }> {
+export async function verifyJWT(token: string): Promise<{ userId: string; role: string; schoolId: string | null }> {
   try {
     const { payload } = await jwtVerify(token, JWT_SECRET);
     return payload as any;

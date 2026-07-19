@@ -146,51 +146,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     }
   }, [router]);
 
-  // Client-side route-to-role authorization checking on navigation
-  useEffect(() => {
-    if (!ready || !session) return;
-    const role = session.user?.role;
-    if (!role) return;
-
-    const allowedRoutesByRole: Record<string, string[]> = {
-      SUPER_ADMIN: ['/dashboard', '/dashboard/tenants', '/dashboard/global-rules', '/dashboard/messages', '/dashboard/profile', '/dashboard/logs'],
-      SCHOOL_ADMIN: [
-        '/dashboard', '/dashboard/attendance', '/dashboard/billing', '/dashboard/class', '/dashboard/classes',
-        '/dashboard/comments', '/dashboard/compile', '/dashboard/grading', '/dashboard/messages', '/dashboard/parents',
-        '/dashboard/profile', '/dashboard/scores', '/dashboard/settings', '/dashboard/staff', '/dashboard/students',
-        '/dashboard/subjects', '/dashboard/teachers'
-      ],
-      HEAD_TEACHER: [
-        '/dashboard', '/dashboard/attendance', '/dashboard/class', '/dashboard/classes',
-        '/dashboard/comments', '/dashboard/compile', '/dashboard/grading', '/dashboard/messages', '/dashboard/parents',
-        '/dashboard/profile', '/dashboard/scores', '/dashboard/settings', '/dashboard/staff', '/dashboard/students',
-        '/dashboard/subjects', '/dashboard/teachers'
-      ],
-      CLASS_TEACHER: [
-        '/dashboard', '/dashboard/attendance', '/dashboard/class', '/dashboard/classes',
-        '/dashboard/comments', '/dashboard/compile', '/dashboard/grading', '/dashboard/messages',
-        '/dashboard/profile', '/dashboard/scores', '/dashboard/students', '/dashboard/subjects', '/dashboard/teachers'
-      ],
-      SUBJECT_TEACHER: [
-        '/dashboard', '/dashboard/attendance', '/dashboard/class', '/dashboard/classes',
-        '/dashboard/comments', '/dashboard/compile', '/dashboard/grading', '/dashboard/messages',
-        '/dashboard/profile', '/dashboard/scores', '/dashboard/students', '/dashboard/subjects', '/dashboard/teachers'
-      ],
-      PARENT: ['/dashboard', '/dashboard/attendance', '/dashboard/messages', '/dashboard/profile'],
-      STUDENT: ['/dashboard', '/dashboard/attendance', '/dashboard/messages', '/dashboard/profile']
-    };
-
-    const currentBaseRoute = pathname 
-      ? '/' + pathname.split('/').filter(Boolean).slice(0, 2).join('/')
-      : '/dashboard';
-    const allowedRoutes = allowedRoutesByRole[role] || ['/dashboard'];
-    
-    if (!allowedRoutes.includes(currentBaseRoute)) {
-      console.warn(`🚨 Unauthorized Route Access Attempt: ${role} tried to visit ${pathname}`);
-      router.push('/dashboard');
-    }
-  }, [ready, session, pathname, router]);
-
 
   useEffect(() => {
     if (!ready || !session) return;
@@ -341,53 +296,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       router.push('/login');
     }
   };
-
-  // Automatic inactivity logout check (20 minutes for admins)
-  useEffect(() => {
-    const role = session?.user?.role;
-    const userId = session?.user?.id;
-    if (!role || (role !== 'SCHOOL_ADMIN' && role !== 'SUPER_ADMIN')) return;
-
-    const INACTIVITY_TIMEOUT = 20 * 60 * 1000; // 20 minutes
-    const lastActivityKey = `report_last_activity_${userId}`;
-    
-    // Initialize activity timestamp if not set
-    if (!localStorage.getItem(lastActivityKey)) {
-      localStorage.setItem(lastActivityKey, Date.now().toString());
-    }
-
-    const resetTimer = () => {
-      localStorage.setItem(lastActivityKey, Date.now().toString());
-    };
-
-    // Event listeners for user interaction
-    const events = ['mousedown', 'mousemove', 'keydown', 'scroll', 'touchstart', 'click'];
-    events.forEach(event => {
-      window.addEventListener(event, resetTimer, { passive: true });
-    });
-
-    const interval = setInterval(() => {
-      const lastActivity = parseInt(localStorage.getItem(lastActivityKey) || '0', 10);
-      const now = Date.now();
-      
-      if (now - lastActivity > INACTIVITY_TIMEOUT) {
-        clearInterval(interval);
-        // Clean up listeners
-        events.forEach(event => {
-          window.removeEventListener(event, resetTimer);
-        });
-        alert('You have been logged out automatically due to 20 minutes of inactivity.');
-        handleLogout();
-      }
-    }, 15000); // Check every 15 seconds
-
-    return () => {
-      events.forEach(event => {
-        window.removeEventListener(event, resetTimer);
-      });
-      clearInterval(interval);
-    };
-  }, [session]);
 
 
   const getRoleLabel = (r: string) => {

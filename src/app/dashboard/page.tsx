@@ -12,17 +12,6 @@ import {
   ResponsiveContainer, Legend, PieChart, Pie, Cell 
 } from 'recharts';
 import SuperAdminDashboard from './SuperAdminDashboard';
-import nextDynamic from 'next/dynamic';
-
-const GenderRatioChart = nextDynamic(
-  () => import('./GenderRatioChart'),
-  { ssr: false }
-);
-
-const WeeklyAttendanceChart = nextDynamic(
-  () => import('./WeeklyAttendanceChart'),
-  { ssr: false }
-);
 
 export default function DashboardHome() {
   const [session, setSession] = useState<any>(null);
@@ -799,7 +788,24 @@ export default function DashboardHome() {
                 </div>
 
                 <div className="relative h-44 flex items-center justify-center">
-                  <GenderRatioChart data={genderDonutData} />
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={genderDonutData}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={55}
+                        outerRadius={75}
+                        paddingAngle={4}
+                        dataKey="value"
+                      >
+                        {genderDonutData.map((entry, idx) => (
+                          <Cell key={`cell-${idx}`} fill={entry.color} />
+                        ))}
+                      </Pie>
+                      <Tooltip contentStyle={{ backgroundColor: '#fff', borderRadius: '12px', border: '1px solid #f1f5f9', fontSize: '11px' }} />
+                    </PieChart>
+                  </ResponsiveContainer>
 
                   <div className="absolute text-center">
                     <span className="block text-xl font-black text-slate-800">{totalBoysGirls}</span>
@@ -826,8 +832,17 @@ export default function DashboardHome() {
                   <span className="px-2 py-0.5 rounded bg-green-50 text-green-600 text-[8px] font-extrabold animate-pulse">LIVE • MON-FRI</span>
                 </div>
 
-                <div className="relative h-44 flex items-center justify-center">
-                  <WeeklyAttendanceChart data={attendanceBarData} />
+                <div className="h-48 w-full">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={attendanceBarData} margin={{ top: 10, right: 5, left: -25, bottom: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                      <XAxis dataKey="day" stroke="#94a3b8" fontSize={10} tickLine={false} />
+                      <YAxis stroke="#94a3b8" fontSize={10} tickLine={false} />
+                      <Tooltip contentStyle={{ backgroundColor: '#fff', borderRadius: '12px', border: '1px solid #f1f5f9', fontSize: '11px' }} />
+                      <Bar dataKey="Present" fill="#22c55e" radius={[4, 4, 0, 0]} barSize={12} />
+                      <Bar dataKey="Absent" fill="#ef4444" radius={[4, 4, 0, 0]} barSize={12} />
+                    </BarChart>
+                  </ResponsiveContainer>
                 </div>
 
                 <div className="flex justify-center gap-6 text-[10px] font-bold text-slate-500">

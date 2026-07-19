@@ -27,11 +27,6 @@ export default function UserProfilePage() {
   const [passwordSuccess, setPasswordSuccess] = useState('');
   const [passwordError, setPasswordError] = useState('');
   
-  // Global logout states
-  const [loggingOutAll, setLoggingOutAll] = useState(false);
-  const [logoutAllError, setLogoutAllError] = useState('');
-  const [logoutAllSuccess, setLogoutAllSuccess] = useState('');
-  
   // UI states
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -184,46 +179,6 @@ export default function UserProfilePage() {
       setPasswordError(err.message || 'Error updating password.');
     } finally {
       setUpdatingPassword(false);
-    }
-  };
-
-  const handleLogoutAllDevices = async () => {
-    if (!confirm('Are you sure you want to log out of all devices? This will invalidate all your other active sessions and prompt you to log in again on this device.')) {
-      return;
-    }
-
-    setLoggingOutAll(true);
-    setLogoutAllError('');
-    setLogoutAllSuccess('');
-
-    try {
-      const token = localStorage.getItem('report_auth_token') || '';
-      const res = await fetch('/api/auth/logout-all', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        }
-      });
-
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.error || 'Failed to trigger global logout.');
-
-      setLogoutAllSuccess('Successfully invalidated all sessions across all devices! Logging you out of this device...');
-      
-      // Clear session local states and cookie and redirect to login
-      setTimeout(() => {
-        localStorage.removeItem('report_auth_token');
-        localStorage.removeItem('report_user_session');
-        localStorage.removeItem('report_super_session_backup');
-        localStorage.removeItem('report_super_token_backup');
-        document.cookie = 'report_auth_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
-        window.location.href = '/login';
-      }, 3000);
-    } catch (err: any) {
-      setLogoutAllError(err.message || 'Error occurred during global logout request.');
-    } finally {
-      setLoggingOutAll(false);
     }
   };
 
@@ -538,46 +493,6 @@ export default function UserProfilePage() {
               </button>
             </div>
           </form>
-
-          {/* Global Session Security */}
-          <div className="bg-white rounded-2xl border border-slate-200/80 p-6 shadow-sm space-y-4">
-            <div className="flex items-center gap-2 pb-3 border-b border-slate-100">
-              <Shield className={`w-4.5 h-4.5 ${accentText}`} />
-              <h3 className="text-xs font-black uppercase text-slate-800 tracking-wider">Device & Session Control</h3>
-            </div>
-
-            {logoutAllSuccess && (
-              <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-100 text-emerald-700 text-xs flex items-center gap-2">
-                <CheckCircle className="w-4 h-4 text-emerald-600 animate-bounce" />
-                <span>{logoutAllSuccess}</span>
-              </div>
-            )}
-
-            {logoutAllError && (
-              <div className="p-3 rounded-xl bg-red-50 border border-red-100 text-red-700 text-xs flex items-center gap-2">
-                <AlertCircle className="w-4 h-4 text-red-600" />
-                <span>{logoutAllError}</span>
-              </div>
-            )}
-
-            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 bg-slate-50/50 p-4 rounded-xl border border-slate-200 text-left">
-              <div className="space-y-1">
-                <span className="text-xs font-extrabold text-slate-700 block">Logout from all devices</span>
-                <p className="text-[11px] text-slate-400 font-normal leading-relaxed max-w-md">
-                  This will immediately terminate all active web and mobile login sessions across all devices. You will be prompted to log in again.
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={handleLogoutAllDevices}
-                disabled={loggingOutAll}
-                className="flex items-center gap-1.5 px-5 py-2.5 bg-red-50 hover:bg-red-100/80 text-red-600 border border-red-200 rounded-xl text-xs font-bold transition-all disabled:opacity-50 shrink-0 shadow-sm cursor-pointer"
-              >
-                {loggingOutAll ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Shield className="w-3.5 h-3.5" />}
-                Logout All Devices
-              </button>
-            </div>
-          </div>
         </div>
 
       </div>
