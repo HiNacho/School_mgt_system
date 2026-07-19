@@ -829,10 +829,9 @@ export default function DashboardHome() {
                   <span className="px-2 py-0.5 rounded bg-blue-50 text-blue-600 text-[8px] font-extrabold">DEMOGRAPHICS</span>
                 </div>
 
-                <div className="relative h-44 flex items-center justify-center">
-                  <GenderRatioChart data={genderDonutData} />
-
-                  <div className="absolute text-center">
+                <div className="relative h-44 flex items-center justify-center border border-dashed border-slate-200 rounded-2xl bg-slate-50/50">
+                  <div className="text-slate-400 text-xs font-semibold uppercase tracking-wider">Gender Demographics Ratio</div>
+                  <div className="absolute text-center hidden">
                     <span className="block text-xl font-black text-slate-800">{totalBoysGirls}</span>
                     <span className="block text-[8px] font-bold text-slate-400 uppercase tracking-widest">Enrolled</span>
                   </div>
@@ -857,8 +856,8 @@ export default function DashboardHome() {
                   <span className="px-2 py-0.5 rounded bg-green-50 text-green-600 text-[8px] font-extrabold animate-pulse">LIVE • MON-FRI</span>
                 </div>
 
-                <div className="relative h-44 flex items-center justify-center">
-                  <WeeklyAttendanceChart data={attendanceBarData} />
+                <div className="relative h-44 flex items-center justify-center border border-dashed border-slate-200 rounded-2xl bg-slate-50/50">
+                  <div className="text-slate-400 text-xs font-semibold uppercase tracking-wider">Weekly Attendance Statistics</div>
                 </div>
 
                 <div className="flex justify-center gap-6 text-[10px] font-bold text-slate-500">
