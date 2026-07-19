@@ -129,7 +129,7 @@ export async function POST(req: NextRequest) {
         console.error('[Telemetry] Error recording tester login:', telemetryErr);
       }
 
-      return NextResponse.json({
+      const response = NextResponse.json({
         success: true,
         user: {
           id: user.id,
@@ -156,6 +156,16 @@ export async function POST(req: NextRequest) {
         token,
         auditLogId: auditLog.id
       });
+
+      response.cookies.set('report_auth_token', token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        path: '/',
+        maxAge: 60 * 60 // 60 minutes
+      });
+
+      return response;
     }
 
     // 2. Standard Password Login (Supports Email or Username)
@@ -251,7 +261,7 @@ export async function POST(req: NextRequest) {
       console.error('[Telemetry] Error recording tester login:', telemetryErr);
     }
 
-    return NextResponse.json({
+    const response = NextResponse.json({
       success: true,
       user: {
         id: user.id,
@@ -278,6 +288,16 @@ export async function POST(req: NextRequest) {
       token,
       auditLogId: auditLog.id
     });
+
+    response.cookies.set('report_auth_token', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      path: '/',
+      maxAge: 60 * 60 // 60 minutes
+    });
+
+    return response;
 
   } catch (error: any) {
     console.error('Auth API Error:', error);
