@@ -120,16 +120,11 @@ export default function LoginPage() {
             <div className="flex items-center gap-3 mb-8">
               {/* Brand Logo */}
               <svg viewBox="0 0 100 100" className="w-8 h-8 flex-shrink-0" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M50 15 C25 25 25 60 50 85 C75 60 75 25 50 15 Z" fill="#eff6ff" stroke="#3b82f6" strokeWidth="4" />
-                <path d="M36 45 C42 48 48 51 50 54 C52 51 58 48 64 45 V65 C58 68 52 71 50 74 C48 71 42 68 36 65 Z" fill="#2563eb" stroke="#1d4ed8" strokeWidth="1.5" />
-                <path d="M50 54 V74" stroke="#1d4ed8" strokeWidth="1.5" />
-                <path d="M50 22 L62 27 L50 32 L38 27 Z" fill="#1e293b" />
-                <path d="M44 29.5 V33 C44 36 56 36 56 33 V29.5" fill="#1e293b" />
-                <path d="M62 27 V35" stroke="#db2777" strokeWidth="1.5" />
-                <circle cx="62" cy="35" r="1.5" fill="#db2777" />
+                <path d="M38 72 V36 C38 23 48 13 62 13 C76 13 86 23 86 36 C86 49 76 59 62 59 H38" stroke="#00df89" strokeWidth="13" strokeLinecap="round" strokeLinejoin="round" />
+                <circle cx="62" cy="36" r="6" fill="#0f172a" />
               </svg>
               <span className="font-semibold text-lg tracking-wider text-[#1e293b] uppercase">
-                NachoEd
+                Operon
               </span>
               <span className="px-2 py-0.5 bg-emerald-50 border border-emerald-100 text-emerald-700 text-[9px] font-bold uppercase tracking-wider rounded">
                 Engine
