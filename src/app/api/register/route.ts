@@ -236,7 +236,8 @@ export async function POST(req: NextRequest) {
         success: true,
         message: 'Inquiry submitted successfully! A notification and email confirmation have been dispatched.',
         data: lead
-      }, { status    } else {
+      }, { status: 200 });
+    } else {
       // --- Scenario B: Early Access Registration ---
 
       // B1. Notification Email to the Administrator

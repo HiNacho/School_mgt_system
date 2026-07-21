@@ -195,16 +195,9 @@ export async function POST(req: NextRequest) {
     }
 
     // Auto-generate unique username and hashed temporary password
-    const { isPasswordUnique, getPasswordUniqueHash } = require('@/lib/password-rules');
-    let tempPassword = '';
-    let isUnique = false;
-    while (!isUnique) {
-      tempPassword = generateTempPassword();
-      isUnique = await isPasswordUnique(tempPassword);
-    }
+    const tempPassword = generateTempPassword();
     const salt = await bcrypt.genSalt(10);
     const passwordHash = await bcrypt.hash(tempPassword, salt);
-    const uniqueHash = getPasswordUniqueHash(tempPassword);
     const username = await generateUniqueUsername(lastName);
 
     // Run in transaction to guarantee relational allocations succeed or rollback cleanly
@@ -223,7 +216,6 @@ export async function POST(req: NextRequest) {
           passportPhoto: passportPhoto || null,
           status: 'ACTIVE',
           passwordHash,
-          passwordUniqueHash: uniqueHash,
           isFirstLogin: true
         }
       });
