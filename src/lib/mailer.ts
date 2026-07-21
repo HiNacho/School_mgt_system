@@ -1,3 +1,4 @@
+import nodemailer from 'nodemailer';
 import prisma from './db';
 
 interface SendEmailParams {
@@ -8,43 +9,39 @@ interface SendEmailParams {
 }
 
 export async function sendEmail({ leadId, to, subject, body }: SendEmailParams): Promise<boolean> {
-  const apiKey = process.env.RESEND_API_KEY;
-  const fromEmail = process.env.MAIL_FROM || 'NachoEd Onboarding <onboarding@updates.nachoed.com>';
-  
+  const smtpUser = process.env.SMTP_USER;
+  const smtpPass = process.env.SMTP_PASSWORD;
+  const fromEmail = process.env.MAIL_FROM || `NachoEd Onboarding <${smtpUser}>`;
+
   let sentSuccessfully = false;
 
   console.log(`[Mailer] Attempting to send email to ${to} (Lead ID: ${leadId})`);
   console.log(`[Mailer] Subject: ${subject}`);
 
-  if (apiKey && apiKey.trim() !== '') {
+  if (smtpUser && smtpPass && smtpUser.trim() !== '' && smtpPass.trim() !== '') {
     try {
-      const response = await fetch('https://api.resend.com/emails', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${apiKey}`,
-          'Content-Type': 'application/json',
+      const transporter = nodemailer.createTransport({
+        service: 'gmail',
+        auth: {
+          user: smtpUser,
+          pass: smtpPass,
         },
-        body: JSON.stringify({
-          from: fromEmail,
-          to: [to],
-          subject: subject,
-          html: body,
-        }),
       });
 
-      if (response.ok) {
-        const data = await response.json();
-        console.log(`[Mailer] Email sent successfully via Resend. Message ID: ${data.id}`);
-        sentSuccessfully = true;
-      } else {
-        const errorText = await response.text();
-        console.error(`[Mailer] Resend API error (status ${response.status}):`, errorText);
-      }
+      const info = await transporter.sendMail({
+        from: fromEmail,
+        to: to,
+        subject: subject,
+        html: body,
+      });
+
+      console.log(`[Mailer] Email sent successfully via Gmail SMTP. Message ID: ${info.messageId}`);
+      sentSuccessfully = true;
     } catch (err) {
-      console.error('[Mailer] Error sending email via Resend API:', err);
+      console.error('[Mailer] Error sending email via Gmail SMTP:', err);
     }
   } else {
-    console.log('[Mailer] RESEND_API_KEY is not configured. Falling back to local console logger.');
+    console.log('[Mailer] SMTP_USER or SMTP_PASSWORD is not configured. Falling back to local console logger.');
     console.log('------------------ EMAIL BODY START ------------------');
     console.log(body);
     console.log('------------------ EMAIL BODY END --------------------');
