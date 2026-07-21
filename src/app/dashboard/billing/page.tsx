@@ -146,6 +146,11 @@ export default function BillingPage() {
         callback: async function (paymentResponse: any) {
           // Verify with database callback API
           try {
+            const txId = paymentResponse.transaction_id || paymentResponse.id;
+            if (!txId) {
+              throw new Error('Payment gateway did not return a valid Transaction ID.');
+            }
+
             const token = localStorage.getItem('report_auth_token') || '';
             const res = await fetch('/api/billing', {
               method: 'POST',
@@ -157,7 +162,7 @@ export default function BillingPage() {
                 amount: calculatedAmount,
                 planSelected: selectedPlan,
                 durationTerms: parseInt(selectedTerms, 10),
-                transactionRef: paymentResponse.transaction_id || ref,
+                transactionRef: String(txId),
                 status: paymentResponse.status || 'successful'
               })
             });

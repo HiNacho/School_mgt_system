@@ -516,6 +516,7 @@ model Payment {
   paymentDate   DateTime @default(now())
   paymentMethod String   // Bank Transfer, Cash, Card
   status        String   @default("pending") // paid, pending, overdue, failed
+  transactionRef String?  @unique
 
   school        School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
 }
