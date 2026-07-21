@@ -247,12 +247,16 @@ export default function LandingPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#f8f9fa] text-[#2d3748] relative overflow-hidden selection:bg-emerald-100 selection:text-emerald-900 font-sans-custom">
+    <div className="min-h-screen bg-[#f8f9fa] text-[#2d3748] relative overflow-x-clip selection:bg-emerald-100 selection:text-emerald-900 font-sans-custom">
       
       {/* Import custom fonts & inject animations */}
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Playfair+Display:ital,wght@1,400;1,600&display=swap');
         
+        html {
+          scroll-behavior: smooth;
+        }
+
         :root {
           --font-sans: 'Plus Jakarta Sans', sans-serif;
           --font-serif: 'Playfair Display', serif;
