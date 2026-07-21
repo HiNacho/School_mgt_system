@@ -433,46 +433,36 @@ export default function LandingPage() {
         </div>
       )}
 
-      {/* Full-Bleed Hero Banner */}
-      <section className="relative w-full h-[600px] bg-[url('/hero_school.jpg')] bg-cover bg-center overflow-hidden flex items-center">
+      {/* Full-Bleed Hero Banner taking full screen */}
+      <section className="relative w-full h-[calc(100vh-68px)] bg-[url('/hero_school.jpg')] bg-cover bg-center overflow-hidden flex items-center justify-center">
         {/* Dark Gradient Overlay */}
-        <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/50 to-transparent z-0" />
+        <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/40 to-black/75 z-0" />
         
-        <div className="max-w-7xl mx-auto w-full px-6 relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-8">
-          <div className="lg:col-span-8 space-y-6 text-left">
-            <div className="inline-flex items-center gap-2 px-3 py-1 bg-[#ecfdf5]/10 border border-[#d1fae5]/20 text-[#34d399] text-[9px] font-black uppercase tracking-widest rounded-full">
-              <Sparkles className="w-3.5 h-3.5" />
-              <span>Redefining School Administration</span>
-            </div>
+        <div className="max-w-4xl mx-auto px-6 relative z-10 flex flex-col items-center justify-center text-center space-y-8 animate-fade-in">
+          {/* Logo & Brand Name */}
+          <div className="flex flex-col items-center gap-4">
+            <img src="/logo.png" alt="Operon Logo" className="w-16 h-16 object-contain drop-shadow-md" />
+            <span className="font-black text-4xl sm:text-5xl tracking-widest text-white uppercase font-sans">
+              Operon
+            </span>
+            <div className="w-16 h-1 bg-[#00df89] rounded-full mt-1"></div>
+          </div>
 
-            <h1 className="text-4xl sm:text-5xl lg:text-6.5xl font-black text-white leading-tight tracking-tight uppercase">
-              Operon delivers a <br />
-              <span className="text-[#00df89] lowercase font-serif italic normal-case">more natural</span> way <br />
-              to run your school.
-            </h1>
-
-            <p className="text-slate-200 text-xs sm:text-sm max-w-lg leading-relaxed font-semibold">
-              A beautifully minimalist operating system for academic management. Automate score sheets, 
-              compile terminal report cards, and manage billing workflows dynamically in a single click. 
-              Optimized for African private & trial institutions.
-            </p>
-
-            <div className="pt-4 flex flex-col sm:flex-row items-center gap-4">
-              <button
-                type="button"
-                onClick={() => setTryModalOpen(true)}
-                className="w-full sm:w-auto px-8 py-3.5 bg-[#0b5c3a] hover:bg-[#073d26] text-white text-xs font-black tracking-widest uppercase transition-all duration-200 shadow-md text-center cursor-pointer"
-              >
-                Try App Now
-              </button>
-              <button
-                type="button"
-                onClick={() => setRegModalOpen(true)}
-                className="w-full sm:w-auto px-8 py-3.5 border border-white/40 bg-black/20 hover:bg-white/10 text-white text-xs font-black tracking-widest uppercase transition-all duration-200 text-center cursor-pointer"
-              >
-                Register Interest
-              </button>
-            </div>
+          {/* Centered Buttons */}
+          <div className="pt-4 flex flex-col sm:flex-row items-center justify-center gap-4 w-full max-w-sm sm:max-w-md">
+            <button
+              type="button"
+              onClick={() => setRegModalOpen(true)}
+              className="w-full sm:w-auto px-8 py-4 border border-white hover:bg-white hover:text-slate-900 text-white text-xs font-black tracking-widest uppercase transition-all duration-200 cursor-pointer shadow-sm"
+            >
+              Register Interest
+            </button>
+            <Link
+              href="/login"
+              className="w-full sm:w-auto px-10 py-4 bg-[#0b5c3a] hover:bg-[#073d26] text-white text-xs font-black tracking-widest uppercase transition-all duration-200 shadow-md text-center cursor-pointer"
+            >
+              Sign In
+            </Link>
           </div>
         </div>
       </section>
@@ -498,50 +488,6 @@ export default function LandingPage() {
           </div>
         </div>
       </div>
-
-      {/* Overlapping Launch Offer Card (Image 1 style) */}
-      <section className="relative z-20 max-w-7xl mx-auto px-6 -mt-4 mb-24">
-        <div className="bg-[#f1f3f5] border border-[#e9ecef] p-6 sm:p-8 flex flex-col md:flex-row items-center justify-between gap-6">
-          <div className="flex flex-col sm:flex-row items-center gap-6 text-center sm:text-left">
-            {/* Custom SVG Diploma & Cap (Image 1 reference adapted) */}
-            <div className="flex-shrink-0 animate-float">
-              <svg viewBox="0 0 160 160" className="w-24 h-24 sm:w-28 sm:h-28 drop-shadow-md" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <rect x="25" y="45" width="110" height="90" rx="6" fill="#e2e8f0" stroke="#cbd5e1" strokeWidth="2" />
-                <path d="M25 65 H135" stroke="#cbd5e1" strokeWidth="1.5" />
-                <rect x="35" y="90" width="90" height="24" rx="4" fill="#fffbeb" stroke="#fcd34d" strokeWidth="2" transform="rotate(-12, 80, 102)" />
-                <rect x="73" y="86" width="14" height="25" fill="#ef4444" stroke="#dc2626" strokeWidth="1" transform="rotate(-12, 80, 102)" />
-                <path d="M80 102 L70 122 L80 115 L90 122 Z" fill="#ef4444" stroke="#dc2626" strokeWidth="1" />
-                <path d="M80 50 L115 60 L80 70 L45 60 Z" fill="#1e293b" />
-                <path d="M57 63 C57 69 103 69 103 63 V71 C103 77 57 77 57 71 Z" fill="#0f172a" />
-                <path d="M80 60 L62 72 V82" stroke="#fbbf24" strokeWidth="1.5" strokeLinecap="round" fill="none" />
-                <circle cx="62" cy="82" r="2.5" fill="#d97706" />
-                <path d="M125 50 L127 54 L131 55 L127 56 L125 60 L123 56 L119 55 L123 54 Z" fill="#fbbf24" />
-                <path d="M38 72 L39 74 L41 75 L39 76 L38 78 L37 76 L35 75 L37 74 Z" fill="#3b82f6" />
-              </svg>
-            </div>
-            <div>
-              <span className="text-[10px] uppercase font-bold text-[#10b981] tracking-widest block mb-1">
-                Special launch offer!
-              </span>
-              <h3 className="text-lg sm:text-xl font-bold text-[#1e293b]">
-                Deploy Operon to your school for free this term
-              </h3>
-              <p className="text-xs text-[#64748b] mt-1 max-w-xl">
-                Experience instant score sheet calculations, student position compiling, offline auto-saves, and secure parent dashboard delivery. No commitment required.
-              </p>
-            </div>
-          </div>
-          <div className="flex-shrink-0 w-full md:w-auto">
-            <button
-              type="button"
-              onClick={() => setRegModalOpen(true)}
-              className="block w-full md:w-auto px-7 py-3 bg-[#1e293b] hover:bg-[#0f172a] text-white text-xs font-bold tracking-widest uppercase transition-all duration-200 text-center"
-            >
-              Start Free Trial
-            </button>
-          </div>
-        </div>
-      </section>
 
       {/* Solutions Grid Section ("Best Seller Features") */}
       <section id="solutions" className="max-w-7xl mx-auto px-6 py-16 lg:py-24 relative z-10 border-t border-[#e9ecef]">
