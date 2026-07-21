@@ -662,10 +662,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             {school?.logoUrl ? (
               <img src={school.logoUrl} alt="School Crest" className="w-8 h-8 rounded-xl object-cover border border-slate-200 bg-white" />
             ) : (
-              <svg viewBox="0 0 100 100" className="w-8 h-8 flex-shrink-0" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M38 72 V36 C38 23 48 13 62 13 C76 13 86 23 86 36 C86 49 76 59 62 59 H38" stroke="#00df89" strokeWidth="13" strokeLinecap="round" strokeLinejoin="round" />
-                <circle cx="62" cy="36" r="6" fill="#0f172a" />
-              </svg>
+              <img src="/logo.png" alt="Operon Logo" className="w-8 h-8 object-contain" />
             )}
             <span className="font-bold text-base text-[#1e293b] tracking-tight truncate max-w-[150px] uppercase font-sans-custom" title={role === 'SUPER_ADMIN' ? 'Operon' : (school?.name || 'Operon')}>
               {role === 'SUPER_ADMIN' ? 'Operon' : (school?.name || 'Operon')}
@@ -751,10 +748,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   {school?.logoUrl ? (
                     <img src={school.logoUrl} alt="School Crest" className="w-6 h-6 rounded-lg object-cover border border-slate-200 bg-white" />
                   ) : (
-                    <svg viewBox="0 0 100 100" className="w-6 h-6 flex-shrink-0" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M38 72 V36 C38 23 48 13 62 13 C76 13 86 23 86 36 C86 49 76 59 62 59 H38" stroke="#00df89" strokeWidth="13" strokeLinecap="round" strokeLinejoin="round" />
-                      <circle cx="62" cy="36" r="6" fill="#0f172a" />
-                    </svg>
+                    <img src="/logo.png" alt="Operon Logo" className="w-6 h-6 object-contain" />
                   )}
                   <span className="font-bold text-sm text-[#1e293b] truncate max-w-[130px] uppercase font-sans-custom" title={role === 'SUPER_ADMIN' ? 'Operon' : (school?.name || 'Operon')}>
                     {role === 'SUPER_ADMIN' ? 'Operon' : (school?.name || 'Operon')}

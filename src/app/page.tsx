@@ -339,11 +339,7 @@ export default function LandingPage() {
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
           {/* Logo Brand */}
           <div className="flex items-center gap-3">
-            {/* Custom SVG logo for Operon */}
-            <svg viewBox="0 0 100 100" className="w-8 h-8 flex-shrink-0" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M38 72 V36 C38 23 48 13 62 13 C76 13 86 23 86 36 C86 49 76 59 62 59 H38" stroke="#00df89" strokeWidth="13" strokeLinecap="round" strokeLinejoin="round" />
-              <circle cx="62" cy="36" r="6" fill="#0f172a" />
-            </svg>
+            <img src="/logo.png" alt="Operon Logo" className="w-8 h-8 object-contain" />
             <span className="font-semibold text-lg tracking-wider text-[#1e293b] uppercase">
               Operon
             </span>
