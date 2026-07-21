@@ -68,9 +68,12 @@ export async function POST(req: NextRequest) {
     const randomSuffix = Math.random().toString(36).substring(2, 6);
     const slug = `${cleanSlug}-live-${randomSuffix}`;
 
-    // Hash default password
+    // Generate a random temporary password (e.g. Nacho-H3B8A1P9) to comply with unique password constraints
+    const tempPassword = 'Nacho-' + Math.random().toString(36).substring(2, 10).toUpperCase();
+
+    // Hash temporary password
     const salt = await bcrypt.genSalt(10);
-    const passwordHash = await bcrypt.hash('password', salt);
+    const passwordHash = await bcrypt.hash(tempPassword, salt);
 
     // Create school
     const liveSchool = await prisma.school.create({
@@ -151,9 +154,9 @@ export async function POST(req: NextRequest) {
     // Create live admin user
     const adminUsername = `admin_${randomSuffix}`;
     
-    // Set unique hash for default password "password"
+    // Set unique hash for temporary password to enforce database uniqueness
     const { getPasswordUniqueHash } = require('@/lib/password-rules');
-    const defaultUniqueHash = getPasswordUniqueHash('password');
+    const tempPasswordUniqueHash = getPasswordUniqueHash(tempPassword);
 
     const adminUser = await prisma.user.create({
       data: {
@@ -161,7 +164,7 @@ export async function POST(req: NextRequest) {
         username: adminUsername,
         email: email,
         passwordHash,
-        passwordUniqueHash: defaultUniqueHash,
+        passwordUniqueHash: tempPasswordUniqueHash,
         firstName: resolvedContactName ? resolvedContactName.split(' ')[0] : 'School',
         lastName: resolvedContactName && resolvedContactName.split(' ').length > 1 ? resolvedContactName.split(' ').slice(1).join(' ') : 'Admin',
         role: 'SCHOOL_ADMIN',
@@ -317,7 +320,7 @@ export async function POST(req: NextRequest) {
                 <strong>Portal ID (Slug):</strong> ${escapeHtml(slug)}<br/>
                 <strong>Login Email:</strong> <span class="credential-value">${escapeHtml(email)}</span><br/>
                 <strong>Admin Username:</strong> <span class="credential-value">${escapeHtml(adminUsername)}</span><br/>
-                <strong>Temporary Password:</strong> <span class="credential-value">password</span>
+                <strong>Temporary Password:</strong> <span class="credential-value">${tempPassword}</span>
               </div>
               <p style="font-size: 11px; color: #ef4444; font-weight: bold; margin-top: 10px; margin-bottom: 0;">⚠️ You will be prompted to update this temporary password upon first login.</p>
             </div>
@@ -356,7 +359,7 @@ export async function POST(req: NextRequest) {
       credentials: {
         email: email,
         username: adminUsername,
-        password: 'password',
+        password: tempPassword,
         schoolName: schoolName,
         schoolSlug: slug
       }
