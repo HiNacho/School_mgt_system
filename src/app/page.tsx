@@ -475,137 +475,6 @@ export default function LandingPage() {
 
 
 
-      {/* Solutions Grid Section ("Best Seller Features") */}
-      <section id="solutions" className="max-w-7xl mx-auto px-6 py-16 lg:py-24 relative z-10 border-t border-[#e9ecef]">
-        <div className="text-center max-w-2xl mx-auto mb-20 space-y-4">
-          <h2 className="text-[10px] uppercase font-bold tracking-widest text-[#10b981]">
-            Best Seller Solutions
-          </h2>
-          <p className="text-3xl font-normal text-[#1e293b] tracking-tight">
-            Designed to wow. Engineered to perform.
-          </p>
-          <p className="text-xs text-[#94a3b8] font-bold uppercase tracking-widest leading-relaxed">
-            Four core administration components styled with elegant simplicity
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {/* Card 1 */}
-          <div className="bg-[#f8f9fa] border border-[#e9ecef] p-8 text-center flex flex-col items-center justify-between min-h-[380px] hover:border-slate-350 hover:bg-white hover:shadow-xl hover:shadow-slate-100 transition-all duration-350 group">
-            <div className="space-y-6 flex flex-col items-center">
-              {/* Result Compiler SVG */}
-              <div className="w-16 h-16 group-hover:scale-105 transition-transform duration-300">
-                <svg viewBox="0 0 100 100" className="w-full h-full" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M15 70 C30 65 45 68 50 72 C55 68 70 65 85 70 V30 C70 25 55 28 50 32 C45 28 30 25 15 30 Z" fill="#eff6ff" stroke="#3b82f6" strokeWidth="2" />
-                  <path d="M50 32 V72" stroke="#3b82f6" strokeWidth="2" />
-                  <rect x="25" y="44" width="6" height="18" fill="#10b981" rx="1" />
-                  <rect x="34" y="38" width="6" height="24" fill="#3b82f6" rx="1" />
-                  <rect x="43" y="32" width="6" height="30" fill="#f59e0b" rx="1" />
-                  <circle cx="68" cy="46" r="10" fill="#fef2f2" stroke="#fee2e2" strokeWidth="1" />
-                  <text x="64" y="50" fill="#ef4444" fontSize="10" fontWeight="bold">A+</text>
-                </svg>
-              </div>
-              <h3 className="text-sm font-bold text-[#1e293b] uppercase tracking-wider">Result Compiler</h3>
-              <p className="text-[#64748b] text-[11px] font-semibold leading-relaxed">
-                Aggregates subject scores in real-time, compiles ranks, solves average ties, and renders pixel-perfect PDF cards.
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={() => setRegModalOpen(true)} 
-              className="mt-6 border-b border-[#1e293b] pb-1 text-[10px] font-bold text-[#1e293b] uppercase tracking-wider hover:text-[#10b981] hover:border-[#10b981] transition-colors"
-            >
-              Explore Compiler &rarr;
-            </button>
-          </div>
-
-          {/* Card 2 */}
-          <div className="bg-[#f8f9fa] border border-[#e9ecef] p-8 text-center flex flex-col items-center justify-between min-h-[380px] hover:border-slate-350 hover:bg-white hover:shadow-xl hover:shadow-slate-100 transition-all duration-350 group">
-            <div className="space-y-6 flex flex-col items-center">
-              {/* Tenant Isolation SVG */}
-              <div className="w-16 h-16 group-hover:scale-105 transition-transform duration-300">
-                <svg viewBox="0 0 100 100" className="w-full h-full" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M50 15 C30 22 25 45 25 58 C25 74 42 84 50 87 C58 84 75 74 75 58 C75 45 70 22 50 15 Z" fill="#ecfdf5" stroke="#10b981" strokeWidth="2" />
-                  <rect x="36" y="48" width="28" height="22" rx="4" fill="#ffffff" stroke="#047857" strokeWidth="2" />
-                  <circle cx="50" cy="58" r="3" fill="#047857" />
-                  <path d="M42 48 V38 C42 33 46 30 50 30 C54 30 58 33 58 38 V48" stroke="#047857" strokeWidth="2.5" fill="none" />
-                  <path d="M50 54 L56 56 L50 58 L44 56 Z" fill="#10b981" />
-                </svg>
-              </div>
-              <h3 className="text-sm font-bold text-[#1e293b] uppercase tracking-wider">Tenant Isolation</h3>
-              <p className="text-[#64748b] text-[11px] font-semibold leading-relaxed">
-                Ensures absolute database segregation per school. Customize grading systems from primary to secondary scales.
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={() => setRegModalOpen(true)} 
-              className="mt-6 border-b border-[#1e293b] pb-1 text-[10px] font-bold text-[#1e293b] uppercase tracking-wider hover:text-[#10b981] hover:border-[#10b981] transition-colors"
-            >
-              Verify Security &rarr;
-            </button>
-          </div>
-
-          {/* Card 3 */}
-          <div className="bg-[#f8f9fa] border border-[#e9ecef] p-8 text-center flex flex-col items-center justify-between min-h-[380px] hover:border-slate-350 hover:bg-white hover:shadow-xl hover:shadow-slate-100 transition-all duration-350 group">
-            <div className="space-y-6 flex flex-col items-center">
-              {/* Offline Sync SVG */}
-              <div className="w-16 h-16 group-hover:scale-105 transition-transform duration-300">
-                <svg viewBox="0 0 100 100" className="w-full h-full" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M25 65 C20 65 15 60 15 54 C15 48 20 44 26 44 C29 35 38 30 48 30 C58 30 67 36 69 46 C75 47 80 52 80 58 C80 65 74 70 67 70 H25 Z" fill="#fffbeb" stroke="#fcd34d" strokeWidth="2" />
-                  <path d="M38 52 H62 V58 H38 Z" fill="#ffffff" stroke="#d97706" strokeWidth="1.5" />
-                  <path d="M50 38 C58 38 64 42 64 48 L68 46" stroke="#fbbf24" strokeWidth="1.5" strokeLinecap="round" fill="none" />
-                  <path d="M50 62 C42 62 36 58 36 52 L32 54" stroke="#fbbf24" strokeWidth="1.5" strokeLinecap="round" fill="none" />
-                </svg>
-              </div>
-              <h3 className="text-sm font-bold text-[#1e293b] uppercase tracking-wider">Offline Sync</h3>
-              <p className="text-[#64748b] text-[11px] font-semibold leading-relaxed">
-                Allows teachers to enter scores offline into IndexedDB, and auto-syncs with PostgreSQL once internet returns.
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={() => setRegModalOpen(true)} 
-              className="mt-6 border-b border-[#1e293b] pb-1 text-[10px] font-bold text-[#1e293b] uppercase tracking-wider hover:text-[#10b981] hover:border-[#10b981] transition-colors"
-            >
-              Check Syncing &rarr;
-            </button>
-          </div>
-
-          {/* Card 4 */}
-          <div className="bg-[#f8f9fa] border border-[#e9ecef] p-8 text-center flex flex-col items-center justify-between min-h-[380px] hover:border-slate-350 hover:bg-white hover:shadow-xl hover:shadow-slate-100 transition-all duration-350 group">
-            <div className="space-y-6 flex flex-col items-center">
-              {/* Parent Portal SVG */}
-              <div className="w-16 h-16 group-hover:scale-105 transition-transform duration-300">
-                <svg viewBox="0 0 100 100" className="w-full h-full" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <circle cx="40" cy="55" r="22" stroke="#bfdbfe" strokeWidth="2" fill="#eff6ff" fillOpacity="0.6" />
-                  <circle cx="60" cy="55" r="22" stroke="#fbcfe8" strokeWidth="2" fill="#fdf2f8" fillOpacity="0.6" />
-                  <path d="M28 65 H46 V46 H28 Z" fill="#3b82f6" opacity="0.3" />
-                  <path d="M37 38 L26 46 H48 Z" fill="#1d4ed8" />
-                  <rect x="30" y="46" width="14" height="19" fill="#ffffff" stroke="#1d4ed8" strokeWidth="1" />
-                  <rect x="35" y="55" width="4" height="10" fill="#1d4ed8" />
-                  <path d="M54 65 H72 V48 H54 Z" fill="#db2777" opacity="0.3" />
-                  <path d="M63 40 L52 48 H74 Z" fill="#be123c" />
-                  <rect x="56" y="48" width="14" height="17" fill="#ffffff" stroke="#be123c" strokeWidth="1" />
-                  <rect x="61" y="57" width="4" height="8" fill="#be123c" />
-                </svg>
-              </div>
-              <h3 className="text-sm font-bold text-[#1e293b] uppercase tracking-wider">Parent Portal</h3>
-              <p className="text-[#64748b] text-[11px] font-semibold leading-relaxed">
-                Allows parents to securely log in, verify term attendance, see student averages, and download released reports.
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={() => setRegModalOpen(true)} 
-              className="mt-6 border-b border-[#1e293b] pb-1 text-[10px] font-bold text-[#1e293b] uppercase tracking-wider hover:text-[#10b981] hover:border-[#10b981] transition-colors"
-            >
-              Open Portal &rarr;
-            </button>
-          </div>
-        </div>
-      </section>
-
       {/* Vision & Mission Section (Image 3 layout) */}
       <section id="about" className="max-w-7xl mx-auto px-6 py-16 lg:py-24 relative z-10 border-t border-[#e9ecef]">
         
@@ -740,6 +609,137 @@ export default function LandingPage() {
               </p>
             </div>
 
+          </div>
+        </div>
+      </section>
+
+      {/* Solutions Grid Section ("Best Seller Features") */}
+      <section id="solutions" className="max-w-7xl mx-auto px-6 py-16 lg:py-24 relative z-10 border-t border-[#e9ecef]">
+        <div className="text-center max-w-2xl mx-auto mb-20 space-y-4">
+          <h2 className="text-[10px] uppercase font-bold tracking-widest text-[#10b981]">
+            Best Seller Solutions
+          </h2>
+          <p className="text-3xl font-normal text-[#1e293b] tracking-tight">
+            Designed to wow. Engineered to perform.
+          </p>
+          <p className="text-xs text-[#94a3b8] font-bold uppercase tracking-widest leading-relaxed">
+            Four core administration components styled with elegant simplicity
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          {/* Card 1 */}
+          <div className="bg-[#f8f9fa] border border-[#e9ecef] p-8 text-center flex flex-col items-center justify-between min-h-[380px] hover:border-slate-350 hover:bg-white hover:shadow-xl hover:shadow-slate-100 transition-all duration-350 group">
+            <div className="space-y-6 flex flex-col items-center">
+              {/* Result Compiler SVG */}
+              <div className="w-16 h-16 group-hover:scale-105 transition-transform duration-300">
+                <svg viewBox="0 0 100 100" className="w-full h-full" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M15 70 C30 65 45 68 50 72 C55 68 70 65 85 70 V30 C70 25 55 28 50 32 C45 28 30 25 15 30 Z" fill="#eff6ff" stroke="#3b82f6" strokeWidth="2" />
+                  <path d="M50 32 V72" stroke="#3b82f6" strokeWidth="2" />
+                  <rect x="25" y="44" width="6" height="18" fill="#10b981" rx="1" />
+                  <rect x="34" y="38" width="6" height="24" fill="#3b82f6" rx="1" />
+                  <rect x="43" y="32" width="6" height="30" fill="#f59e0b" rx="1" />
+                  <circle cx="68" cy="46" r="10" fill="#fef2f2" stroke="#fee2e2" strokeWidth="1" />
+                  <text x="64" y="50" fill="#ef4444" fontSize="10" fontWeight="bold">A+</text>
+                </svg>
+              </div>
+              <h3 className="text-sm font-bold text-[#1e293b] uppercase tracking-wider">Result Compiler</h3>
+              <p className="text-[#64748b] text-[11px] font-semibold leading-relaxed">
+                Aggregates subject scores in real-time, compiles ranks, solves average ties, and renders pixel-perfect PDF cards.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setRegModalOpen(true)} 
+              className="mt-6 border-b border-[#1e293b] pb-1 text-[10px] font-bold text-[#1e293b] uppercase tracking-wider hover:text-[#10b981] hover:border-[#10b981] transition-colors"
+            >
+              Explore Compiler &rarr;
+            </button>
+          </div>
+
+          {/* Card 2 */}
+          <div className="bg-[#f8f9fa] border border-[#e9ecef] p-8 text-center flex flex-col items-center justify-between min-h-[380px] hover:border-slate-350 hover:bg-white hover:shadow-xl hover:shadow-slate-100 transition-all duration-350 group">
+            <div className="space-y-6 flex flex-col items-center">
+              {/* Tenant Isolation SVG */}
+              <div className="w-16 h-16 group-hover:scale-105 transition-transform duration-300">
+                <svg viewBox="0 0 100 100" className="w-full h-full" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M50 15 C30 22 25 45 25 58 C25 74 42 84 50 87 C58 84 75 74 75 58 C75 45 70 22 50 15 Z" fill="#ecfdf5" stroke="#10b981" strokeWidth="2" />
+                  <rect x="36" y="48" width="28" height="22" rx="4" fill="#ffffff" stroke="#047857" strokeWidth="2" />
+                  <circle cx="50" cy="58" r="3" fill="#047857" />
+                  <path d="M42 48 V38 C42 33 46 30 50 30 C54 30 58 33 58 38 V48" stroke="#047857" strokeWidth="2.5" fill="none" />
+                  <path d="M50 54 L56 56 L50 58 L44 56 Z" fill="#10b981" />
+                </svg>
+              </div>
+              <h3 className="text-sm font-bold text-[#1e293b] uppercase tracking-wider">Tenant Isolation</h3>
+              <p className="text-[#64748b] text-[11px] font-semibold leading-relaxed">
+                Ensures absolute database segregation per school. Customize grading systems from primary to secondary scales.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setRegModalOpen(true)} 
+              className="mt-6 border-b border-[#1e293b] pb-1 text-[10px] font-bold text-[#1e293b] uppercase tracking-wider hover:text-[#10b981] hover:border-[#10b981] transition-colors"
+            >
+              Verify Security &rarr;
+            </button>
+          </div>
+
+          {/* Card 3 */}
+          <div className="bg-[#f8f9fa] border border-[#e9ecef] p-8 text-center flex flex-col items-center justify-between min-h-[380px] hover:border-slate-350 hover:bg-white hover:shadow-xl hover:shadow-slate-100 transition-all duration-350 group">
+            <div className="space-y-6 flex flex-col items-center">
+              {/* Offline Sync SVG */}
+              <div className="w-16 h-16 group-hover:scale-105 transition-transform duration-300">
+                <svg viewBox="0 0 100 100" className="w-full h-full" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M25 65 C20 65 15 60 15 54 C15 48 20 44 26 44 C29 35 38 30 48 30 C58 30 67 36 69 46 C75 47 80 52 80 58 C80 65 74 70 67 70 H25 Z" fill="#fffbeb" stroke="#fcd34d" strokeWidth="2" />
+                  <path d="M38 52 H62 V58 H38 Z" fill="#ffffff" stroke="#d97706" strokeWidth="1.5" />
+                  <path d="M50 38 C58 38 64 42 64 48 L68 46" stroke="#fbbf24" strokeWidth="1.5" strokeLinecap="round" fill="none" />
+                  <path d="M50 62 C42 62 36 58 36 52 L32 54" stroke="#fbbf24" strokeWidth="1.5" strokeLinecap="round" fill="none" />
+                </svg>
+              </div>
+              <h3 className="text-sm font-bold text-[#1e293b] uppercase tracking-wider">Offline Sync</h3>
+              <p className="text-[#64748b] text-[11px] font-semibold leading-relaxed">
+                Allows teachers to enter scores offline into IndexedDB, and auto-syncs with PostgreSQL once internet returns.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setRegModalOpen(true)} 
+              className="mt-6 border-b border-[#1e293b] pb-1 text-[10px] font-bold text-[#1e293b] uppercase tracking-wider hover:text-[#10b981] hover:border-[#10b981] transition-colors"
+            >
+              Check Syncing &rarr;
+            </button>
+          </div>
+
+          {/* Card 4 */}
+          <div className="bg-[#f8f9fa] border border-[#e9ecef] p-8 text-center flex flex-col items-center justify-between min-h-[380px] hover:border-slate-350 hover:bg-white hover:shadow-xl hover:shadow-slate-100 transition-all duration-350 group">
+            <div className="space-y-6 flex flex-col items-center">
+              {/* Parent Portal SVG */}
+              <div className="w-16 h-16 group-hover:scale-105 transition-transform duration-300">
+                <svg viewBox="0 0 100 100" className="w-full h-full" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <circle cx="40" cy="55" r="22" stroke="#bfdbfe" strokeWidth="2" fill="#eff6ff" fillOpacity="0.6" />
+                  <circle cx="60" cy="55" r="22" stroke="#fbcfe8" strokeWidth="2" fill="#fdf2f8" fillOpacity="0.6" />
+                  <path d="M28 65 H46 V46 H28 Z" fill="#3b82f6" opacity="0.3" />
+                  <path d="M37 38 L26 46 H48 Z" fill="#1d4ed8" />
+                  <rect x="30" y="46" width="14" height="19" fill="#ffffff" stroke="#1d4ed8" strokeWidth="1" />
+                  <rect x="35" y="55" width="4" height="10" fill="#1d4ed8" />
+                  <path d="M54 65 H72 V48 H54 Z" fill="#db2777" opacity="0.3" />
+                  <path d="M63 40 L52 48 H74 Z" fill="#be123c" />
+                  <rect x="56" y="48" width="14" height="17" fill="#ffffff" stroke="#be123c" strokeWidth="1" />
+                  <rect x="61" y="57" width="4" height="8" fill="#be123c" />
+                </svg>
+              </div>
+              <h3 className="text-sm font-bold text-[#1e293b] uppercase tracking-wider">Parent Portal</h3>
+              <p className="text-[#64748b] text-[11px] font-semibold leading-relaxed">
+                Allows parents to securely log in, verify term attendance, see student averages, and download released reports.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setRegModalOpen(true)} 
+              className="mt-6 border-b border-[#1e293b] pb-1 text-[10px] font-bold text-[#1e293b] uppercase tracking-wider hover:text-[#10b981] hover:border-[#10b981] transition-colors"
+            >
+              Open Portal &rarr;
+            </button>
           </div>
         </div>
       </section>
