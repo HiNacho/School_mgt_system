@@ -656,28 +656,28 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
       
       {/* 1. Desktop Sidebar */}
-      <aside className="w-64 bg-[#073d26] border-r border-[#052e16]/30 flex flex-col justify-between hidden lg:flex flex-shrink-0 z-40 text-white">
+      <aside className="w-64 bg-white border-r border-slate-200/80 flex flex-col justify-between hidden lg:flex flex-shrink-0 z-40">
         <div className="overflow-y-auto flex-1">
-          <div className="p-5 flex items-center gap-3 border-b border-[#0b5c3a]/30 mb-2">
+          <div className="p-5 flex items-center gap-3 border-b border-[#e9ecef] mb-2">
             {school ? (
               <div className="flex items-center gap-3">
                 {school.logoUrl ? (
                   <img src={school.logoUrl} alt="School Crest" className="w-8 h-8 rounded-xl object-cover border border-slate-200 bg-white" />
                 ) : (
-                  <img src="/logo.png" alt="Operon Logo" className="w-8 h-8 object-contain brightness-0 invert" />
+                  <img src="/logo.png" alt="Operon Logo" className="w-8 h-8 object-contain" />
                 )}
-                <span className="font-poppins-bold text-base text-white tracking-wide truncate max-w-[140px]" title={school.name}>
+                <span className="font-poppins-bold text-base text-[#1e293b] tracking-wide truncate max-w-[140px]" title={school.name}>
                   {school.name}
                 </span>
               </div>
             ) : (
-              <img src="/logo_full.png" alt="Operon Logo" className="h-8 w-auto object-contain brightness-0 invert" />
+              <img src="/logo_full.png" alt="Operon Logo" className="h-8 w-auto object-contain" />
             )}
           </div>
 
           {/* MENU SECTION */}
           <div className="px-4 py-3">
-            <span className="px-3 text-[10px] font-bold uppercase tracking-wider text-[#00ff80]/60 block mb-2">
+            <span className="px-3 text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-2">
               MENU
             </span>
             <nav className="space-y-0.5">
@@ -689,11 +689,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     href={item.href}
                     className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition-all ${
                       isActive 
-                        ? 'bg-[#00ff80] text-[#022c22] shadow-sm font-bold'
-                        : 'text-emerald-100/70 hover:bg-white/5 hover:text-white border border-transparent'
+                        ? 'bg-blue-50 text-blue-600 border border-blue-100 shadow-sm'
+                        : 'text-slate-400 hover:bg-slate-50 hover:text-slate-700 border border-transparent'
                     }`}
                   >
-                    <item.icon className={`w-4 h-4 ${isActive ? 'text-[#022c22]' : 'text-emerald-100/60'}`} />
+                    <item.icon className={`w-4 h-4 ${isActive ? 'text-blue-600' : 'text-slate-400'}`} />
                     <span>{item.name}</span>
                   </Link>
                 );
@@ -703,7 +703,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
           {/* OTHER SECTION */}
           <div className="px-4 py-3">
-            <span className="px-3 text-[10px] font-bold uppercase tracking-wider text-[#00ff80]/60 block mb-2">
+            <span className="px-3 text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-2">
               OTHER
             </span>
             <nav className="space-y-0.5">
@@ -715,11 +715,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     href={item.href}
                     className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition-all ${
                       isActive 
-                        ? 'bg-[#00ff80] text-[#022c22] shadow-sm font-bold'
-                        : 'text-emerald-100/70 hover:bg-white/5 hover:text-white border border-transparent'
+                        ? 'bg-blue-50 text-blue-600 border border-blue-100 shadow-sm'
+                        : 'text-slate-400 hover:bg-slate-50 hover:text-slate-700 border border-transparent'
                     }`}
                   >
-                    <item.icon className={`w-4 h-4 ${isActive ? 'text-[#022c22]' : 'text-emerald-100/60'}`} />
+                    <item.icon className={`w-4 h-4 ${isActive ? 'text-blue-600' : 'text-slate-400'}`} />
                     <span>{item.name}</span>
                   </Link>
                 );
@@ -729,13 +729,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </div>
 
         {/* Sidebar Footer (Logout) */}
-        <div className="p-4 border-t border-[#0b5c3a]/30">
+        <div className="p-4 border-t border-slate-100">
           <button
             type="button"
             onClick={handleLogout}
-            className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-xs font-semibold text-red-300 hover:bg-white/5 hover:text-red-200 transition-all text-left cursor-pointer"
+            className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-xs font-semibold text-red-500 hover:bg-red-50/50 hover:text-red-600 transition-all text-left"
           >
-            <LogOut className="w-4 h-4 text-red-300" />
+            <LogOut className="w-4 h-4 text-red-400" />
             <span>Sign Out</span>
           </button>
         </div>
@@ -745,34 +745,34 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       {mobileMenuOpen && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 lg:hidden" onClick={() => setMobileMenuOpen(false)}>
           <div 
-            className="w-64 h-full bg-[#073d26] text-white p-5 flex flex-col justify-between shadow-2xl border-r border-[#052e16]/30"
+            className="w-64 h-full bg-white p-5 flex flex-col justify-between shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
             <div>
-              <div className="flex items-center justify-between pb-5 border-b border-[#0b5c3a]/30 mb-4">
+              <div className="flex items-center justify-between pb-5 border-b border-[#e9ecef] mb-4">
                 <div className="flex items-center gap-2.5">
                   {school ? (
                     <div className="flex items-center gap-2">
                       {school.logoUrl ? (
                         <img src={school.logoUrl} alt="School Crest" className="w-6 h-6 rounded-lg object-cover border border-slate-200 bg-white" />
                       ) : (
-                        <img src="/logo.png" alt="Operon Logo" className="w-6 h-6 object-contain brightness-0 invert" />
+                        <img src="/logo.png" alt="Operon Logo" className="w-6 h-6 object-contain" />
                       )}
-                      <span className="font-poppins-bold text-sm text-white truncate max-w-[120px]" title={school.name}>
+                      <span className="font-poppins-bold text-sm text-[#1e293b] truncate max-w-[120px]" title={school.name}>
                         {school.name}
                       </span>
                     </div>
                   ) : (
-                    <img src="/logo_full.png" alt="Operon Logo" className="h-6 w-auto object-contain brightness-0 invert" />
+                    <img src="/logo_full.png" alt="Operon Logo" className="h-6 w-auto object-contain" />
                   )}
                 </div>
-                <button type="button" onClick={() => setMobileMenuOpen(false)} className="p-1 rounded-md bg-white/5 text-emerald-100/60 hover:text-white hover:bg-white/10">
+                <button type="button" onClick={() => setMobileMenuOpen(false)} className="p-1 rounded-md bg-slate-50 text-slate-400 hover:text-slate-600">
                   <X className="w-4 h-4" />
                 </button>
               </div>
 
               <div className="mb-4">
-                <span className="px-3 text-[10px] font-bold uppercase tracking-wider text-[#00ff80]/60 block mb-2">
+                <span className="px-3 text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-2">
                   MENU
                 </span>
                 <nav className="space-y-0.5">
@@ -785,11 +785,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                         onClick={() => setMobileMenuOpen(false)}
                         className={`flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-semibold transition-all ${
                           isActive 
-                            ? 'bg-[#00ff80] text-[#022c22] shadow-sm font-bold'
-                            : 'text-emerald-100/70 hover:bg-white/5 hover:text-white border border-transparent'
+                            ? 'bg-blue-50 text-blue-600 border border-blue-100 shadow-sm'
+                            : 'text-slate-400 hover:bg-slate-50 hover:text-slate-700 border border-transparent'
                         }`}
                       >
-                        <item.icon className={`w-4 h-4 ${isActive ? 'text-[#022c22]' : 'text-emerald-100/60'}`} />
+                        <item.icon className="w-4 h-4" />
                         <span>{item.name}</span>
                       </Link>
                     );
@@ -798,7 +798,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               </div>
 
               <div>
-                <span className="px-3 text-[10px] font-bold uppercase tracking-wider text-[#00ff80]/60 block mb-2">
+                <span className="px-3 text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-2">
                   OTHER
                 </span>
                 <nav className="space-y-0.5">
@@ -811,11 +811,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                         onClick={() => setMobileMenuOpen(false)}
                         className={`flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-semibold transition-all ${
                           isActive 
-                            ? 'bg-[#00ff80] text-[#022c22] shadow-sm font-bold'
-                            : 'text-emerald-100/70 hover:bg-white/5 hover:text-white border border-transparent'
+                            ? 'bg-blue-50 text-blue-600 border border-blue-100 shadow-sm'
+                            : 'text-slate-400 hover:bg-slate-50 hover:text-slate-700 border border-transparent'
                         }`}
                       >
-                        <item.icon className={`w-4 h-4 ${isActive ? 'text-[#022c22]' : 'text-emerald-100/60'}`} />
+                        <item.icon className="w-4 h-4" />
                         <span>{item.name}</span>
                       </Link>
                     );
@@ -827,9 +827,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <button
               type="button"
               onClick={handleLogout}
-              className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-xs font-semibold text-red-300 hover:bg-white/5 hover:text-red-200 transition-all text-left"
+              className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-xs font-semibold text-red-500 hover:bg-red-50 hover:text-red-600 transition-all text-left"
             >
-              <LogOut className="w-4 h-4 text-red-300" />
+              <LogOut className="w-4 h-4 text-red-400" />
               <span>Sign Out</span>
             </button>
           </div>
