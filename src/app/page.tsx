@@ -333,47 +333,47 @@ export default function LandingPage() {
       {/* Navigation Header */}
       <header className={`sticky top-0 z-50 transition-all duration-300 ${
         scrolled 
-          ? 'bg-white/80 backdrop-blur-md border-b border-[#e9ecef] shadow-[0_2px_20px_rgba(0,0,0,0.02)]' 
-          : 'bg-transparent border-b border-transparent'
+          ? 'bg-white/95 backdrop-blur-md border-b border-[#e9ecef] shadow-[0_2px_20px_rgba(0,0,0,0.02)]' 
+          : 'bg-white border-b border-[#e9ecef]'
       }`}>
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-          {/* Logo Brand */}
-          <div className="flex items-center gap-3">
+          {/* Left: Desktop Navigation Links */}
+          <nav className="hidden md:flex items-center gap-8 text-[11px] font-bold text-[#64748b] uppercase tracking-widest">
+            <a href="#about" className="hover:text-[#0b5c3a] transition-colors duration-200">About</a>
+            <a href="#solutions" className="hover:text-[#0b5c3a] transition-colors duration-200">Solutions</a>
+            <a href="#contact" className="hover:text-[#0b5c3a] transition-colors duration-200">Contact Us</a>
+          </nav>
+
+          {/* Center: Logo Brand */}
+          <div className="flex items-center gap-2.5 md:absolute md:left-1/2 md:-translate-x-1/2">
             <img src="/logo.png" alt="Operon Logo" className="w-8 h-8 object-contain" />
-            <span className="font-semibold text-lg tracking-wider text-[#1e293b] uppercase">
+            <span className="font-bold text-lg tracking-wider text-[#1e293b] uppercase">
               Operon
             </span>
           </div>
           
-          {/* Desktop Navigation Links */}
-          <nav className="hidden md:flex items-center gap-10 text-xs font-bold text-[#64748b] uppercase tracking-widest">
-            <a href="#about" className="hover:text-[#10b981] transition-colors duration-200">About</a>
-            <a href="#solutions" className="hover:text-[#10b981] transition-colors duration-200">Solutions</a>
-            <a href="#contact" className="hover:text-[#10b981] transition-colors duration-200">Contact Us</a>
-          </nav>
-
-          {/* Auth Controls */}
-          <div className="hidden md:flex items-center gap-6">
+          {/* Right: Auth Controls */}
+          <div className="hidden md:flex items-center gap-4">
+            <button
+              type="button"
+              onClick={() => setRegModalOpen(true)}
+              className="px-5 py-2 border border-[#cbd5e1] hover:bg-slate-50 text-[#475569] text-[10px] font-black tracking-widest uppercase transition-all duration-200"
+            >
+              Register Interest
+            </button>
             <Link
               href="/login"
-              className="text-xs font-bold text-[#64748b] hover:text-[#1e293b] uppercase tracking-widest transition-colors duration-200"
+              className="px-5 py-2 bg-[#0b5c3a] hover:bg-[#073d26] text-white text-[10px] font-black tracking-widest uppercase transition-all duration-200 shadow-sm"
             >
               Sign In
             </Link>
-            <button
-              type="button"
-              onClick={() => setTryModalOpen(true)}
-              className="px-6 py-2.5 bg-[#1e293b] hover:bg-[#0f172a] text-white text-xs font-bold tracking-widest uppercase transition-all duration-200 shadow-sm"
-            >
-              Try App
-            </button>
           </div>
 
           {/* Mobile Menu Button */}
           <button 
-            type="button"
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="md:hidden p-2 text-[#475569] hover:bg-slate-100 rounded-lg transition-colors"
+            type="button" 
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)} 
+            className="md:hidden p-2 text-slate-600 hover:text-slate-900"
           >
             {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
           </button>
@@ -387,21 +387,21 @@ export default function LandingPage() {
             <a 
               href="#about" 
               onClick={() => setMobileMenuOpen(false)}
-              className="hover:text-[#10b981] py-1 transition-colors"
+              className="hover:text-[#0b5c3a] py-1 transition-colors"
             >
               About
             </a>
             <a 
               href="#solutions" 
               onClick={() => setMobileMenuOpen(false)}
-              className="hover:text-[#10b981] py-1 transition-colors"
+              className="hover:text-[#0b5c3a] py-1 transition-colors"
             >
               Solutions
             </a>
             <a 
               href="#contact" 
               onClick={() => setMobileMenuOpen(false)}
-              className="hover:text-[#10b981] py-1 transition-colors"
+              className="hover:text-[#0b5c3a] py-1 transition-colors"
             >
               Contact Us
             </a>
@@ -418,7 +418,7 @@ export default function LandingPage() {
             <button
               type="button"
               onClick={() => { setMobileMenuOpen(false); setTryModalOpen(true); }}
-              className="w-full py-2.5 text-center bg-[#1e293b] text-white font-bold text-xs uppercase tracking-widest transition-all"
+              className="w-full py-2.5 text-center bg-[#0b5c3a] text-white font-bold text-xs uppercase tracking-widest transition-all"
             >
               Try App
             </button>
@@ -433,109 +433,71 @@ export default function LandingPage() {
         </div>
       )}
 
-      {/* Hero Section */}
-      <section className="max-w-7xl mx-auto px-6 py-16 lg:py-24 grid grid-cols-1 lg:grid-cols-12 gap-12 items-center relative z-10">
-        <div className="lg:col-span-7 space-y-8 text-center lg:text-left">
-          
-          <div className="inline-flex items-center gap-2 px-3 py-1 bg-[#ecfdf5] border border-[#d1fae5] text-[#047857] text-[10px] font-bold uppercase tracking-widest">
-            <Sparkles className="w-3.5 h-3.5" />
-            <span>Redefining School Administration</span>
+      {/* Full-Bleed Hero Banner */}
+      <section className="relative w-full h-[600px] bg-[url('/hero_school.jpg')] bg-cover bg-center overflow-hidden flex items-center">
+        {/* Dark Gradient Overlay */}
+        <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/50 to-transparent z-0" />
+        
+        <div className="max-w-7xl mx-auto w-full px-6 relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-8">
+          <div className="lg:col-span-8 space-y-6 text-left">
+            <div className="inline-flex items-center gap-2 px-3 py-1 bg-[#ecfdf5]/10 border border-[#d1fae5]/20 text-[#34d399] text-[9px] font-black uppercase tracking-widest rounded-full">
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>Redefining School Administration</span>
+            </div>
+
+            <h1 className="text-4xl sm:text-5xl lg:text-6.5xl font-black text-white leading-tight tracking-tight uppercase">
+              Operon delivers a <br />
+              <span className="text-[#00df89] lowercase font-serif italic normal-case">more natural</span> way <br />
+              to run your school.
+            </h1>
+
+            <p className="text-slate-200 text-xs sm:text-sm max-w-lg leading-relaxed font-semibold">
+              A beautifully minimalist operating system for academic management. Automate score sheets, 
+              compile terminal report cards, and manage billing workflows dynamically in a single click. 
+              Optimized for African private & trial institutions.
+            </p>
+
+            <div className="pt-4 flex flex-col sm:flex-row items-center gap-4">
+              <button
+                type="button"
+                onClick={() => setTryModalOpen(true)}
+                className="w-full sm:w-auto px-8 py-3.5 bg-[#0b5c3a] hover:bg-[#073d26] text-white text-xs font-black tracking-widest uppercase transition-all duration-200 shadow-md text-center cursor-pointer"
+              >
+                Try App Now
+              </button>
+              <button
+                type="button"
+                onClick={() => setRegModalOpen(true)}
+                className="w-full sm:w-auto px-8 py-3.5 border border-white/40 bg-black/20 hover:bg-white/10 text-white text-xs font-black tracking-widest uppercase transition-all duration-200 text-center cursor-pointer"
+              >
+                Register Interest
+              </button>
+            </div>
           </div>
-
-          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-normal text-[#1e293b] leading-tight tracking-tight">
-            Make your school <br className="hidden sm:block" />
-            workflow <span className="text-[#10b981] serif-italic font-normal">more natural</span>.
-          </h1>
-
-          <p className="text-[#64748b] text-sm sm:text-base max-w-xl mx-auto lg:mx-0 leading-relaxed font-medium">
-            NachoEd delivers a beautiful, minimalist approach to academic operations. 
-            Automate score spreadsheets, resolve class average tied standings, compile report cards 
-            seamlessly, and experience a natural synergy connecting administrators, teachers, and parents.
-          </p>
-
-          <div className="pt-2 flex flex-col sm:flex-row justify-center lg:justify-start items-center gap-4">
-            <button
-              type="button"
-              onClick={() => setTryModalOpen(true)}
-              className="w-full sm:w-auto px-8 py-4 bg-[#1e293b] hover:bg-[#0f172a] text-white text-xs font-bold tracking-widest uppercase transition-all duration-200 shadow-md text-center cursor-pointer"
-            >
-              Try App Now
-            </button>
-            <button
-              type="button"
-              onClick={() => setRegModalOpen(true)}
-              className="w-full sm:w-auto px-8 py-4 border border-[#cbd5e1] bg-white hover:bg-slate-50 text-[#475569] text-xs font-bold tracking-widest uppercase transition-all duration-200 text-center cursor-pointer"
-            >
-              Register Interest
-            </button>
-          </div>
-        </div>
-
-        {/* Minimalist Swaying Tripod Academic Textbooks (Image 1 style adapted) */}
-        <div className="lg:col-span-5 flex justify-center items-center relative h-[380px] lg:h-[450px]">
-          
-          {/* Custom SVG Textbooks & Graduation Cap on Tripod Stand */}
-          <div className="relative z-10 w-full max-w-[280px] sm:max-w-[320px] transition-transform hover:scale-102 duration-300">
-            <svg viewBox="0 0 300 400" className="w-full h-auto drop-shadow-sm" fill="none" xmlns="http://www.w3.org/2000/svg">
-              {/* Stand Legs */}
-              <line x1="150" y1="200" x2="95" y2="390" stroke="#78350f" strokeWidth="5.5" strokeLinecap="round" />
-              <line x1="150" y1="200" x2="205" y2="390" stroke="#78350f" strokeWidth="5.5" strokeLinecap="round" />
-              <line x1="150" y1="200" x2="150" y2="395" stroke="#451a03" strokeWidth="5" strokeLinecap="round" />
-              
-              {/* Stand Top Circular Tray */}
-              <ellipse cx="150" cy="198" rx="50" ry="12" fill="#d97706" stroke="#b45309" strokeWidth="2" />
-              <ellipse cx="150" cy="201" rx="46" ry="9" fill="#78350f" opacity="0.3" />
-              
-              {/* Stack of Academic Textbooks */}
-              {/* Book 1 (Bottom, Royal Blue) */}
-              <path d="M110 175 L190 158 L200 172 L120 189 Z" fill="#2563eb" stroke="#1d4ed8" strokeWidth="1.5" />
-              <path d="M190 158 L200 172 V178 L190 164 Z" fill="#1d4ed8" />
-              <path d="M120 189 L200 172 V178 L120 195 Z" fill="#f8fafc" stroke="#cbd5e1" strokeWidth="1.5" />
-              <path d="M110 175 L120 189 V195 L110 181 Z" fill="#1e40af" />
-              
-              {/* Book 2 (Middle, Coral Pink) */}
-              <path d="M115 150 L185 140 L193 154 L123 164 Z" fill="#f43f5e" stroke="#e11d48" strokeWidth="1.5" />
-              <path d="M185 140 L193 154 V160 L185 146 Z" fill="#e11d48" />
-              <path d="M123 164 L193 154 V160 L123 170 Z" fill="#f8fafc" stroke="#cbd5e1" strokeWidth="1.5" />
-              <path d="M115 150 L123 164 V170 L115 156 Z" fill="#be123c" />
-              
-              {/* Book 3 (Top, Emerald Green) */}
-              <path d="M110 132 H190 L198 146 H118 Z" fill="#10b981" stroke="#059669" strokeWidth="1.5" />
-              <path d="M190 132 L198 146 V152 L190 138 Z" fill="#059669" />
-              <path d="M118 146 H198 V152 H118 Z" fill="#f8fafc" stroke="#cbd5e1" strokeWidth="1.5" />
-              <path d="M110 132 V138 L118 152 V146 Z" fill="#047857" />
-              
-              {/* Graduation Cap resting on top */}
-              <path d="M132 122 C132 130 168 130 168 122 V132 C168 140 132 140 132 132 Z" fill="#1e293b" stroke="#0f172a" strokeWidth="1" />
-              <path d="M150 102 L185 114 L150 126 L115 114 Z" fill="#0f172a" stroke="#1e293b" strokeWidth="1.5" />
-              <path d="M150 105 L182 116 L150 127 L118 116 Z" fill="#1e293b" />
-              
-              {/* Cap Tassel */}
-              <path d="M150 114 L128 129 V149" stroke="#fbbf24" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none" />
-              <circle cx="128" cy="149" r="2.5" fill="#d97706" />
-              
-              {/* Floating Academic Accent Node Elements */}
-              <g transform="translate(200, 30)" className="animate-float-delayed">
-                <circle cx="20" cy="20" r="16" fill="#fef3c7" stroke="#fcd34d" strokeWidth="1" />
-                <path d="M16 26 H24 M15 23 H25 M17 29 H23" stroke="#d97706" strokeWidth="2" strokeLinecap="round" />
-                <path d="M20 9 C15 9 13 13 13 17 C13 21 16 23 17 25 H23 C24 23 27 21 27 17 C27 13 25 9 20 9 Z" fill="#fbbf24" stroke="#d97706" strokeWidth="1.5" />
-                <path d="M18 17 H22 M20 15 V19" stroke="#ffffff" strokeWidth="1.5" strokeLinecap="round" />
-              </g>
-              
-              <g transform="translate(140, 30)" className="animate-float">
-                <path d="M10 2 L12 8 L18 10 L12 12 L10 18 L8 12 L2 10 L8 8 Z" fill="#fbbf24" />
-              </g>
-              <g transform="translate(90, 110)" className="animate-float-delayed">
-                <path d="M5 1 L6 4 L9 5 L6 6 L5 9 L4 6 L1 5 L4 4 Z" fill="#3b82f6" />
-              </g>
-            </svg>
-          </div>
-
-          {/* Decorative rings backdrop */}
-          <div className="absolute w-72 h-72 rounded-full border border-slate-200/50 pointer-events-none z-0" />
-          <div className="absolute w-[350px] h-[350px] rounded-full border border-dashed border-slate-200/30 pointer-events-none z-0" />
         </div>
       </section>
+
+      {/* Green Metric/Feature Footer Banner (Mocking laptop partner bar) */}
+      <div className="bg-[#073d26] border-y border-[#0b5c3a] py-6 relative z-10">
+        <div className="max-w-7xl mx-auto px-6 grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
+          <div className="space-y-1">
+            <span className="block text-[#00df89] text-lg font-black font-mono">100%</span>
+            <span className="block text-white text-[10px] font-black uppercase tracking-wider">Automated Sheets</span>
+          </div>
+          <div className="space-y-1 border-l border-[#0b5c3a]/40">
+            <span className="block text-[#00df89] text-lg font-black font-mono">1-Click</span>
+            <span className="block text-white text-[10px] font-black uppercase tracking-wider">Report Compiler</span>
+          </div>
+          <div className="space-y-1 border-l border-[#0b5c3a]/40">
+            <span className="block text-[#00df89] text-lg font-black font-mono">Instant</span>
+            <span className="block text-white text-[10px] font-black uppercase tracking-wider">Tie-Breaker Engine</span>
+          </div>
+          <div className="space-y-1 border-l border-[#0b5c3a]/40">
+            <span className="block text-[#00df89] text-lg font-black font-mono">Secure</span>
+            <span className="block text-white text-[10px] font-black uppercase tracking-wider">Flutterwave Gateway</span>
+          </div>
+        </div>
+      </div>
 
       {/* Overlapping Launch Offer Card (Image 1 style) */}
       <section className="relative z-20 max-w-7xl mx-auto px-6 -mt-4 mb-24">
@@ -562,7 +524,7 @@ export default function LandingPage() {
                 Special launch offer!
               </span>
               <h3 className="text-lg sm:text-xl font-bold text-[#1e293b]">
-                Deploy NachoEd to your school for free this term
+                Deploy Operon to your school for free this term
               </h3>
               <p className="text-xs text-[#64748b] mt-1 max-w-xl">
                 Experience instant score sheet calculations, student position compiling, offline auto-saves, and secure parent dashboard delivery. No commitment required.
@@ -718,13 +680,13 @@ export default function LandingPage() {
         {/* Centered Heading with dots */}
         <div className="text-center max-w-2xl mx-auto mb-16 space-y-3">
           <span className="text-[10px] uppercase font-bold tracking-widest text-[#10b981] block">
-            NachoEd values
+            Operon values
           </span>
           <h2 className="text-3xl sm:text-4xl font-normal text-[#1e293b]">
             Vision & Mission
           </h2>
           <p className="text-xs text-[#94a3b8] font-bold uppercase tracking-widest">
-            The Goal, Vision and Mission of NachoEd
+            The Goal, Vision and Mission of Operon
           </p>
           <div className="flex justify-center gap-1.5 pt-2">
             <span className="w-1.5 h-1.5 rounded-full bg-[#10b981]"></span>
@@ -858,7 +820,7 @@ export default function LandingPage() {
           <div className="lg:col-span-5 bg-white border border-[#e9ecef] p-8 flex flex-col justify-between space-y-8">
             <div className="space-y-2">
               <span className="text-[10px] font-bold uppercase tracking-widest text-[#10b981]">Get In Touch</span>
-              <h3 className="text-2xl font-normal text-[#1e293b] tracking-tight">Contact NachoEd Hub</h3>
+              <h3 className="text-2xl font-normal text-[#1e293b] tracking-tight">Contact Operon Hub</h3>
               <p className="text-xs text-[#64748b] font-semibold leading-relaxed">
                 Have questions about custom grading systems, offline operations, or setup requirements? Send us a message or contact our help desk.
               </p>
@@ -1005,7 +967,7 @@ export default function LandingPage() {
               <path d="M50 15 C25 25 25 60 50 85 C75 60 75 25 50 15 Z" fill="#eff6ff" stroke="#3b82f6" strokeWidth="4" />
               <path d="M36 45 C42 48 48 51 50 54 C52 51 58 48 64 45 V65 C58 68 52 71 50 74 C48 71 42 68 36 65 Z" fill="#2563eb" stroke="#1d4ed8" strokeWidth="1.5" />
             </svg>
-            <span>© 2026 NachoEd Academic Analytics. All rights reserved.</span>
+            <span>© 2026 Operon Academic Analytics. All rights reserved.</span>
           </div>
           <div className="flex items-center gap-6">
             <span className="flex items-center gap-1.5 text-emerald-600"><CheckCircle className="w-3.5 h-3.5" /> Secure SSL Enforced</span>
@@ -1469,13 +1431,13 @@ export default function LandingPage() {
                 <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-400 border-2 border-white rounded-full" />
               </div>
               <div>
-                <h4 className="text-xs font-bold text-[#1e293b] uppercase tracking-wider">NachoEd Support</h4>
+                <h4 className="text-xs font-bold text-[#1e293b] uppercase tracking-wider">Operon Support</h4>
                 <span className="text-[9px] text-[#94a3b8] font-bold uppercase">Online • Responds Instantly</span>
               </div>
             </div>
             
             <p className="text-[10px] text-[#64748b] font-semibold leading-relaxed">
-              Hello! 👋 Have any questions about implementing NachoEd report compilation in your school? Let's chat!
+              Hello! 👋 Have any questions about implementing Operon report compilation in your school? Let's chat!
             </p>
 
             <a
@@ -1525,7 +1487,7 @@ export default function LandingPage() {
                   <Sparkles className="w-4 h-4 animate-pulse" />
                   <span className="text-[10px] font-bold uppercase tracking-widest">Interactive Evaluation</span>
                 </div>
-                <h3 className="text-xl font-normal text-[#1e293b] tracking-tight">Try NachoEd Immediately</h3>
+                <h3 className="text-xl font-normal text-[#1e293b] tracking-tight">Try Operon Immediately</h3>
                 <p className="text-[#64748b] text-xs font-semibold leading-relaxed">
                   Select a pre-populated role below to explore the dashboard. 
                   Each demo environment has a limited sandbox database workspace ready to try out.
