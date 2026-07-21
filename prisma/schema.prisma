@@ -565,6 +565,9 @@ model Lead {
   interestedFeatures      String?           // Comma-separated list or JSON array string of features
   leadStatus              String            @default("NEW") // NEW, CONTACTED, DEMO_SENT, TESTING, FEEDBACK_RECEIVED, INTERESTED, PILOT_SCHOOL, CUSTOMER, NOT_INTERESTED
   demoSchoolId            String?           // Reference to created demo school
+  verificationCode        String?
+  verificationExpires     DateTime?
+  emailVerified           Boolean           @default(false)
   createdAt               DateTime          @default(now())
   updatedAt               DateTime          @default(now()) @updatedAt
   

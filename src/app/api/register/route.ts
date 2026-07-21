@@ -123,138 +123,25 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // Provision school automatically for early access registrations (Scenario B)
+    // Generate verification code for early access registrations
     if (!message) {
-      // Generate unique slug
-      const cleanSlug = schoolName
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, '-')
-        .replace(/(^-|-$)/g, '');
-      const randomSuffix = Math.random().toString(36).substring(2, 6);
-      const slug = `${cleanSlug}-live-${randomSuffix}`;
+      const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
+      const verificationExpires = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
 
-      // Hash default password
-      const salt = await bcrypt.genSalt(10);
-      const passwordHash = await bcrypt.hash('password', salt);
-
-      // Create clean school (no student mock records)
-      const liveSchool = await prisma.school.create({
-        data: {
-          name: schoolName,
-          slug: slug,
-          logoUrl: 'https://images.unsplash.com/photo-1546410531-bb4caa6b424d?w=100&auto=format&fit=crop',
-          address: 'Main School Campus',
-          phone: phone || null,
-          email: email,
-          gradingType: schoolType === 'PRIMARY' ? 'PRIMARY' : 'SECONDARY',
-          subscriptionPlan: 'Standard',
-          subscriptionStatus: 'trial',
-          subscriptionStart: new Date(),
-          subscriptionEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
-        },
-      });
-
-      const schoolId = liveSchool.id;
-
-      // Seed standard rules for the live school
-      const isPrimary = schoolType === 'PRIMARY';
-      if (isPrimary) {
-        const primaryRules = [
-          { minScore: 80, maxScore: 100, grade: 'A', interpretation: 'Excellent' },
-          { minScore: 60, maxScore: 79.9, grade: 'B', interpretation: 'Good' },
-          { minScore: 40, maxScore: 59.9, grade: 'C', interpretation: 'Pass' },
-          { minScore: 0, maxScore: 39.9, grade: 'D', interpretation: 'Needs Improvement' },
-        ];
-        await prisma.gradingRule.createMany({
-          data: primaryRules.map(r => ({ schoolId, ...r })),
-        });
-      } else {
-        const secondaryRules = [
-          { minScore: 75, maxScore: 100, grade: 'A1', interpretation: 'Excellent' },
-          { minScore: 70, maxScore: 74.9, grade: 'B2', interpretation: 'Very Good' },
-          { minScore: 65, maxScore: 69.9, grade: 'B3', interpretation: 'Good' },
-          { minScore: 60, maxScore: 64.9, grade: 'C4', interpretation: 'Credit' },
-          { minScore: 55, maxScore: 59.9, grade: 'C5', interpretation: 'Credit' },
-          { minScore: 50, maxScore: 54.9, grade: 'C6', interpretation: 'Credit' },
-          { minScore: 45, maxScore: 49.9, grade: 'D7', interpretation: 'Pass' },
-          { minScore: 40, maxScore: 44.9, grade: 'E8', interpretation: 'Pass' },
-          { minScore: 0, maxScore: 39.9, grade: 'F9', interpretation: 'Fail' },
-        ];
-        await prisma.gradingRule.createMany({
-          data: secondaryRules.map(r => ({ schoolId, ...r })),
-        });
-      }
-
-      // Create Session & Term
-      const session = await prisma.academicSession.create({
-        data: {
-          schoolId,
-          name: '2025/2026',
-          isCurrent: true,
-        },
-      });
-
-      await prisma.term.create({
-        data: {
-          schoolId,
-          sessionId: session.id,
-          name: 'First Term',
-          isCurrent: true,
-        },
-      });
-
-      // Seed default subjects
-      const subjectsData = [
-        { name: 'Mathematics', code: 'MTH', category: 'COMPULSORY', color: 'blue' },
-        { name: 'English Language', code: 'ENG', category: 'COMPULSORY', color: 'purple' },
-        { name: 'Basic Science', code: 'BSC', category: 'COMPULSORY', color: 'emerald' },
-      ];
-      await prisma.subject.createMany({
-        data: subjectsData.map(s => ({ schoolId, ...s })),
-      });
-
-      // Create live admin user
-      const adminUsername = `admin_${randomSuffix}`;
-      const adminUser = await prisma.user.create({
-        data: {
-          schoolId,
-          username: adminUsername,
-          email: email,
-          passwordHash,
-          firstName: resolvedContactName ? resolvedContactName.split(' ')[0] : 'School',
-          lastName: resolvedContactName && resolvedContactName.split(' ').length > 1 ? resolvedContactName.split(' ').slice(1).join(' ') : 'Admin',
-          role: 'SCHOOL_ADMIN',
-          status: 'ACTIVE',
-          isActive: true,
-          isFirstLogin: true, // Force reset/profile setup on first login
-        },
-      });
-
-      // Update lead status and associate demoSchoolId
       lead = await prisma.lead.update({
         where: { id: lead.id },
         data: {
-          demoSchoolId: liveSchool.id,
-          leadStatus: 'PILOT_SCHOOL',
-        },
-      });
-
-      // Create TesterActivity telemetry tracker
-      await prisma.testerActivity.create({
-        data: {
-          userId: adminUser.id,
-          leadId: lead.id,
-          loginCount: 0,
-          timeSpent: 0,
-        },
+          verificationCode,
+          verificationExpires,
+          emailVerified: false,
+          leadStatus: 'NEW'
+        }
       });
 
       provisionedCredentials = {
-        email: email,
-        username: adminUsername,
-        password: 'password',
-        schoolName: schoolName,
-        schoolSlug: slug
+        verificationRequired: true,
+        email,
+        leadId: lead.id
       };
     }
 
@@ -349,9 +236,7 @@ export async function POST(req: NextRequest) {
         success: true,
         message: 'Inquiry submitted successfully! A notification and email confirmation have been dispatched.',
         data: lead
-      }, { status: 200 });
-
-    } else {
+      }, { status    } else {
       // --- Scenario B: Early Access Registration ---
 
       // B1. Notification Email to the Administrator
@@ -360,7 +245,7 @@ export async function POST(req: NextRequest) {
         <html>
         <head>
           <meta charset="utf-8">
-          <title>New NachoEd Registration</title>
+          <title>New NachoEd Registration (Unverified)</title>
           <style>
             body { font-family: 'Plus Jakarta Sans', sans-serif; line-height: 1.6; color: #334155; padding: 20px; }
             .container { max-width: 600px; margin: 0 auto; border: 1px solid #e2e8f0; border-radius: 8px; padding: 20px; background: #ffffff; }
@@ -371,21 +256,12 @@ export async function POST(req: NextRequest) {
         </head>
         <body>
           <div class="container">
-            <h2>New Early Access Registration</h2>
+            <h2>New Early Access Registration (Waiting for Verification Code)</h2>
             <div class="field"><span class="label">School Name:</span> ${escapeHtml(schoolName)}</div>
-            <div class="field"><span class="label">School Type:</span> ${escapeHtml(schoolType || 'N/A')}</div>
-            <div class="field"><span class="label">Ownership:</span> ${escapeHtml(ownershipType || 'N/A')}</div>
             <div class="field"><span class="label">Contact Name:</span> ${escapeHtml(resolvedContactName)}</div>
-            <div class="field"><span class="label">Position:</span> ${escapeHtml(position || 'N/A')}</div>
             <div class="field"><span class="label">Email Address:</span> ${escapeHtml(email)}</div>
             <div class="field"><span class="label">Phone:</span> ${escapeHtml(phone || 'N/A')}</div>
-            <div class="field"><span class="label">Student Count:</span> ${studentCount || 'N/A'}</div>
-            <div class="field"><span class="label">Teacher Count:</span> ${teacherCount || 'N/A'}</div>
-            <div class="field"><span class="label">Class Count:</span> ${classCount || 'N/A'}</div>
-            <div class="field"><span class="label">Current Result Method:</span> ${escapeHtml(currentResultMethod || 'N/A')}</div>
-            <div class="field"><span class="label">Current Attendance Method:</span> ${escapeHtml(currentAttendanceMethod || 'N/A')}</div>
-            <div class="field"><span class="label">Biggest Challenge:</span> ${escapeHtml(biggestChallenge || 'N/A')}</div>
-            <div class="field"><span class="label">Interested Features:</span> ${escapeHtml(resolvedFeatures || 'N/A')}</div>
+            <div class="field"><span class="label">OTP Verification Code Sent:</span> ${lead.verificationCode}</div>
           </div>
         </body>
         </html>
@@ -394,17 +270,17 @@ export async function POST(req: NextRequest) {
       await sendEmail({
         leadId: lead.id,
         to: adminEmailAddress,
-        subject: `[NachoEd Early Access] New Registration from ${resolvedContactName} (${schoolName})`,
+        subject: `[NachoEd Register] Unverified Registration from ${resolvedContactName} (${schoolName})`,
         body: adminRegHtml,
       });
 
-      // B2. Premium Styled Welcome Email to the Visitor
-      const visitorWelcomeHtml = `
+      // B2. Premium Styled OTP Verification Code Email to the Visitor
+      const visitorVerificationHtml = `
         <!DOCTYPE html>
         <html>
         <head>
           <meta charset="utf-8">
-          <title>Welcome to NachoEd</title>
+          <title>Verify Your Email - NachoEd</title>
           <style>
             body {
               font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -414,7 +290,7 @@ export async function POST(req: NextRequest) {
               padding: 20px;
             }
             .container {
-              max-width: 600px;
+              max-width: 500px;
               margin: 0 auto;
               background: #ffffff;
               border-radius: 12px;
@@ -425,75 +301,38 @@ export async function POST(req: NextRequest) {
             .header {
               background-color: #0f172a;
               color: #ffffff;
-              padding: 32px 24px;
+              padding: 24px;
               text-align: center;
             }
             .header h1 {
               margin: 0;
-              font-size: 24px;
+              font-size: 20px;
               font-weight: 700;
               letter-spacing: -0.025em;
-            }
-            .header p {
-              margin: 8px 0 0 0;
-              color: #94a3b8;
-              font-size: 14px;
             }
             .content {
               padding: 32px 24px;
               line-height: 1.6;
             }
             .content h2 {
-              font-size: 18px;
+              font-size: 16px;
               color: #0f172a;
               margin-top: 0;
             }
-            .credentials-section {
+            .code-section {
               background-color: #f1f5f9;
               border-radius: 8px;
               padding: 20px;
               margin: 24px 0;
-              border: 1px solid #e2e8f0;
-            }
-            .credentials-section h3 {
-              margin-top: 0;
-              font-size: 14px;
-              color: #0f172a;
-              text-transform: uppercase;
-              letter-spacing: 0.05em;
-              border-bottom: 1px solid #cbd5e1;
-              padding-bottom: 8px;
-            }
-            .credential-item {
-              margin-bottom: 12px;
-            }
-            .credential-item:last-child {
-              margin-bottom: 0;
-            }
-            .credential-label {
-              font-weight: 600;
-              font-size: 13px;
-              color: #475569;
-            }
-            .credential-value {
-              font-family: monospace;
-              background-color: #e2e8f0;
-              padding: 2px 6px;
-              border-radius: 4px;
-              font-size: 13px;
-              color: #0f172a;
-            }
-            .btn {
-              display: inline-block;
-              background-color: #0f172a;
-              color: #ffffff !important;
-              text-decoration: none;
-              padding: 12px 24px;
-              border-radius: 6px;
-              font-weight: 600;
-              font-size: 14px;
+              border: 1px dashed #cbd5e1;
               text-align: center;
-              margin: 16px 0;
+            }
+            .otp-code {
+              font-family: monospace;
+              font-size: 32px;
+              font-weight: 800;
+              letter-spacing: 0.15em;
+              color: #0f172a;
             }
             .footer {
               background-color: #f8fafc;
@@ -509,38 +348,22 @@ export async function POST(req: NextRequest) {
           <div class="container">
             <div class="header">
               <h1>NachoEd</h1>
-              <p>School Management SaaS Platform</p>
             </div>
             <div class="content">
-              <h2>Hello ${escapeHtml(resolvedContactName)},</h2>
-              <p>Thank you for registering interest in NachoEd! We are thrilled to help simplify academic operations at <strong>${escapeHtml(schoolName)}</strong>.</p>
+              <h2>Verify Your Email Address</h2>
+              <p>Hello ${escapeHtml(resolvedContactName)},</p>
+              <p>Thank you for registering interest in NachoEd! To complete your school registration and provision your trial school portal, please verify your email address by entering the following 6-digit verification code on the registration screen:</p>
               
-              <p>Your custom 1-month trial sandbox environment has been successfully prepared!</p>
+              <div class="code-section">
+                <span class="otp-code">${lead.verificationCode}</span>
+              </div>
               
-              <div style="text-align: center;">
-                <a href="http://localhost:3000/login" class="btn">Go to Login Portal</a>
-              </div>
-
-              <div class="credentials-section">
-                <h3>🔑 Your Administrator Credentials</h3>
-                
-                <div class="credential-item">
-                  <strong>School Name:</strong> ${escapeHtml(schoolName)}<br/>
-                  <strong>Portal ID (Slug):</strong> ${escapeHtml(provisionedCredentials?.schoolSlug || '')}<br/>
-                  <strong>Login Email:</strong> <span class="credential-value">${escapeHtml(email)}</span><br/>
-                  <strong>Admin Username:</strong> <span class="credential-value">${escapeHtml(provisionedCredentials?.username || '')}</span><br/>
-                  <strong>Temporary Password:</strong> <span class="credential-value">password</span>
-                </div>
-                <p style="font-size: 11px; color: #ef4444; font-weight: bold; margin-top: 10px; margin-bottom: 0;">⚠️ You will be prompted to update this temporary password upon first login.</p>
-              </div>
-
-              <p>If you have any questions or would like to expedite your pilot program request, please feel free to reply directly to this email.</p>
+              <p style="font-size: 12px; color: #ef4444; font-weight: 600; margin-top: 10px;">⚠️ This code is valid for the next 15 minutes. If you did not request this verification, you can safely ignore this email.</p>
               
               <p>Best Regards,<br/><strong>The NachoEd Team</strong></p>
             </div>
             <div class="footer">
               <p>&copy; ${new Date().getFullYear()} NachoEd. All rights reserved.</p>
-              <p>Simplifying student databases, result sheets, and report card compilation.</p>
             </div>
           </div>
         </body>
@@ -550,28 +373,27 @@ export async function POST(req: NextRequest) {
       await sendEmail({
         leadId: lead.id,
         to: email,
-        subject: 'Welcome to NachoEd - Early Access & Demo Credentials',
-        body: visitorWelcomeHtml,
+        subject: 'Verify Your Email Address - NachoEd Onboarding',
+        body: visitorVerificationHtml,
       });
 
       // Send Slack notification
-      const slackMessage = `🚀 *New Early Access Registration*\n` +
+      const slackMessage = `⏳ *New Unverified Registration*\n` +
         `• *School:* ${schoolName}\n` +
-        `• *Type:* ${schoolType || 'N/A'}\n` +
-        `• *Ownership:* ${ownershipType || 'N/A'}\n` +
-        `• *Contact:* ${resolvedContactName} (${position || 'N/A'})\n` +
+        `• *Contact:* ${resolvedContactName}\n` +
         `• *Email:* ${email}\n` +
-        `• *Phone:* ${phone || 'N/A'}\n` +
-        `• *Size:* ${studentCount || 'N/A'} students, ${teacherCount || 'N/A'} teachers\n` +
-        `• *Challenge:* ${biggestChallenge || 'N/A'}`;
+        `• *OTP Sent:* ${lead.verificationCode}`;
       await sendSlackNotification(slackMessage);
 
       return NextResponse.json({ 
         success: true, 
-        message: 'Registration successful! Your 1-month free trial school portal has been provisioned.',
-        credentials: provisionedCredentials,
-        data: lead 
-      }, { status: 201 });
+        message: 'Registration form submitted! Verification code sent to email.',
+        data: {
+          verificationRequired: true,
+          email,
+          leadId: lead.id
+        }
+      }, { status: 200 });
     }
 
   } catch (error: any) {

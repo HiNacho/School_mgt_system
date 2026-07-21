@@ -36,6 +36,13 @@ export default function LandingPage() {
   const [regSuccess, setRegSuccess] = useState(false);
   const [registeredCredentials, setRegisteredCredentials] = useState<any>(null);
 
+  // Email Registration OTP verification state hooks
+  const [showOtpScreen, setShowOtpScreen] = useState(false);
+  const [verificationLeadId, setVerificationLeadId] = useState('');
+  const [otpCode, setOtpCode] = useState('');
+  const [otpLoading, setOtpLoading] = useState(false);
+  const [otpError, setOtpError] = useState('');
+
   // School selection states for dynamic demo portals
   const [schools, setSchools] = useState<any[]>([]);
   const [selectedSchoolSlug, setSelectedSchoolSlug] = useState<string>('nacho-secondary');
@@ -71,6 +78,11 @@ export default function LandingPage() {
     setRegSuccess(false);
     setRegError('');
     setRegisteredCredentials(null);
+    setShowOtpScreen(false);
+    setVerificationLeadId('');
+    setOtpCode('');
+    setOtpLoading(false);
+    setOtpError('');
   };
 
   // Contact Form State
@@ -141,14 +153,58 @@ export default function LandingPage() {
         throw new Error(data.error || 'Failed to submit registration.');
       }
 
-      if (data.credentials) {
-        setRegisteredCredentials(data.credentials);
+      if (data.data?.verificationRequired) {
+        setVerificationLeadId(data.data.leadId);
+        setShowOtpScreen(true);
+      } else {
+        if (data.credentials) {
+          setRegisteredCredentials(data.credentials);
+        }
+        setRegSuccess(true);
       }
-      setRegSuccess(true);
     } catch (err: any) {
       setRegError(err.message || 'Connection error. Please try again.');
     } finally {
       setRegLoading(false);
+    }
+  };
+
+  // Submit email verification OTP code
+  const handleOtpSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!otpCode.trim()) {
+      setOtpError('Please enter the 6-digit verification code.');
+      return;
+    }
+
+    setOtpLoading(true);
+    setOtpError('');
+
+    try {
+      const res = await fetch('/api/register/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          leadId: verificationLeadId,
+          code: otpCode.trim()
+        })
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to verify code.');
+      }
+
+      if (data.credentials) {
+        setRegisteredCredentials(data.credentials);
+      }
+      setShowOtpScreen(false);
+      setRegSuccess(true);
+    } catch (err: any) {
+      setOtpError(err.message || 'Verification failed. Please check the code and try again.');
+    } finally {
+      setOtpLoading(false);
     }
   };
 
@@ -1059,6 +1115,57 @@ export default function LandingPage() {
                     Close Window
                   </button>
                 </div>
+              </div>
+            ) : showOtpScreen ? (
+              <div className="space-y-5 py-4">
+                <div className="text-center space-y-2">
+                  <div className="w-14 h-14 bg-emerald-50 text-emerald-600 rounded-full flex items-center justify-center mx-auto shadow-inner">
+                    <Mail className="w-7 h-7" />
+                  </div>
+                  <h3 className="text-base font-extrabold text-[#1e293b] uppercase tracking-wider">Verify Your Email</h3>
+                  <p className="text-xs text-slate-400 font-semibold leading-relaxed">
+                    We sent a 6-digit verification code to <strong className="text-slate-600 font-bold">{regEmail}</strong>. Please enter the code below to activate your account.
+                  </p>
+                </div>
+
+                <form onSubmit={handleOtpSubmit} className="space-y-4 max-w-sm mx-auto">
+                  <div className="space-y-1">
+                    <label className="block text-[10px] font-extrabold uppercase tracking-wider text-slate-500">
+                      6-Digit Verification Code
+                    </label>
+                    <input
+                      type="text"
+                      maxLength={6}
+                      value={otpCode}
+                      onChange={(e) => setOtpCode(e.target.value.replace(/[^0-9]/g, ''))}
+                      placeholder="e.g. 123456"
+                      className="w-full bg-[#f8fafc] border-2 border-slate-150 rounded-2xl px-4 py-3 text-center text-xl font-bold tracking-widest text-[#1e293b] focus:border-emerald-500 outline-none transition-all"
+                      required
+                    />
+                  </div>
+
+                  {otpError && (
+                    <div className="p-3 rounded-xl bg-rose-50 text-rose-600 border border-rose-150 text-[11px] font-bold text-center leading-normal">
+                      {otpError}
+                    </div>
+                  )}
+
+                  <button
+                    type="submit"
+                    disabled={otpLoading}
+                    className="w-full px-5 py-3.5 bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-300 text-white text-xs font-bold uppercase tracking-wider transition-all rounded-xl shadow-md flex items-center justify-center gap-2 cursor-pointer"
+                  >
+                    {otpLoading ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" /> Verifying...
+                      </>
+                    ) : (
+                      <>
+                        Verify and Activate <CheckCircle className="w-4 h-4" />
+                      </>
+                    )}
+                  </button>
+                </form>
               </div>
             ) : (
               <div className="space-y-6">
