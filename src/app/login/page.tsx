@@ -119,7 +119,7 @@ export default function LoginPage() {
           <div>
             <div className="flex items-center gap-3 mb-8">
               <img src="/logo.png" alt="Operon Logo" className="w-8 h-8 object-contain" />
-              <span className="font-semibold text-lg tracking-wider text-[#1e293b] uppercase">
+              <span className="font-poppins-bold text-lg tracking-wide text-[#1e293b]">
                 Operon
               </span>
               <span className="px-2 py-0.5 bg-emerald-50 border border-emerald-100 text-emerald-700 text-[9px] font-bold uppercase tracking-wider rounded">

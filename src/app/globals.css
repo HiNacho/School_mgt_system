@@ -1,4 +1,10 @@
 @import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@700&display=swap');
+
+.font-poppins-bold {
+  font-family: 'Poppins', sans-serif;
+  font-weight: 700;
+}
 
 :root {
   --background: #ffffff;

@@ -195,7 +195,7 @@ export default function ChangePasswordPage() {
           <div className="text-center space-y-3">
             <div className="flex justify-center items-center gap-2 mb-2">
               <img src="/logo.png" alt="Operon Logo" className="w-8 h-8 object-contain" />
-              <span className="font-semibold text-lg tracking-wider text-[#1e293b] uppercase">
+              <span className="font-poppins-bold text-lg tracking-wide text-[#1e293b]">
                 Operon
               </span>
             </div>

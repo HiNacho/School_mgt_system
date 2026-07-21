@@ -664,7 +664,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             ) : (
               <img src="/logo.png" alt="Operon Logo" className="w-8 h-8 object-contain" />
             )}
-            <span className="font-bold text-base text-[#1e293b] tracking-tight truncate max-w-[150px] uppercase font-sans-custom" title={role === 'SUPER_ADMIN' ? 'Operon' : (school?.name || 'Operon')}>
+            <span className="font-poppins-bold text-base text-[#1e293b] tracking-wide truncate max-w-[150px]" title={role === 'SUPER_ADMIN' ? 'Operon' : (school?.name || 'Operon')}>
               {role === 'SUPER_ADMIN' ? 'Operon' : (school?.name || 'Operon')}
             </span>
           </div>
@@ -750,7 +750,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   ) : (
                     <img src="/logo.png" alt="Operon Logo" className="w-6 h-6 object-contain" />
                   )}
-                  <span className="font-bold text-sm text-[#1e293b] truncate max-w-[130px] uppercase font-sans-custom" title={role === 'SUPER_ADMIN' ? 'Operon' : (school?.name || 'Operon')}>
+                  <span className="font-poppins-bold text-sm text-[#1e293b] truncate max-w-[130px]" title={role === 'SUPER_ADMIN' ? 'Operon' : (school?.name || 'Operon')}>
                     {role === 'SUPER_ADMIN' ? 'Operon' : (school?.name || 'Operon')}
                   </span>
                 </div>

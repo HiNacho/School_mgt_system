@@ -251,10 +251,15 @@ export default function LandingPage() {
       
       {/* Import custom fonts & inject animations */}
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Playfair+Display:ital,wght@1,400;1,600&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Playfair+Display:ital,wght@1,400;1,600&family=Poppins:wght@700&display=swap');
         
         html {
           scroll-behavior: smooth;
+        }
+
+        .font-poppins-bold {
+          font-family: 'Poppins', sans-serif;
+          font-weight: 700;
         }
 
         :root {
@@ -351,7 +356,7 @@ export default function LandingPage() {
           {/* Center: Logo Brand */}
           <div className="flex items-center gap-2.5 md:absolute md:left-1/2 md:-translate-x-1/2">
             <img src="/logo.png" alt="Operon Logo" className="w-8 h-8 object-contain" />
-            <span className="font-bold text-lg tracking-wider text-[#1e293b] uppercase">
+            <span className="font-poppins-bold text-lg tracking-wide text-[#1e293b]">
               Operon
             </span>
           </div>
@@ -367,7 +372,7 @@ export default function LandingPage() {
             </button>
             <Link
               href="/login"
-              className="px-5 py-2 bg-[#00df89] hover:bg-[#00c578] text-slate-900 text-[10px] font-black tracking-widest uppercase transition-all duration-200 shadow-sm"
+              className="px-5 py-2 bg-[#00ff80] hover:bg-[#00e673] text-slate-900 text-[10px] font-black tracking-widest uppercase transition-all duration-200 shadow-sm"
             >
               Sign In
             </Link>
@@ -446,10 +451,10 @@ export default function LandingPage() {
           {/* Logo & Brand Name */}
           <div className="flex flex-col items-center gap-4">
             <img src="/logo.png" alt="Operon Logo" className="w-16 h-16 object-contain drop-shadow-md" />
-            <span className="font-black text-4xl sm:text-5xl tracking-widest text-white uppercase font-sans">
+            <span className="font-poppins-bold text-4xl sm:text-5xl tracking-wide text-white">
               Operon
             </span>
-            <div className="w-16 h-1 bg-[#00df89] rounded-full mt-1"></div>
+            <div className="w-16 h-1 bg-[#00ff80] rounded-full mt-1"></div>
           </div>
 
           {/* Centered Buttons - Fixed Width sm:w-56 for identical length */}
@@ -457,13 +462,13 @@ export default function LandingPage() {
             <button
               type="button"
               onClick={() => setRegModalOpen(true)}
-              className="w-full sm:w-56 py-4 border border-white hover:bg-white hover:text-slate-900 text-white text-xs font-black tracking-widest uppercase transition-all duration-200 cursor-pointer shadow-sm text-center"
+              className="w-full sm:w-56 py-4 border border-white hover:bg-white hover:text-slate-900 text-white text-xs font-black tracking-widest uppercase transition-all duration-200 cursor-pointer shadow-sm text-center flex items-center justify-center"
             >
               Register Interest
             </button>
             <Link
               href="/login"
-              className="w-full sm:w-56 py-4 bg-[#00df89] hover:bg-[#00c578] text-slate-900 text-xs font-black tracking-widest uppercase transition-all duration-200 shadow-md text-center block"
+              className="w-full sm:w-56 py-4 bg-[#00ff80] hover:bg-[#00e673] text-slate-900 text-xs font-black tracking-widest uppercase transition-all duration-200 shadow-md text-center flex items-center justify-center"
             >
               Sign In
             </Link>
