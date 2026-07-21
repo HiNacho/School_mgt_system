@@ -659,14 +659,20 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <aside className="w-64 bg-white border-r border-slate-200/80 flex flex-col justify-between hidden lg:flex flex-shrink-0 z-40">
         <div className="overflow-y-auto flex-1">
           <div className="p-5 flex items-center gap-3 border-b border-[#e9ecef] mb-2">
-            {school?.logoUrl ? (
-              <img src={school.logoUrl} alt="School Crest" className="w-8 h-8 rounded-xl object-cover border border-slate-200 bg-white" />
+            {school ? (
+              <div className="flex items-center gap-3">
+                {school.logoUrl ? (
+                  <img src={school.logoUrl} alt="School Crest" className="w-8 h-8 rounded-xl object-cover border border-slate-200 bg-white" />
+                ) : (
+                  <img src="/logo.png" alt="Operon Logo" className="w-8 h-8 object-contain" />
+                )}
+                <span className="font-poppins-bold text-base text-[#1e293b] tracking-wide truncate max-w-[140px]" title={school.name}>
+                  {school.name}
+                </span>
+              </div>
             ) : (
-              <img src="/logo.png" alt="Operon Logo" className="w-8 h-8 object-contain" />
+              <img src="/logo_full.png" alt="Operon Logo" className="h-8 w-auto object-contain" />
             )}
-            <span className="font-poppins-bold text-base text-[#1e293b] tracking-wide truncate max-w-[150px]" title={role === 'SUPER_ADMIN' ? 'Operon' : (school?.name || 'Operon')}>
-              {role === 'SUPER_ADMIN' ? 'Operon' : (school?.name || 'Operon')}
-            </span>
           </div>
 
           {/* MENU SECTION */}
@@ -745,14 +751,20 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <div>
               <div className="flex items-center justify-between pb-5 border-b border-[#e9ecef] mb-4">
                 <div className="flex items-center gap-2.5">
-                  {school?.logoUrl ? (
-                    <img src={school.logoUrl} alt="School Crest" className="w-6 h-6 rounded-lg object-cover border border-slate-200 bg-white" />
+                  {school ? (
+                    <div className="flex items-center gap-2">
+                      {school.logoUrl ? (
+                        <img src={school.logoUrl} alt="School Crest" className="w-6 h-6 rounded-lg object-cover border border-slate-200 bg-white" />
+                      ) : (
+                        <img src="/logo.png" alt="Operon Logo" className="w-6 h-6 object-contain" />
+                      )}
+                      <span className="font-poppins-bold text-sm text-[#1e293b] truncate max-w-[120px]" title={school.name}>
+                        {school.name}
+                      </span>
+                    </div>
                   ) : (
-                    <img src="/logo.png" alt="Operon Logo" className="w-6 h-6 object-contain" />
+                    <img src="/logo_full.png" alt="Operon Logo" className="h-6 w-auto object-contain" />
                   )}
-                  <span className="font-poppins-bold text-sm text-[#1e293b] truncate max-w-[130px]" title={role === 'SUPER_ADMIN' ? 'Operon' : (school?.name || 'Operon')}>
-                    {role === 'SUPER_ADMIN' ? 'Operon' : (school?.name || 'Operon')}
-                  </span>
                 </div>
                 <button type="button" onClick={() => setMobileMenuOpen(false)} className="p-1 rounded-md bg-slate-50 text-slate-400 hover:text-slate-600">
                   <X className="w-4 h-4" />
