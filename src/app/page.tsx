@@ -473,27 +473,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Green Metric/Feature Footer Banner (Mocking laptop partner bar) */}
-      <div className="bg-[#073d26] border-y border-[#0b5c3a] py-6 relative z-10">
-        <div className="max-w-7xl mx-auto px-6 grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
-          <div className="space-y-1">
-            <span className="block text-[#00df89] text-lg font-black font-mono">100%</span>
-            <span className="block text-white text-[10px] font-black uppercase tracking-wider">Automated Sheets</span>
-          </div>
-          <div className="space-y-1 border-l border-[#0b5c3a]/40">
-            <span className="block text-[#00df89] text-lg font-black font-mono">1-Click</span>
-            <span className="block text-white text-[10px] font-black uppercase tracking-wider">Report Compiler</span>
-          </div>
-          <div className="space-y-1 border-l border-[#0b5c3a]/40">
-            <span className="block text-[#00df89] text-lg font-black font-mono">Instant</span>
-            <span className="block text-white text-[10px] font-black uppercase tracking-wider">Tie-Breaker Engine</span>
-          </div>
-          <div className="space-y-1 border-l border-[#0b5c3a]/40">
-            <span className="block text-[#00df89] text-lg font-black font-mono">Secure</span>
-            <span className="block text-white text-[10px] font-black uppercase tracking-wider">Flutterwave Gateway</span>
-          </div>
-        </div>
-      </div>
+
 
       {/* Solutions Grid Section ("Best Seller Features") */}
       <section id="solutions" className="max-w-7xl mx-auto px-6 py-16 lg:py-24 relative z-10 border-t border-[#e9ecef]">
