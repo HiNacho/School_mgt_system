@@ -363,7 +363,7 @@ export default function LandingPage() {
             </button>
             <Link
               href="/login"
-              className="px-5 py-2 bg-[#0b5c3a] hover:bg-[#073d26] text-white text-[10px] font-black tracking-widest uppercase transition-all duration-200 shadow-sm"
+              className="px-5 py-2 bg-[#00df89] hover:bg-[#00c578] text-slate-900 text-[10px] font-black tracking-widest uppercase transition-all duration-200 shadow-sm"
             >
               Sign In
             </Link>
@@ -435,8 +435,8 @@ export default function LandingPage() {
 
       {/* Full-Bleed Hero Banner taking full screen */}
       <section className="relative w-full h-[calc(100vh-68px)] bg-[url('/hero_school.jpg')] bg-cover bg-center overflow-hidden flex items-center justify-center">
-        {/* Dark Gradient Overlay */}
-        <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/40 to-black/75 z-0" />
+        {/* Dark Gradient Overlay (Increased opacity to make Operon text pop) */}
+        <div className="absolute inset-0 bg-gradient-to-b from-black/85 via-black/75 to-black/90 z-0" />
         
         <div className="max-w-4xl mx-auto px-6 relative z-10 flex flex-col items-center justify-center text-center space-y-8 animate-fade-in">
           {/* Logo & Brand Name */}
@@ -448,18 +448,18 @@ export default function LandingPage() {
             <div className="w-16 h-1 bg-[#00df89] rounded-full mt-1"></div>
           </div>
 
-          {/* Centered Buttons */}
-          <div className="pt-4 flex flex-col sm:flex-row items-center justify-center gap-4 w-full max-w-sm sm:max-w-md">
+          {/* Centered Buttons - Fixed Width sm:w-56 for identical length */}
+          <div className="pt-4 flex flex-col sm:flex-row items-center justify-center gap-4 w-full max-w-sm sm:max-w-lg">
             <button
               type="button"
               onClick={() => setRegModalOpen(true)}
-              className="w-full sm:w-auto px-8 py-4 border border-white hover:bg-white hover:text-slate-900 text-white text-xs font-black tracking-widest uppercase transition-all duration-200 cursor-pointer shadow-sm"
+              className="w-full sm:w-56 py-4 border border-white hover:bg-white hover:text-slate-900 text-white text-xs font-black tracking-widest uppercase transition-all duration-200 cursor-pointer shadow-sm text-center"
             >
               Register Interest
             </button>
             <Link
               href="/login"
-              className="w-full sm:w-auto px-10 py-4 bg-[#0b5c3a] hover:bg-[#073d26] text-white text-xs font-black tracking-widest uppercase transition-all duration-200 shadow-md text-center cursor-pointer"
+              className="w-full sm:w-56 py-4 bg-[#00df89] hover:bg-[#00c578] text-slate-900 text-xs font-black tracking-widest uppercase transition-all duration-200 shadow-md text-center block"
             >
               Sign In
             </Link>
