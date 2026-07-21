@@ -363,7 +363,7 @@ export default function LandingPage() {
             <button
               type="button"
               onClick={() => setRegModalOpen(true)}
-              className="px-5 py-2 border border-[#cbd5e1] hover:bg-slate-50 text-[#475569] text-[10px] font-black tracking-widest uppercase transition-all duration-200"
+              className="px-5 py-2 border border-[#cbd5e1] hover:border-[#00ff80] hover:bg-[#00ff80] text-[#475569] hover:text-slate-900 text-[10px] font-black tracking-widest uppercase transition-all duration-200"
             >
               Register Interest
             </button>
@@ -431,7 +431,7 @@ export default function LandingPage() {
             <button
               type="button"
               onClick={() => { setMobileMenuOpen(false); setRegModalOpen(true); }}
-              className="w-full py-2.5 text-center border border-[#cbd5e1] text-[#475569] font-bold text-xs uppercase tracking-widest transition-all"
+              className="w-full py-2.5 text-center border border-[#cbd5e1] hover:border-[#00ff80] hover:bg-[#00ff80] text-[#475569] hover:text-slate-900 font-bold text-xs uppercase tracking-widest transition-all"
             >
               Register Interest
             </button>
