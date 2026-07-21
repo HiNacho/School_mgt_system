@@ -557,7 +557,7 @@ export default function DashboardHome() {
       <div className="min-h-96 flex items-center justify-center">
         <div className="text-center space-y-4">
           <div className="w-10 h-10 border-4 border-t-blue-600 border-r-transparent border-b-transparent border-l-transparent rounded-full animate-spin mx-auto" />
-          <p className="text-slate-400 text-xs font-semibold tracking-wider uppercase">Loading NachoEd Hub...</p>
+          <p className="text-slate-400 text-xs font-semibold tracking-wider uppercase">Loading Operon Hub...</p>
         </div>
       </div>
     );
@@ -697,12 +697,12 @@ export default function DashboardHome() {
       {/* 1. TOP ANCHOR: Profile welcome block */}
       <div className="bg-white border border-[#e9ecef] rounded-3xl p-6 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <span className="text-[9px] font-bold tracking-widest text-[#94a3b8] uppercase">{school?.name || 'NachoEd'} Operating Hub</span>
+          <span className="text-[9px] font-bold tracking-widest text-[#94a3b8] uppercase">{school?.name || 'Operon'} Operating Hub</span>
           <h1 className="text-xl font-normal text-[#1e293b] tracking-tight mt-1">
             Hello, <span className="text-[#10b981] serif-italic font-normal">{user.firstName} {user.lastName}</span>!
           </h1>
           <p className="text-xs text-[#64748b] font-semibold mt-0.5">
-            Active Tenant Boundary: <strong className="text-[#1e293b] font-bold">{school?.name || 'NachoEd Global Platform'}</strong> • Authorized Role: <strong className="text-slate-600 capitalize">{role.toLowerCase().replace('_', ' ')}</strong>
+            Active Tenant Boundary: <strong className="text-[#1e293b] font-bold">{school?.name || 'Operon Global Platform'}</strong> • Authorized Role: <strong className="text-slate-600 capitalize">{role.toLowerCase().replace('_', ' ')}</strong>
           </p>
         </div>
 

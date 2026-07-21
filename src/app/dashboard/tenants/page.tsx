@@ -181,11 +181,11 @@ To: ${lead.email}
 Name: ${lead.name}
 School Name: ${lead.schoolName}
 Timestamp: ${new Date().toISOString()}
-Subject: Welcome to NachoEd - Report Card Automation Onboarding!
+Subject: Welcome to Operon - Report Card Automation Onboarding!
 
 Dear ${lead.name},
 
-Here is your requested welcome email resend containing the default credentials to access and explore the NachoEd platform!
+Here is your requested welcome email resend containing the default credentials to access and explore the Operon platform!
 
 Use the link below to access the demo portals:
 Demo Portal Link: http://localhost:3000/login
@@ -230,7 +230,7 @@ Password: password
 Please use these credentials to log in, test workflows, view class registries, input grades, and compile academic reports.
 
 Best Regards,
-The NachoEd Support Team
+The Operon Support Team
 ============================================================
 `);
       
@@ -578,7 +578,7 @@ The NachoEd Support Team
       {/* Page Header Welcome Card */}
       <div className="bg-white border border-[#e9ecef] rounded-3xl p-6 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <span className="text-[9px] font-bold tracking-widest text-[#94a3b8] uppercase">NachoEd Global Platform</span>
+          <span className="text-[9px] font-bold tracking-widest text-[#94a3b8] uppercase">Operon Global Platform</span>
           <h1 className="text-xl font-normal text-[#1e293b] tracking-tight mt-1">
             SaaS School <span className="text-emerald-500 serif-italic font-normal">Tenant Registry</span>
           </h1>
