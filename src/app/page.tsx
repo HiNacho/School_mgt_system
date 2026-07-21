@@ -435,8 +435,8 @@ export default function LandingPage() {
 
       {/* Full-Bleed Hero Banner taking full screen */}
       <section className="relative w-full h-[calc(100vh-68px)] bg-[url('/hero_school.jpg')] bg-cover bg-center overflow-hidden flex items-center justify-center">
-        {/* Dark Gradient Overlay (Increased opacity to make Operon text pop) */}
-        <div className="absolute inset-0 bg-gradient-to-b from-black/85 via-black/75 to-black/90 z-0" />
+        {/* Dark Gradient Overlay (Balanced opacity for readability and image detail) */}
+        <div className="absolute inset-0 bg-gradient-to-b from-black/75 via-black/60 to-black/85 z-0" />
         
         <div className="max-w-4xl mx-auto px-6 relative z-10 flex flex-col items-center justify-center text-center space-y-8 animate-fade-in">
           {/* Logo & Brand Name */}
