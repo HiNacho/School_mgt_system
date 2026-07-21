@@ -92,9 +92,16 @@ export async function POST(req: NextRequest) {
     }
 
     // Auto-generate credentials
-    const tempPassword = generateTempPassword();
+    const { isPasswordUnique, getPasswordUniqueHash } = require('@/lib/password-rules');
+    let tempPassword = '';
+    let isUnique = false;
+    while (!isUnique) {
+      tempPassword = generateTempPassword();
+      isUnique = await isPasswordUnique(tempPassword);
+    }
     const salt = await bcrypt.genSalt(10);
     const passwordHash = await bcrypt.hash(tempPassword, salt);
+    const uniqueHash = getPasswordUniqueHash(tempPassword);
     const username = await generateUniqueUsername(lastName);
 
     const result = await prisma.$transaction(async (tx) => {
@@ -132,6 +139,7 @@ export async function POST(req: NextRequest) {
           lastName: lastName.trim(),
           role: 'PARENT',
           passwordHash,
+          passwordUniqueHash: uniqueHash,
           parentId: parent.id,
           status: 'ACTIVE',
           isActive: true,

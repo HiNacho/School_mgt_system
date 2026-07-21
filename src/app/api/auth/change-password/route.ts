@@ -41,40 +41,25 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: `Password is too weak. ${strength.feedback}` }, { status: 400 });
     }
 
-    // 4b. If school enforces unique passwords, verify that no other user in the school has this password
-    if (user.schoolId) {
-      const school = await prisma.school.findUnique({
-        where: { id: user.schoolId }
-      });
-
-      if (school?.enforceUniquePasswords) {
-        const otherUsers = await prisma.user.findMany({
-          where: {
-            schoolId: user.schoolId,
-            NOT: { id: user.id }
-          },
-          select: { passwordHash: true, email: true }
-        });
-
-        for (const ou of otherUsers) {
-          const isSame = await bcrypt.compare(newPassword, ou.passwordHash);
-          if (isSame) {
-            return NextResponse.json({
-              error: 'Security Policy Violation: This password is already in use by another user in this school context. Please choose a unique password.'
-            }, { status: 400 });
-          }
-        }
-      }
+    // 4b. Verify that no other user in the platform has this password (Global Uniqueness Check)
+    const { isPasswordUnique, getPasswordUniqueHash } = require('@/lib/password-rules');
+    const isUnique = await isPasswordUnique(newPassword, user.id);
+    if (!isUnique) {
+      return NextResponse.json({
+        error: 'Security Policy Violation: This password is already in use by another user. Please choose a unique password.'
+      }, { status: 400 });
     }
 
     // 5. Hash new password and clear first-time login flag
     const salt = await bcrypt.genSalt(10);
     const newPasswordHash = await bcrypt.hash(newPassword, salt);
+    const newUniqueHash = getPasswordUniqueHash(newPassword);
 
     await prisma.user.update({
       where: { id: user.id },
       data: {
         passwordHash: newPasswordHash,
+        passwordUniqueHash: newUniqueHash,
         isFirstLogin: false
       }
     });

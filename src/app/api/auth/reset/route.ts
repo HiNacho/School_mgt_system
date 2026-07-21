@@ -30,16 +30,25 @@ export async function POST(req: NextRequest) {
     // School admins can only reset passwords for users in their own school tenant
     requireSchoolScope(session, targetUser.schoolId);
 
-    // 4. Generate and hash temporary password
-    const tempPassword = generateTempPassword(); // e.g. Temp@1234
+    // 4. Generate and hash unique temporary password
+    const { isPasswordUnique, getPasswordUniqueHash } = require('@/lib/password-rules');
+    let tempPassword = '';
+    let isUnique = false;
+    while (!isUnique) {
+      tempPassword = generateTempPassword(); // e.g. Temp@1234
+      isUnique = await isPasswordUnique(tempPassword);
+    }
+
     const salt = await bcrypt.genSalt(10);
     const hashedTempPassword = await bcrypt.hash(tempPassword, salt);
+    const uniqueHash = getPasswordUniqueHash(tempPassword);
 
     // 5. Save updates, forcing change on next login
     await prisma.user.update({
       where: { id: targetUser.id },
       data: {
         passwordHash: hashedTempPassword,
+        passwordUniqueHash: uniqueHash,
         isFirstLogin: true
       }
     });

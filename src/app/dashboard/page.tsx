@@ -26,6 +26,7 @@ export default function DashboardHome() {
   const [staff, setStaff] = useState<any[]>([]);
   const [events, setEvents] = useState<any[]>([]);
   const [announcements, setAnnouncements] = useState<any[]>([]);
+  const [superadminAnnouncements, setSuperadminAnnouncements] = useState<any[]>([]);
   const [subjectsData, setSubjectsData] = useState<any>(null);
   
   // Teachers specifics
@@ -293,10 +294,59 @@ export default function DashboardHome() {
         setSelectedChildId(sess.user.parent.students[0].id);
       }
 
+      // Fetch high-priority superadmin broadcasts if they are an admin
+      if (role === 'SCHOOL_ADMIN') {
+        try {
+          const msgRes = await fetch(`/api/messages?schoolId=${schoolId}&userId=${sess.user.id}&mode=inbox`, { cache: 'no-store', headers });
+          if (msgRes.ok) {
+            const msgJson = await msgRes.json();
+            if (msgJson.success && Array.isArray(msgJson.data)) {
+              // Filter unread announcements sent by SUPER_ADMIN
+              const saAnnouncements = msgJson.data.filter((msg: any) => 
+                msg.messageType === 'ANNOUNCEMENT' && 
+                msg.sender?.role === 'SUPER_ADMIN' && 
+                !msg.isRead
+              );
+              setSuperadminAnnouncements(saAnnouncements);
+            }
+          }
+        } catch (msgErr) {
+          console.error('Error fetching Superadmin broadcasts:', msgErr);
+        }
+      }
+
       setLoading(false);
     } catch (err: any) {
       setError(err.message || 'Failed to aggregate dashboard reports');
       setLoading(false);
+    }
+  };
+
+  // Dismiss Superadmin Broadcast/Announcement and mark it as read in the DB
+  const handleDismissSuperadminAnnouncement = async (msgId: string) => {
+    if (!session?.user?.id) return;
+    try {
+      const token = localStorage.getItem('report_auth_token') || '';
+      const headers = {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      };
+      
+      const res = await fetch('/api/messages', {
+        method: 'PATCH',
+        headers,
+        body: JSON.stringify({
+          userId: session.user.id,
+          messageIds: [msgId]
+        })
+      });
+      
+      if (res.ok) {
+        // Remove from local state
+        setSuperadminAnnouncements(prev => prev.filter(ann => ann.id !== msgId));
+      }
+    } catch (err) {
+      console.error('Error dismissing SA announcement:', err);
     }
   };
 
@@ -600,6 +650,49 @@ export default function DashboardHome() {
 
   return (
     <div className="space-y-6">
+      
+      {/* Superadmin Broadcast Announcements Banners */}
+      {superadminAnnouncements.length > 0 && (
+        <div className="space-y-3.5">
+          {superadminAnnouncements.map((ann) => (
+            <div 
+              key={ann.id} 
+              className="bg-rose-50/90 backdrop-blur-sm border-2 border-rose-200/60 p-5 rounded-3xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 shadow-sm relative overflow-hidden transition-all duration-300 hover:border-rose-300"
+            >
+              {/* Subtle background glow aesthetic */}
+              <div className="absolute top-0 right-0 w-24 h-24 bg-rose-200/20 rounded-full blur-2xl -mr-6 -mt-6 pointer-events-none" />
+              
+              <div className="flex items-start gap-4">
+                <div className="p-3 rounded-2xl bg-white text-rose-500 border border-rose-100 shadow-sm flex-shrink-0 mt-0.5">
+                  <Megaphone className="w-5 h-5 animate-bounce" />
+                </div>
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="px-2 py-0.5 rounded bg-rose-100 text-rose-700 text-[8px] font-black uppercase tracking-widest border border-rose-200">
+                      System Alert
+                    </span>
+                    <span className="text-[10px] text-rose-400 font-bold">
+                      {new Date(ann.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+                    </span>
+                  </div>
+                  <h3 className="font-extrabold text-slate-800 text-[13px] tracking-tight">{ann.title}</h3>
+                  <p className="text-[11px] text-slate-600 font-medium leading-relaxed max-w-2xl">{ann.body}</p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2.5 w-full sm:w-auto flex-shrink-0 justify-end">
+                <button
+                  type="button"
+                  onClick={() => handleDismissSuperadminAnnouncement(ann.id)}
+                  className="px-5 py-2.5 bg-rose-600 hover:bg-rose-700 text-white rounded-2xl text-[11px] font-bold shadow-sm shadow-rose-500/20 transition-all cursor-pointer w-full sm:w-auto text-center animate-pulse hover:animate-none"
+                >
+                  Dismiss Alert
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
       
       {/* 1. TOP ANCHOR: Profile welcome block */}
       <div className="bg-white border border-[#e9ecef] rounded-3xl p-6 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
