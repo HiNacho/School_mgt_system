@@ -119,7 +119,7 @@ export default function LoginPage() {
           {/* Logo on top of User Login */}
           <div className="flex flex-col items-center justify-center gap-2 mb-8 border-b border-[#e9ecef]/60 pb-6">
             <Link href="/">
-              <img src="/logo_full.png" alt="Operon Logo" className="h-10 w-auto object-contain hover:opacity-90 transition-opacity" />
+              <img src="/logo_full_dark.png" alt="Operon Logo" className="h-10 w-auto object-contain hover:opacity-90 transition-opacity" />
             </Link>
           </div>
 

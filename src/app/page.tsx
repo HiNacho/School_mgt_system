@@ -355,7 +355,7 @@ export default function LandingPage() {
 
           {/* Center: Logo Brand */}
           <div className="flex items-center gap-2.5 md:absolute md:left-1/2 md:-translate-x-1/2">
-            <img src="/logo_full.png" alt="Operon Logo" className="h-8 w-auto object-contain" />
+            <img src="/logo_full_dark.png" alt="Operon Logo" className="h-8 w-auto object-contain" />
           </div>
           
           {/* Right: Auth Controls */}
