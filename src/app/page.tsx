@@ -421,13 +421,7 @@ export default function LandingPage() {
             >
               Sign In
             </Link>
-            <button
-              type="button"
-              onClick={() => { setMobileMenuOpen(false); setTryModalOpen(true); }}
-              className="w-full py-2.5 text-center bg-[#0b5c3a] text-white font-bold text-xs uppercase tracking-widest transition-all"
-            >
-              Try App
-            </button>
+
             <button
               type="button"
               onClick={() => { setMobileMenuOpen(false); setRegModalOpen(true); }}
