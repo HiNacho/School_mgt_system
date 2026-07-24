@@ -9,7 +9,7 @@ import { generateUniqueUsername, generateTempPassword } from '@/lib/auth-utils';
 export async function GET(req: NextRequest) {
   try {
     const session = await requireAuth(req);
-    requireRole(session, ['SUPER_ADMIN', 'SCHOOL_ADMIN', 'CLASS_TEACHER', 'SUBJECT_TEACHER', 'PARENT', 'STUDENT']);
+    requireRole(session, ['SUPER_ADMIN', 'SCHOOL_ADMIN', 'CLASS_TEACHER', 'SUBJECT_TEACHER', 'PARENT', 'STUDENT', 'BURSAR']);
 
     const { searchParams } = new URL(req.url);
     const studentId = searchParams.get('studentId');
@@ -19,32 +19,39 @@ export async function GET(req: NextRequest) {
     const status = searchParams.get('status') || 'ACTIVE'; // ACTIVE, ARCHIVED, GRADUATED, etc., or 'ALL'
 
     if (studentId) {
+      const includes: any = {
+        class: true,
+        arm: true,
+        parent: { include: { user: true } },
+        user: true,
+        invoices: { where: { deletedAt: null }, include: { payments: { where: { deletedAt: null } }, installments: true } },
+        studentPayments: { where: { deletedAt: null } }
+      };
+
+      if (session.role !== 'BURSAR') {
+        includes.scores = {
+          include: {
+            subject: true,
+            term: true,
+            class: true,
+            arm: true,
+          }
+        };
+        includes.attendance = {
+          include: {
+            term: true,
+          }
+        };
+        includes.reportComments = {
+          include: {
+            term: true,
+          }
+        };
+      }
+
       const student = await prisma.student.findUnique({
         where: { id: studentId },
-        include: {
-          class: true,
-          arm: true,
-          parent: { include: { user: true } },
-          user: true,
-          scores: {
-            include: {
-              subject: true,
-              term: true,
-              class: true,
-              arm: true,
-            }
-          },
-          attendance: {
-            include: {
-              term: true,
-            }
-          },
-          reportComments: {
-            include: {
-              term: true,
-            }
-          }
-        }
+        include: includes
       });
 
       if (!student) {

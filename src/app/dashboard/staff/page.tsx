@@ -42,7 +42,7 @@ export default function StaffAccountsPage() {
   const [phone, setPhone] = useState('');
 
   // Enhanced Instructional Role Assignments States
-  const [staffCategory, setStaffCategory] = useState<'TEACHER' | 'HEAD_TEACHER' | 'SCHOOL_ADMIN'>('TEACHER');
+  const [staffCategory, setStaffCategory] = useState<'TEACHER' | 'HEAD_TEACHER' | 'SCHOOL_ADMIN' | 'BURSAR'>('TEACHER');
   const [isClassTeacher, setIsClassTeacher] = useState(false);
   const [isSubjectTeacher, setIsSubjectTeacher] = useState(true);
   const [classTeacherArmId, setClassTeacherArmId] = useState('');
@@ -422,6 +422,8 @@ export default function StaffAccountsPage() {
       determinedRole = 'SCHOOL_ADMIN';
     } else if (staffCategory === 'HEAD_TEACHER') {
       determinedRole = 'HEAD_TEACHER';
+    } else if (staffCategory === 'BURSAR') {
+      determinedRole = 'BURSAR';
     } else {
       // Teaching Staff
       if (!isClassTeacher && !isSubjectTeacher) {
@@ -1223,7 +1225,7 @@ export default function StaffAccountsPage() {
                   <select
                     value={staffCategory}
                     onChange={(e) => {
-                      const cat = e.target.value as 'TEACHER' | 'HEAD_TEACHER' | 'SCHOOL_ADMIN';
+                      const cat = e.target.value as 'TEACHER' | 'HEAD_TEACHER' | 'SCHOOL_ADMIN' | 'BURSAR';
                       setStaffCategory(cat);
                       if (cat === 'TEACHER' && subjectAssignments.length === 0) {
                         setSubjectAssignments([{ subjectId: '', armId: '' }]);
@@ -1234,6 +1236,7 @@ export default function StaffAccountsPage() {
                     <option value="TEACHER">Teaching Staff (Class / Subject teacher roles)</option>
                     <option value="HEAD_TEACHER">Head Teacher / Dean (Curriculum coordinator/reviews)</option>
                     <option value="SCHOOL_ADMIN">School Admin / Principal (Full administrative security controls)</option>
+                    <option value="BURSAR">Bursar (Financial management & operations center)</option>
                   </select>
                 </div>
 

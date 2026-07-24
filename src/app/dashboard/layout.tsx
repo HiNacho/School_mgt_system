@@ -6,7 +6,8 @@ import Link from 'next/link';
 import { 
   Home, Users, GraduationCap, BookOpen, Layers, ClipboardList, 
   MessageSquare, User, Settings, LogOut, Menu, X, 
-  Bell, Award, Shield, Sparkles, Calendar, FileText, CheckCircle, CreditCard
+  Bell, Award, Shield, Sparkles, Calendar, FileText, CheckCircle, CreditCard,
+  Percent, CheckSquare, AlertCircle, Clock, Activity, BarChart3
 } from 'lucide-react';
 
 interface SidebarItem {
@@ -213,6 +214,22 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     }
   }, [ready, session, pathname]);
 
+  // Enforce Bursar RBAC page restriction
+  useEffect(() => {
+    if (!ready || !session || !pathname) return;
+    if (session.user.role === 'BURSAR') {
+      const isAllowedPath = pathname === '/dashboard' || 
+        pathname === '/dashboard/profile' || 
+        pathname === '/dashboard/settings' ||
+        pathname.startsWith('/dashboard/bursar/');
+      
+      if (!isAllowedPath) {
+        console.warn(`🚨 RBAC Access Denied: Bursar ${session.user.id} tried to access academic path ${pathname}`);
+        router.replace('/dashboard');
+      }
+    }
+  }, [ready, session, pathname, router]);
+
   // Telemetry: Check feedback status and trigger 45s modal timer
   useEffect(() => {
     if (!ready || !session || !session.user?.id) return;
@@ -306,6 +323,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       case 'SUBJECT_TEACHER': return 'teacher';
       case 'PARENT': return 'parent';
       case 'STUDENT': return 'student';
+      case 'BURSAR': return 'bursar';
       default: return r.toLowerCase();
     }
   };
@@ -319,6 +337,22 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       { name: 'Tenants', href: '/dashboard/tenants', icon: Layers },
       { name: 'Messages', href: '/dashboard/messages', icon: MessageSquare },
       { name: 'Global Rules', href: '/dashboard/global-rules', icon: Settings },
+    ];
+  } else if (role === 'BURSAR') {
+    menuItems = [
+      { name: 'Dashboard', href: '/dashboard', icon: Home },
+      { name: 'Student Fees', href: '/dashboard/bursar/fees', icon: CreditCard },
+      { name: 'Payments', href: '/dashboard/bursar/payments', icon: CheckCircle },
+      { name: 'Invoices', href: '/dashboard/bursar/invoices', icon: FileText },
+      { name: 'Receipts', href: '/dashboard/bursar/receipts', icon: CheckSquare },
+      { name: 'Fee Structure', href: '/dashboard/bursar/structures', icon: Layers },
+      { name: 'Outstanding Fees', href: '/dashboard/bursar/outstanding', icon: AlertCircle },
+      { name: 'Installments', href: '/dashboard/bursar/installments', icon: Clock },
+      { name: 'Scholarships', href: '/dashboard/bursar/scholarships', icon: Award },
+      { name: 'Discounts', href: '/dashboard/bursar/discounts', icon: Percent },
+      { name: 'Financial Reports', href: '/dashboard/bursar/reports', icon: BarChart3 },
+      { name: 'Payment Reminders', href: '/dashboard/bursar/reminders', icon: Bell },
+      { name: 'Transactions', href: '/dashboard/bursar/transactions', icon: Activity },
     ];
   } else if (role === 'SCHOOL_ADMIN') {
     menuItems = [

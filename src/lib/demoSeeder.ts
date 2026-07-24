@@ -165,6 +165,22 @@ export async function seedDemoSchool(schoolName: string, leadEmail: string, scho
     },
   });
 
+  const bursar = await prisma.user.create({
+    data: {
+      schoolId,
+      username: `bursar_${randomSuffix}`,
+      email: `bursar@${slug}.com`,
+      passwordHash,
+      firstName: 'Elizabeth',
+      lastName: 'Okon',
+      title: 'Mrs.',
+      role: 'BURSAR',
+      status: 'ACTIVE',
+      isActive: true,
+      isFirstLogin: false,
+    },
+  });
+
   // 8. Create Classes & Arms
   // Create 3 classes
   const classNames = isPrimary 

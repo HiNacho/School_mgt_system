@@ -29,6 +29,10 @@ model School {
 
   payments            Payment[]
   usageLogs           UsageLog[]
+  feeStructures       FeeStructure[]
+  invoices            Invoice[]
+  studentPayments     StudentPayment[]
+  financialAuditLogs  FinancialAuditLog[]
 
 
   users              User[]
@@ -86,6 +90,8 @@ model User {
 
   school             School?             @relation(fields: [schoolId], references: [id], onDelete: Cascade)
   classTeacherArms   Arm[]               @relation("ClassTeacher")
+  paymentsRecorded   StudentPayment[]    @relation("PaymentRecorder")
+  paymentsVerified   StudentPayment[]    @relation("PaymentVerifier")
   subjectAssignments SubjectAssignment[]
   scoresEntered      Score[]             @relation("ScoreTeacher")
   scoreSubmissions   ScoreSubmission[]
@@ -135,6 +141,7 @@ model AcademicSession {
 
   school School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
   terms  Term[]
+  invoices Invoice[]
 }
 
 model Term {
@@ -157,6 +164,7 @@ model Term {
   classReportStatuses ClassReportStatus[]
   behaviorRatings     BehaviorRating[]
   weeklyReports           WeeklyReport[]
+  invoices                Invoice[]
 }
 
 model Class {
@@ -175,6 +183,8 @@ model Class {
   subjectAssignments    SubjectAssignment[]
   scoreSubmissions      ScoreSubmission[]
   classReportStatuses   ClassReportStatus[]
+  feeStructureId        String?
+  feeStructure          FeeStructure?          @relation(fields: [feeStructureId], references: [id], onDelete: SetNull)
 
 }
 
@@ -232,6 +242,12 @@ model Student {
   meetingRequests         MeetingRequest[]
   teacherNotes            TeacherNote[]
   studentTimelines        StudentTimeline[]
+  invoices                Invoice[]
+  studentPayments         StudentPayment[]
+  scholarshipType         String?             @default("NONE") // NONE, PERCENTAGE_100, PERCENTAGE_75, PERCENTAGE_50, PERCENTAGE_25, CUSTOM
+  scholarshipValue        Float               @default(0)
+  discountType            String?             @default("NONE") // NONE, SIBLING, STAFF_CHILD, EARLY_PAYMENT, MANUAL
+  discountValue           Float               @default(0)
 
   @@unique([schoolId, admissionNumber])
 }
@@ -784,8 +800,112 @@ model StudentTimeline {
   referenceId String?  // ID of the related log record
   createdAt   DateTime @default(now())
 
-  school      School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
-  student     Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  school      School      @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  student     Student     @relation(fields: [studentId], references: [id], onDelete: Cascade)
 }
 
+// Financial management models for Bursar
+model FeeStructure {
+  id              String   @id @default(uuid())
+  schoolId        String
+  name            String
+  section         String   // NURSERY, PRIMARY, JUNIOR_SECONDARY, SENIOR_SECONDARY
+  tuition         Float    @default(0)
+  developmentLevy Float    @default(0)
+  ict             Float    @default(0)
+  sports          Float    @default(0)
+  books           Float    @default(0)
+  laboratory      Float    @default(0)
+  examination     Float    @default(0)
+  ptaLevy         Float    @default(0)
+  transport       Float    @default(0)
+  boarding        Float    @default(0)
+  hostel          Float    @default(0)
+  uniform         Float    @default(0)
+  miscellaneous   Float    @default(0)
+  customFees      Json?    // Array of { name: string, amount: number }
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
+  school          School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  classes         Class[]
+}
+
+model Invoice {
+  id             String   @id @default(uuid())
+  invoiceNumber  String
+  schoolId       String
+  studentId      String
+  sessionId      String
+  termId         String
+  amount         Float
+  discount       Float    @default(0)
+  scholarship    Float    @default(0)
+  netAmount      Float
+  paidAmount     Float    @default(0)
+  status         String   @default("OUTSTANDING") // PAID, PARTIALLY_PAID, OUTSTANDING, PENDING_VERIFICATION, SCHOLARSHIP, EXEMPTED
+  dueDate        DateTime?
+  items          Json?    // Detailed breakdown of invoiced categories
+  deletedAt      DateTime? // soft delete support
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  school         School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  student        Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  session        AcademicSession @relation(fields: [sessionId], references: [id])
+  term           Term     @relation(fields: [termId], references: [id])
+  payments       StudentPayment[]
+  installments   InstallmentSchedule[]
+}
+
+model StudentPayment {
+  id             String   @id @default(uuid())
+  schoolId       String
+  studentId      String
+  invoiceId      String?
+  receiptNumber  String
+  amount         Float
+  paymentMethod  String   // FLUTTERWAVE, CASH, POS, BANK_TRANSFER, CHEQUE
+  referenceNumber String?
+  bankName       String?
+  paymentDate    DateTime @default(now())
+  notes          String?
+  tellerImage    String?  // base64 or storage url
+  status         String   @default("VERIFIED") // PENDING, VERIFIED, FAILED
+  recordedById   String?
+  verifiedById   String?
+  deletedAt      DateTime? // soft delete support
+  createdAt      DateTime @default(now())
+
+  school         School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  student        Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  invoice        Invoice? @relation(fields: [invoiceId], references: [id], onDelete: SetNull)
+  recordedBy     User?    @relation("PaymentRecorder", fields: [recordedById], references: [id])
+  verifiedBy     User?    @relation("PaymentVerifier", fields: [verifiedById], references: [id])
+}
+
+model InstallmentSchedule {
+  id             String   @id @default(uuid())
+  invoiceId      String
+  dueDate        DateTime
+  amount         Float
+  status         String   @default("UNPAID") // PAID, UNPAID, OVERDUE
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  invoice        Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+}
+
+model FinancialAuditLog {
+  id             String   @id @default(uuid())
+  schoolId       String
+  userId         String
+  role           String
+  action         String   // PAYMENT_RECORDED, INVOICE_GENERATED, DISCOUNT_APPLIED, etc.
+  details        String
+  deviceInfo     String?
+  ipAddress      String?
+  createdAt      DateTime @default(now())
+
+  school         School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+}

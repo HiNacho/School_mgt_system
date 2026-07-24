@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { 
   Users, GraduationCap, Award, BookOpen, AlertCircle, 
   TrendingUp, BarChart2, Star, CheckCircle, Smartphone, X,
@@ -61,14 +62,20 @@ export default function DashboardHome() {
   const [eventSubmitting, setEventSubmitting] = useState(false);
 
 
+  const router = useRouter();
+
   useEffect(() => {
     const userSession = localStorage.getItem('report_user_session');
     if (userSession) {
       const parsed = JSON.parse(userSession);
+      if (parsed.user?.role === 'BURSAR') {
+        router.replace('/dashboard/bursar/reports');
+        return;
+      }
       setSession(parsed);
       fetchDashboardDetails(parsed);
     }
-  }, []);
+  }, [router]);
 
   useEffect(() => {
     if (!session) return;
@@ -548,6 +555,99 @@ export default function DashboardHome() {
     } catch (err: any) {
       alert(err.message || 'Error deleting announcement.');
     }
+  };
+
+  const [payLoadingId, setPayLoadingId] = useState('');
+
+  useEffect(() => {
+    if (session?.user?.role === 'PARENT') {
+      const script = document.createElement('script');
+      script.src = 'https://checkout.flutterwave.com/v3.js';
+      script.async = true;
+      document.body.appendChild(script);
+      return () => {
+        document.body.removeChild(script);
+      };
+    }
+  }, [session]);
+
+  const handlePayOnline = (invoice: any) => {
+    if (!(window as any).FlutterwaveCheckout) {
+      alert('Flutterwave checkout is loading. Please try again in a moment.');
+      return;
+    }
+
+    setPayLoadingId(invoice.id);
+    const amountToPay = invoice.netAmount - invoice.paidAmount;
+
+    const flutterwaveKey = process.env.NEXT_PUBLIC_FLUTTERWAVE_PUBLIC_KEY || "FLWPUBK_TEST-e883df149b06871a2e37ca4b2fb418a0-X";
+
+    (window as any).FlutterwaveCheckout({
+      public_key: flutterwaveKey,
+      tx_ref: `FEES-${invoice.id}-${Date.now()}`,
+      amount: amountToPay,
+      currency: 'NGN',
+      payment_options: 'card, banktransfer, ussd',
+      customer: {
+        email: session.user.email || 'parent@school.com',
+        phone_number: session.user.parent?.phone || '',
+        name: `${session.user.firstName} ${session.user.lastName}`,
+      },
+      customizations: {
+        title: session.school?.name || 'School Fees Payment',
+        description: `Payment for Invoice ${invoice.invoiceNumber}`,
+        logo: session.school?.logoUrl || 'https://images.unsplash.com/photo-1546410531-bb4caa6b424d?w=100&auto=format&fit=crop',
+      },
+      callback: async (data: any) => {
+        console.log('[Flutterwave callback]', data);
+        if (data.status === 'successful' || data.status === 'completed') {
+          try {
+            const token = localStorage.getItem('report_auth_token') || '';
+            const headers: Record<string, string> = {
+              'Content-Type': 'application/json'
+            };
+            if (token) headers['Authorization'] = `Bearer ${token}`;
+
+            const res = await fetch('/api/bursar/payments', {
+              method: 'POST',
+              headers,
+              body: JSON.stringify({
+                studentId: activeStudentDetail.id,
+                invoiceId: invoice.id,
+                amount: amountToPay,
+                paymentMethod: 'FLUTTERWAVE',
+                referenceNumber: data.transaction_id.toString(),
+                bankName: 'Flutterwave Gateway',
+                status: 'VERIFIED',
+                notes: `Online payment via Flutterwave. Ref: ${data.tx_ref}`
+              })
+            });
+
+            const json = await res.json();
+            if (res.ok && json.success) {
+              alert('Payment successful and receipt generated!');
+              // reload detail
+              const detailRes = await fetch(`/api/students?studentId=${activeStudentDetail.id}`, { cache: 'no-store', headers });
+              if (detailRes.ok) {
+                const detailJson = await detailRes.json();
+                setActiveStudentDetail(detailJson.data);
+              }
+            } else {
+              alert(json.error || 'Payment recorded with verification pending.');
+            }
+          } catch (e) {
+            console.error('Error recording payment after flutterwave success:', e);
+            alert('Failed to sync payment callback. Please contact school bursar.');
+          }
+        } else {
+          alert('Payment was not completed successfully.');
+        }
+        setPayLoadingId('');
+      },
+      onclose: () => {
+        setPayLoadingId('');
+      }
+    });
   };
 
 
@@ -1718,6 +1818,56 @@ export default function DashboardHome() {
                           )}
                         </div>
                       </div>
+                    </div>
+                  )}
+
+                  {/* School Fees & Online Payments */}
+                  {activeStudentDetail?.invoices && (
+                    <div className="bg-white border border-slate-100 p-6 rounded-3xl shadow-sm space-y-4">
+                      <div className="flex justify-between items-center border-b border-slate-50 pb-2">
+                        <h4 className="text-xs font-black uppercase text-slate-600 tracking-wider">School Fees & Invoices</h4>
+                        <span className="text-[10px] text-slate-400 font-bold uppercase">Payment Gateway</span>
+                      </div>
+
+                      {activeStudentDetail.invoices.length === 0 ? (
+                        <p className="text-xs text-slate-400 font-semibold italic">No active invoices issued for this term.</p>
+                      ) : (
+                        <div className="space-y-3.5">
+                          {activeStudentDetail.invoices.map((inv: any) => {
+                            const balance = inv.netAmount - inv.paidAmount;
+                            return (
+                              <div key={inv.id} className="p-4 bg-slate-50 border border-slate-100 rounded-2xl flex flex-col sm:flex-row justify-between sm:items-center gap-3">
+                                <div>
+                                  <span className="text-xs font-extrabold text-slate-800">{inv.invoiceNumber}</span>
+                                  <p className="text-[10px] text-slate-400 font-semibold">Due: {new Date(inv.dueDate).toLocaleDateString()}</p>
+                                  <div className="flex gap-4 text-[10px] text-slate-500 font-bold mt-1">
+                                    <span>Total: ₦{inv.netAmount.toLocaleString()}</span>
+                                    <span className="text-emerald-600">Paid: ₦{inv.paidAmount.toLocaleString()}</span>
+                                  </div>
+                                </div>
+
+                                <div className="flex items-center gap-3">
+                                  <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase ${
+                                    inv.status === 'PAID' ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' : 'bg-red-50 text-red-700 border border-red-100'
+                                  }`}>
+                                    {inv.status}
+                                  </span>
+
+                                  {balance > 0 && (
+                                    <button
+                                      disabled={payLoadingId === inv.id}
+                                      onClick={() => handlePayOnline(inv)}
+                                      className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white text-[10px] font-bold uppercase tracking-wider rounded-xl transition-all shadow-sm cursor-pointer"
+                                    >
+                                      {payLoadingId === inv.id ? 'Processing...' : `Pay Online (₦${balance.toLocaleString()})`}
+                                    </button>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
                     </div>
                   )}
 
