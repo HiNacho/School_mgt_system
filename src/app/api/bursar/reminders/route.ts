@@ -13,7 +13,7 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { studentId, invoiceId, reminderType = 'OVERDUE', broadcast = false } = body;
+    const { studentId, invoiceId, reminderType = 'OVERDUE', broadcast = false, title, content } = body;
 
     // Handle Bulk Broadcast Mode
     if (broadcast) {
@@ -46,8 +46,8 @@ export async function POST(req: NextRequest) {
       await prisma.announcement.create({
         data: {
           schoolId,
-          title: 'IMPORTANT: School Fees Payment Notice',
-          content: 'Dear Parents, this is an official notice to all guardians regarding outstanding school fees. Please check your child\'s financial ledger on the dashboard and proceed with online Flutterwave payments. Direct message (DM) chat option is available for any payment confirmations or installment inquiries.',
+          title: title || 'IMPORTANT: School Fees Payment Notice',
+          content: content || 'Dear Parents, this is an official notice to all guardians regarding outstanding school fees. Please check your child\'s financial ledger on the dashboard and proceed with online Flutterwave payments. Direct message (DM) chat option is available for any payment confirmations or installment inquiries.',
           date: new Date().toISOString().split('T')[0]
         }
       });
@@ -98,7 +98,7 @@ export async function POST(req: NextRequest) {
           data: {
             conversationId: conversation.id,
             senderId: session.userId,
-            body: `Hello, this is a reminder regarding outstanding school fees of ₦${balance.toLocaleString()} for your child ${student.firstName} ${student.lastName} (${student.class.name}). Please review the invoice on your dashboard. You can reply directly to this chat message if you are having challenges paying, or need to clarify/confirm a bank payment.`
+            body: content || `Hello, this is a reminder regarding outstanding school fees of ₦${balance.toLocaleString()} for your child ${student.firstName} ${student.lastName} (${student.class.name}). Please review the invoice on your dashboard. You can reply directly to this chat message if you are having challenges paying, or need to clarify/confirm a bank payment.`
           }
         });
 
