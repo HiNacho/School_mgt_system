@@ -3,7 +3,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { 
   Users, CheckCircle, AlertCircle, RefreshCw, Sparkles, X, Mail, Phone, 
-  Trash2, Search, Eye, Download, Upload, Activity, Database, DollarSign, 
+  Trash2, Search, Eye, Download, Upload, Activity, Database, DollarSign, Archive, 
   Brain, MessageSquare, AlertTriangle, Play, Settings, Plus, LayoutDashboard, 
   FileText, Check, ShieldAlert, Shield, ToggleLeft, ToggleRight, Loader2, ArrowUpRight, ArrowDownRight, Clock
 } from 'lucide-react';
@@ -423,6 +423,65 @@ export default function SuperAdminDashboard({ user, school }: SuperAdminDashboar
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || 'Failed to update subscription status');
 
+      loadPlatformData();
+    } catch (err: any) {
+      alert(err.message);
+    }
+  };
+
+  // Archive / Restore school database
+  const handleArchiveSchool = async (schoolId: string, currentStatus: string) => {
+    const nextStatus = currentStatus === 'archived' ? 'active' : 'archived';
+    const confirmMsg = currentStatus === 'archived' 
+      ? "Are you sure you want to restore this school database from archive?" 
+      : "Are you sure you want to ARCHIVE this school database? This will restrict user access but preserve database records.";
+    if (!confirm(confirmMsg)) return;
+
+    try {
+      const token = localStorage.getItem('report_auth_token') || '';
+      const res = await fetch('/api/schools', {
+        method: 'PATCH',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          schoolId,
+          subscriptionStatus: nextStatus
+        })
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || 'Failed to update archive status');
+
+      loadPlatformData();
+    } catch (err: any) {
+      alert(err.message);
+    }
+  };
+
+  // Delete school database permanently
+  const handleDeleteSchool = async (schoolId: string, schoolName: string) => {
+    const confirmMsg = `⚠️ WARNING: Are you sure you want to PERMANENTLY DELETE "${schoolName}"?\n\nThis will completely wipe all associated users, parents, students, classes, grades, invoices, and messaging records from the database. This action CANNOT BE UNDONE.`;
+    if (!confirm(confirmMsg)) return;
+
+    const doubleConfirm = prompt(`Please type "DELETE ${schoolName}" to confirm deletion:`);
+    if (doubleConfirm !== `DELETE ${schoolName}`) {
+      alert("Verification mismatch. Deletion cancelled.");
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem('report_auth_token') || '';
+      const res = await fetch(`/api/schools?schoolId=${schoolId}`, {
+        method: 'DELETE',
+        headers: { 
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || 'Failed to delete school tenant');
+
+      alert("School tenant and all associated records successfully deleted.");
       loadPlatformData();
     } catch (err: any) {
       alert(err.message);
@@ -989,6 +1048,20 @@ export default function SuperAdminDashboard({ user, school }: SuperAdminDashboar
                           ) : (
                             <AlertCircle className="w-3.5 h-3.5 text-red-500" />
                           )}
+                        </button>
+                        <button
+                          onClick={() => handleArchiveSchool(s.id, s.subscriptionStatus)}
+                          title={s.subscriptionStatus === 'archived' ? 'Unarchive Database' : 'Archive Database'}
+                          className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-500 cursor-pointer"
+                        >
+                          <Archive className={`w-3.5 h-3.5 ${s.subscriptionStatus === 'archived' ? 'text-amber-600' : 'text-slate-400'}`} />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteSchool(s.id, s.name)}
+                          title="Delete School Database completely"
+                          className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-500 cursor-pointer"
+                        >
+                          <Trash2 className="w-3.5 h-3.5 text-rose-600 hover:text-rose-700" />
                         </button>
                         <button
                           onClick={() => handleImpersonate(s.slug)}
