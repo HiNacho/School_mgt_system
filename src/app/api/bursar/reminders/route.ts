@@ -17,29 +17,31 @@ export async function POST(req: NextRequest) {
 
     // Handle Bulk Broadcast Mode
     if (broadcast) {
-      // Find all outstanding invoices
-      const outstandingInvoices = await prisma.invoice.findMany({
+      // Find all active students with outstanding fees (feesPaid = false)
+      const unpaidStudents = await prisma.student.findMany({
         where: {
           schoolId,
-          deletedAt: null,
-          status: { in: ['OUTSTANDING', 'PARTIALLY_PAID'] }
+          feesPaid: false,
+          status: 'ACTIVE'
         },
         include: {
-          student: {
+          parent: {
             include: {
-              parent: {
-                include: {
-                  user: true
-                }
-              },
-              class: true
+              user: true
+            }
+          },
+          class: true,
+          invoices: {
+            where: {
+              deletedAt: null,
+              status: { in: ['OUTSTANDING', 'PARTIALLY_PAID'] }
             }
           }
         }
       });
 
-      if (outstandingInvoices.length === 0) {
-        return NextResponse.json({ success: true, message: 'No outstanding invoices found to broadcast.' });
+      if (unpaidStudents.length === 0) {
+        return NextResponse.json({ success: true, message: 'No students with outstanding fees status found.' });
       }
 
       // 1. Create a public Announcement
@@ -55,19 +57,18 @@ export async function POST(req: NextRequest) {
       let sentCount = 0;
       const processedParents = new Set<string>();
 
-      // 2. Loop through invoices and send DM chats
-      for (const inv of outstandingInvoices) {
-        const student = inv.student;
+      // 2. Loop through unpaid students and send DM chats
+      for (const student of unpaidStudents) {
         const parentUser = student.parent?.user;
         
         if (!parentUser) continue;
 
-        // Avoid sending multiple DMs to the same parent in one broadcast
+        // Avoid sending multiple DMs to the same parent for the same student in one broadcast
         const parentKey = `${parentUser.id}-${student.id}`;
         if (processedParents.has(parentKey)) continue;
         processedParents.add(parentKey);
 
-        const balance = inv.netAmount - inv.paidAmount;
+        const balance = student.invoices.reduce((sum, inv) => sum + (inv.netAmount - inv.paidAmount), 0);
 
         // Find or create ChatConversation
         let conversation = await prisma.chatConversation.findFirst({
@@ -93,12 +94,16 @@ export async function POST(req: NextRequest) {
           });
         }
 
+        const defaultMsg = balance > 0 
+          ? `Hello, this is a reminder regarding outstanding school fees of ₦${balance.toLocaleString()} for your child ${student.firstName} ${student.lastName} (${student.class.name}). Please review the invoice on your dashboard. You can reply directly to this chat message if you are having challenges paying, or need to clarify/confirm a bank payment.`
+          : `Hello, this is a reminder regarding outstanding school fees for your child ${student.firstName} ${student.lastName} (${student.class.name}). Please review the fees section on your dashboard. You can reply directly to this chat message if you are having challenges paying, or need to clarify/confirm a payment.`;
+
         // Create ChatMessage
         await prisma.chatMessage.create({
           data: {
             conversationId: conversation.id,
             senderId: session.userId,
-            body: content || `Hello, this is a reminder regarding outstanding school fees of ₦${balance.toLocaleString()} for your child ${student.firstName} ${student.lastName} (${student.class.name}). Please review the invoice on your dashboard. You can reply directly to this chat message if you are having challenges paying, or need to clarify/confirm a bank payment.`
+            body: content || defaultMsg
           }
         });
 
@@ -109,8 +114,8 @@ export async function POST(req: NextRequest) {
             studentId: student.id,
             eventType: 'NOTE',
             title: 'Overdue Broadcast DM Sent',
-            description: `Sent direct message payment reminder to parent for invoice ${inv.invoiceNumber}`,
-            referenceId: inv.id
+            description: `Sent direct message payment reminder to parent. custom content: ${!!content}`,
+            referenceId: student.invoices[0]?.id || undefined
           }
         });
 
