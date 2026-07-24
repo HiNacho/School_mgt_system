@@ -84,6 +84,7 @@ export default function SchoolTenantsPage() {
   // Status feedback
   const [successMsg, setSuccessMsg] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
+  const [deletingTenant, setDeletingTenant] = useState<SchoolTenant | null>(null);
 
   useEffect(() => {
     loadAllSaaSData();
@@ -458,10 +459,13 @@ The Operon Support Team
   };
 
   const handleDeleteSchool = async (tenant: SchoolTenant) => {
-    if (!window.confirm(`WARNING: Are you sure you want to permanently delete school "${tenant.name}"? This will erase all student data, grades, staff accounts, term setups, and scores. This operation is irreversible!`)) {
-      return;
-    }
+    setDeletingTenant(tenant);
+    // Scroll smoothly to top where the confirmation banner is rendered
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
+  const confirmDeleteSchool = async (tenant: SchoolTenant) => {
+    setDeletingTenant(null);
     setErrorMsg('');
     setSuccessMsg('');
 
@@ -613,6 +617,36 @@ The Operon Support Team
             <span>{errorMsg}</span>
           </div>
           <button type="button" onClick={() => setErrorMsg('')} className="text-slate-400">✕</button>
+        </div>
+      )}
+
+      {deletingTenant && (
+        <div className="p-5 rounded-2xl bg-red-50 border border-red-200 text-red-800 text-xs flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 shadow-sm animate-fadeIn">
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+            <div className="space-y-1">
+              <h4 className="text-xs font-black uppercase tracking-wider text-red-800">Confirm Permanent Deletion</h4>
+              <p className="text-[11px] text-red-750 font-semibold leading-relaxed">
+                Are you sure you want to permanently delete school <strong>"{deletingTenant.name}"</strong>? This will erase all student data, grades, staff accounts, term setups, and scores. This operation is irreversible!
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 self-end sm:self-center">
+            <button
+              type="button"
+              onClick={() => setDeletingTenant(null)}
+              className="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-[10px] font-bold uppercase tracking-wider rounded-xl transition-all cursor-pointer"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={() => confirmDeleteSchool(deletingTenant)}
+              className="px-3.5 py-2 bg-red-600 hover:bg-red-500 text-white text-[10px] font-bold uppercase tracking-wider rounded-xl transition-all shadow-sm cursor-pointer"
+            >
+              Confirm Delete
+            </button>
+          </div>
         </div>
       )}
 
