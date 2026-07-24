@@ -70,6 +70,7 @@ export default function BursarMessagesHub() {
   const [broadcastTitle, setBroadcastTitle] = useState('IMPORTANT: School Fees Payment Notice');
   const [broadcastContent, setBroadcastContent] = useState('');
   const [broadcasting, setBroadcasting] = useState(false);
+  const [showConfirmBroadcast, setShowConfirmBroadcast] = useState(false);
   
   // Stats
   const [owingCount, setOwingCount] = useState(0);
@@ -228,17 +229,21 @@ export default function BursarMessagesHub() {
     }
   };
 
-  const handleSendBroadcast = async (e: React.FormEvent) => {
+  const handleSendBroadcast = (e: React.FormEvent) => {
     e.preventDefault();
     if (!broadcastTitle.trim() || !broadcastContent.trim()) {
       setErrorMsg('Please specify both a subject title and message content.');
       return;
     }
+    setErrorMsg('');
+    setSuccessMsg('');
+    setShowConfirmBroadcast(true);
+    // Scroll smoothly to top of form
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
-    if (!confirm(`Are you sure you want to broadcast this notice to all parents of the ${owingCount} owing students? This will publish a school announcement and send individual DMs to their chats.`)) {
-      return;
-    }
-
+  const executeBroadcast = async () => {
+    setShowConfirmBroadcast(false);
     setBroadcasting(true);
     setErrorMsg('');
     setSuccessMsg('');
@@ -256,9 +261,9 @@ export default function BursarMessagesHub() {
 
       const json = await res.json();
       if (res.ok && json.success) {
-        setSuccessMsg(json.message || 'Announcement posted and DMs sent successfully!');
+        setSuccessMsg(json.message || 'Announcement posted and notification alerts sent successfully!');
         setBroadcastContent('');
-        fetchConversations(); // Reload chat list to display newly generated direct message conversations
+        fetchConversations(); // Reload chat list
       } else {
         setErrorMsg(json.error || 'Failed to dispatch broadcast reminders.');
       }
@@ -513,6 +518,36 @@ export default function BursarMessagesHub() {
                 <h3 className="text-xs font-black uppercase text-slate-600 tracking-wider">Compose Outstanding Fees Broadcast</h3>
               </div>
 
+              {showConfirmBroadcast && (
+                <div className="p-5 rounded-2xl bg-amber-50 border border-amber-250 text-amber-850 text-xs flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 shadow-sm animate-fadeIn">
+                  <div className="flex items-start gap-3">
+                    <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                    <div className="space-y-1">
+                      <h4 className="text-xs font-black uppercase tracking-wider text-amber-800">Confirm Broadcast Notice</h4>
+                      <p className="text-[11px] text-amber-700 font-semibold leading-relaxed">
+                        Are you sure you want to broadcast this notice to all parents of the <strong>{owingCount}</strong> owing students? This will publish a school announcement and send notification alerts to their dashboards.
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 self-end sm:self-center">
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirmBroadcast(false)}
+                      className="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-[10px] font-bold uppercase tracking-wider rounded-xl transition-all cursor-pointer"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      onClick={executeBroadcast}
+                      className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-[10px] font-bold uppercase tracking-wider rounded-xl transition-all shadow-sm cursor-pointer"
+                    >
+                      Confirm Broadcast
+                    </button>
+                  </div>
+                </div>
+              )}
+
               <div className="space-y-4">
                 <div>
                   <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1.5">Announcement Title / Subject</label>
@@ -546,7 +581,7 @@ export default function BursarMessagesHub() {
                   className="w-full py-3 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white text-xs font-bold uppercase tracking-wider rounded-xl transition-all shadow-sm flex items-center justify-center gap-1.5 cursor-pointer"
                 >
                   <Megaphone className="w-4 h-4" />
-                  <span>{broadcasting ? 'Broadcasting...' : 'Publish & Send DM Broadcast'}</span>
+                  <span>{broadcasting ? 'Broadcasting...' : 'Publish & Send Broadcast Alert'}</span>
                 </button>
               </div>
             </form>
