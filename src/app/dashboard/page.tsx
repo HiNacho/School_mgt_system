@@ -49,6 +49,7 @@ export default function DashboardHome() {
 
   // Parent specific states
   const [selectedChildId, setSelectedChildId] = useState<string>('');
+  const [dismissedAlertIds, setDismissedAlertIds] = useState<string[]>([]);
 
   // Calendar Widget states
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -354,6 +355,33 @@ export default function DashboardHome() {
       }
     } catch (err) {
       console.error('Error dismissing SA announcement:', err);
+    }
+  };
+
+  // Load dismissed alert IDs on mount
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const stored = localStorage.getItem('report_dismissed_fees_alerts');
+        if (stored) {
+          setDismissedAlertIds(JSON.parse(stored));
+        }
+      } catch (e) {
+        console.error('Error loading dismissed alerts', e);
+      }
+    }
+  }, []);
+
+  // Dismiss fees alert locally
+  const handleDismissFeesAlert = (id: string) => {
+    const updated = [...dismissedAlertIds, id];
+    setDismissedAlertIds(updated);
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem('report_dismissed_fees_alerts', JSON.stringify(updated));
+      } catch (e) {
+        console.error('Error saving dismissed alert', e);
+      }
     }
   };
 
@@ -1672,27 +1700,40 @@ export default function DashboardHome() {
               )
               .sort((a, b) => new Date(b.createdAt || b.date).getTime() - new Date(a.createdAt || a.date).getTime())[0];
 
+            const alertId = latestFeesAnnouncement ? latestFeesAnnouncement.id : `default-fees-${kid.id}`;
+            const isDismissed = dismissedAlertIds.includes(alertId);
+
             return (
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
                 
                 {/* Red Outstanding Fees Alert Banner */}
-                {(!kid.feesPaid || activeStudentDetail?.invoices?.some((inv: any) => inv.status === 'OUTSTANDING' || inv.status === 'PARTIALLY_PAID')) && (
-                  <div className="lg:col-span-12 bg-rose-50 border border-rose-150 p-5 rounded-3xl flex gap-3 text-rose-800 animate-in fade-in duration-300">
-                    <AlertCircle className="w-5 h-5 text-rose-600 flex-shrink-0 mt-0.5" />
-                    <div className="flex-1 space-y-2">
-                      <h4 className="text-xs font-black uppercase tracking-wider text-rose-800">
-                        {latestFeesAnnouncement ? latestFeesAnnouncement.title : "Outstanding School Fees Alert"}
-                      </h4>
-                      <p className="text-[11px] text-rose-700 font-semibold leading-relaxed">
-                        {latestFeesAnnouncement 
-                          ? latestFeesAnnouncement.content 
-                          : `Our records show that your child ${kid.firstName} ${kid.lastName} has outstanding fees for this term. Please review the invoices below and settle the balance via card payment.`
-                        }
-                      </p>
-                      <p className="text-[11px] text-rose-700 font-semibold leading-relaxed">
-                        If you have payment challenges, wish to request an installment schedule, or need to verify a transfer, you can click <a href="/dashboard/messages" className="underline font-bold text-rose-800 hover:text-rose-900">Messages</a> to open a private chat thread with the Bursar.
-                      </p>
+                {(!isDismissed && (!kid.feesPaid || activeStudentDetail?.invoices?.some((inv: any) => inv.status === 'OUTSTANDING' || inv.status === 'PARTIALLY_PAID'))) && (
+                  <div className="lg:col-span-12 bg-rose-50 border border-rose-150 p-5 rounded-3xl flex justify-between items-start gap-3 text-rose-800 animate-in fade-in duration-300">
+                    <div className="flex gap-3">
+                      <AlertCircle className="w-5 h-5 text-rose-600 flex-shrink-0 mt-0.5" />
+                      <div className="flex-1 space-y-2">
+                        <h4 className="text-xs font-black uppercase tracking-wider text-rose-800">
+                          {latestFeesAnnouncement ? latestFeesAnnouncement.title : "Outstanding School Fees Alert"}
+                        </h4>
+                        <p className="text-[11px] text-rose-700 font-semibold leading-relaxed">
+                          {latestFeesAnnouncement 
+                            ? latestFeesAnnouncement.content 
+                            : `Our records show that your child ${kid.firstName} ${kid.lastName} has outstanding fees for this term. Please review the invoices below and settle the balance via card payment.`
+                          }
+                        </p>
+                        <p className="text-[11px] text-rose-700 font-semibold leading-relaxed">
+                          If you have payment challenges, wish to request an installment schedule, or need to verify a transfer, you can click <a href="/dashboard/messages" className="underline font-bold text-rose-800 hover:text-rose-900">Messages</a> to open a private chat thread with the Bursar.
+                        </p>
+                      </div>
                     </div>
+                    <button
+                      type="button"
+                      onClick={() => handleDismissFeesAlert(alertId)}
+                      className="p-1 hover:bg-rose-100 rounded-lg text-rose-450 hover:text-rose-700 transition-all cursor-pointer flex-shrink-0"
+                      title="Dismiss Alert"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
                   </div>
                 )}
                 
