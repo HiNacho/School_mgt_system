@@ -65,17 +65,15 @@ export async function GET(req: NextRequest) {
     });
 
     let outstandingFeesSum = 0;
-    let studentsOwingCount = 0;
-    const uniqueOwingStudents = new Set<string>();
-
     activeInvoices.forEach(inv => {
       const diff = inv.netAmount - inv.paidAmount;
       if (diff > 0) {
         outstandingFeesSum += diff;
-        uniqueOwingStudents.add(inv.studentId);
       }
     });
-    studentsOwingCount = uniqueOwingStudents.size;
+    const studentsOwingCount = await prisma.student.count({
+      where: { schoolId, feesPaid: false, status: 'ACTIVE' }
+    });
 
     // Pending payment verifications
     const pendingVerifications = await prisma.studentPayment.count({
