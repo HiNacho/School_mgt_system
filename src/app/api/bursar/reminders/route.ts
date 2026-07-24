@@ -13,8 +13,128 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { studentId, invoiceId, reminderType = 'OVERDUE' } = body;
+    const { studentId, invoiceId, reminderType = 'OVERDUE', broadcast = false } = body;
 
+    // Handle Bulk Broadcast Mode
+    if (broadcast) {
+      // Find all outstanding invoices
+      const outstandingInvoices = await prisma.invoice.findMany({
+        where: {
+          schoolId,
+          deletedAt: null,
+          status: { in: ['OUTSTANDING', 'PARTIALLY_PAID'] }
+        },
+        include: {
+          student: {
+            include: {
+              parent: {
+                include: {
+                  user: true
+                }
+              },
+              class: true
+            }
+          }
+        }
+      });
+
+      if (outstandingInvoices.length === 0) {
+        return NextResponse.json({ success: true, message: 'No outstanding invoices found to broadcast.' });
+      }
+
+      // 1. Create a public Announcement
+      await prisma.announcement.create({
+        data: {
+          schoolId,
+          title: 'IMPORTANT: School Fees Payment Notice',
+          content: 'Dear Parents, this is an official notice to all guardians regarding outstanding school fees. Please check your child\'s financial ledger on the dashboard and proceed with online Flutterwave payments. Direct message (DM) chat option is available for any payment confirmations or installment inquiries.',
+          date: new Date().toISOString().split('T')[0]
+        }
+      });
+
+      let sentCount = 0;
+      const processedParents = new Set<string>();
+
+      // 2. Loop through invoices and send DM chats
+      for (const inv of outstandingInvoices) {
+        const student = inv.student;
+        const parentUser = student.parent?.user;
+        
+        if (!parentUser) continue;
+
+        // Avoid sending multiple DMs to the same parent in one broadcast
+        const parentKey = `${parentUser.id}-${student.id}`;
+        if (processedParents.has(parentKey)) continue;
+        processedParents.add(parentKey);
+
+        const balance = inv.netAmount - inv.paidAmount;
+
+        // Find or create ChatConversation
+        let conversation = await prisma.chatConversation.findFirst({
+          where: {
+            schoolId,
+            studentId: student.id,
+            parentId: parentUser.id,
+            teacherId: session.userId,
+            category: 'FEES'
+          }
+        });
+
+        if (!conversation) {
+          conversation = await prisma.chatConversation.create({
+            data: {
+              schoolId,
+              studentId: student.id,
+              parentId: parentUser.id,
+              teacherId: session.userId,
+              category: 'FEES',
+              subject: `School Fees Outstanding - ${student.firstName} ${student.lastName}`
+            }
+          });
+        }
+
+        // Create ChatMessage
+        await prisma.chatMessage.create({
+          data: {
+            conversationId: conversation.id,
+            senderId: session.userId,
+            body: `Hello, this is a reminder regarding outstanding school fees of ₦${balance.toLocaleString()} for your child ${student.firstName} ${student.lastName} (${student.class.name}). Please review the invoice on your dashboard. You can reply directly to this chat message if you are having challenges paying, or need to clarify/confirm a bank payment.`
+          }
+        });
+
+        // Trigger Student Timeline event
+        await prisma.studentTimeline.create({
+          data: {
+            schoolId,
+            studentId: student.id,
+            eventType: 'NOTE',
+            title: 'Overdue Broadcast DM Sent',
+            description: `Sent direct message payment reminder to parent for invoice ${inv.invoiceNumber}`,
+            referenceId: inv.id
+          }
+        });
+
+        sentCount++;
+      }
+
+      // Log action to financial audit log
+      await prisma.financialAuditLog.create({
+        data: {
+          schoolId,
+          userId: session.userId,
+          role: session.role,
+          action: 'BROADCAST_REMINDERS_SENT',
+          details: `Sent fees broadcast announcement and ${sentCount} direct message reminders`
+        }
+      });
+
+      return NextResponse.json({
+        success: true,
+        message: `Successfully posted notice announcement and sent direct message reminders to ${sentCount} parents.`
+      });
+    }
+
+    // Single reminder mode
     if (!studentId || !invoiceId) {
       return NextResponse.json({ error: 'Student ID and Invoice ID are required' }, { status: 400 });
     }

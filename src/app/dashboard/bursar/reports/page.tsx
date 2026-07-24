@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { 
   BarChart3, TrendingUp, DollarSign, Calendar, Users, 
   Award, Shield, FileText, CheckCircle2, AlertCircle, 
-  ArrowRight, Download, Filter, RefreshCw
+  ArrowRight, Download, Filter, RefreshCw, Bell
 } from 'lucide-react';
 
 interface FinancialReport {
@@ -40,6 +40,34 @@ export default function BursarReportsPage() {
   
   // Alerts
   const [errorMsg, setErrorMsg] = useState('');
+  const [successMsg, setSuccessMsg] = useState('');
+  const [broadcasting, setBroadcasting] = useState(false);
+
+  const handleBroadcastReminders = async () => {
+    if (!confirm('Are you sure you want to broadcast fees reminders? This will create a public notice announcement for all parents and send individual direct message DMs to all parents with outstanding invoices.')) return;
+    
+    setBroadcasting(true);
+    setErrorMsg('');
+    setSuccessMsg('');
+
+    try {
+      const res = await fetch('/api/bursar/reminders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ broadcast: true })
+      });
+      const json = await res.json();
+      if (res.ok && json.success) {
+        setSuccessMsg(json.message || 'Successfully broadcasted notices and DMs.');
+      } else {
+        setErrorMsg(json.error || 'Failed to send broadcast reminders.');
+      }
+    } catch (e) {
+      setErrorMsg('Network error sending broadcast.');
+    } finally {
+      setBroadcasting(false);
+    }
+  };
 
   useEffect(() => {
     const sessionStr = localStorage.getItem('report_user_session');
@@ -113,6 +141,14 @@ export default function BursarReportsPage() {
             <RefreshCw className="w-4 h-4 animate-hoverSpin" />
           </button>
           <button
+            disabled={broadcasting}
+            onClick={handleBroadcastReminders}
+            className="flex items-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold uppercase tracking-wider rounded-xl transition-all shadow-sm disabled:opacity-50 cursor-pointer"
+          >
+            <Bell className="w-4 h-4" />
+            <span>{broadcasting ? 'Broadcasting...' : 'Broadcast Fees Reminders'}</span>
+          </button>
+          <button
             onClick={handleExportCSV}
             className="flex items-center gap-2 px-4 py-2.5 bg-[#1e293b] hover:bg-[#0f172a] text-white text-xs font-bold uppercase tracking-wider rounded-xl transition-all shadow-sm cursor-pointer"
           >
@@ -121,6 +157,13 @@ export default function BursarReportsPage() {
           </button>
         </div>
       </div>
+
+      {successMsg && (
+        <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-100 text-emerald-800 text-xs font-semibold flex items-center gap-2 animate-fadeIn">
+          <CheckCircle2 className="w-4 h-4 flex-shrink-0 text-emerald-600" />
+          <span>{successMsg}</span>
+        </div>
+      )}
 
       {errorMsg && (
         <div className="p-4 rounded-xl bg-red-50 border border-red-100 text-red-800 text-xs font-semibold flex items-center gap-2">
