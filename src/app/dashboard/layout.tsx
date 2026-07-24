@@ -350,7 +350,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       { name: 'Installments', href: '/dashboard/bursar/installments', icon: Clock },
       { name: 'Scholarships', href: '/dashboard/bursar/scholarships', icon: Award },
       { name: 'Financial Reports', href: '/dashboard/bursar/reports', icon: BarChart3 },
-      { name: 'Payment Reminders', href: '/dashboard/bursar/reminders', icon: Bell },
       { name: 'Messages', href: '/dashboard/bursar/messages', icon: MessageSquare },
       { name: 'Transactions', href: '/dashboard/bursar/transactions', icon: Activity },
     ];
