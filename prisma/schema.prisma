@@ -65,6 +65,9 @@ model School {
   teacherNotes            TeacherNote[]
   communicationTemplates  CommunicationTemplate[]
   studentTimelines        StudentTimeline[]
+  promotions              StudentPromotionHistory[]
+  backups                 SessionBackup[]
+  systemAuditLogs         SystemAuditLog[]
 }
 
 model User {
@@ -133,15 +136,21 @@ model LoginAttempt {
 }
 
 model AcademicSession {
-  id        String   @id @default(uuid())
-  schoolId  String
-  name      String // E.g., "2025/2026"
-  isCurrent Boolean  @default(false)
-  createdAt DateTime @default(now())
+  id          String   @id @default(uuid())
+  schoolId    String
+  name        String // E.g., "2025/2026"
+  isCurrent   Boolean  @default(false)
+  status      String   @default("ACTIVE") // ACTIVE, ARCHIVED
+  startDate   String?  // YYYY-MM-DD
+  endDate     String?  // YYYY-MM-DD
+  archiveDate DateTime?
+  createdAt   DateTime @default(now())
 
-  school School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
-  terms  Term[]
-  invoices Invoice[]
+  school     School                    @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  terms      Term[]
+  invoices   Invoice[]
+  promotions StudentPromotionHistory[] @relation("FromSession")
+  backups    SessionBackup[]
 }
 
 model Term {
@@ -150,6 +159,8 @@ model Term {
   sessionId String
   name      String // E.g., "First Term", "Second Term", "Third Term"
   isCurrent Boolean  @default(false)
+  startDate String?  // YYYY-MM-DD
+  endDate   String?  // YYYY-MM-DD
   createdAt DateTime @default(now())
 
   school  School          @relation(fields: [schoolId], references: [id], onDelete: Cascade)
@@ -248,6 +259,7 @@ model Student {
   scholarshipValue        Float               @default(0)
   discountType            String?             @default("NONE") // NONE, SIBLING, STAFF_CHILD, EARLY_PAYMENT, MANUAL
   discountValue           Float               @default(0)
+  promotions              StudentPromotionHistory[]
 
   @@unique([schoolId, admissionNumber])
 }
@@ -902,6 +914,50 @@ model FinancialAuditLog {
   userId         String
   role           String
   action         String   // PAYMENT_RECORDED, INVOICE_GENERATED, DISCOUNT_APPLIED, etc.
+  details        String
+  deviceInfo     String?
+  ipAddress      String?
+  createdAt      DateTime @default(now())
+
+  school         School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+}
+
+model StudentPromotionHistory {
+  id            String   @id @default(uuid())
+  schoolId      String
+  studentId     String
+  fromSessionId String
+  toSessionId   String?
+  fromClassId   String
+  fromArmId     String
+  toClassId     String?
+  toArmId       String?
+  status        String   // PROMOTED, RETAINED, GRADUATED, WITHDRAWN, TRANSFERRED
+  createdAt     DateTime @default(now())
+
+  school      School          @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  student     Student         @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  fromSession AcademicSession @relation("FromSession", fields: [fromSessionId], references: [id], onDelete: Cascade)
+}
+
+model SessionBackup {
+  id          String   @id @default(uuid())
+  schoolId    String
+  sessionId   String
+  name        String
+  data        String   // JSON string of all transaction/report snapshot data
+  createdAt   DateTime @default(now())
+
+  school  School          @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  session AcademicSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+}
+
+model SystemAuditLog {
+  id             String   @id @default(uuid())
+  schoolId       String
+  userId         String
+  role           String
+  action         String   // SESSION_CREATED, SESSION_CLOSED, PROMOTION_EXECUTED, etc.
   details        String
   deviceInfo     String?
   ipAddress      String?

@@ -365,6 +365,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       { name: 'Attendance', href: '/dashboard/attendance', icon: ClipboardList },
       { name: 'Messages', href: '/dashboard/messages', icon: MessageSquare },
       { name: 'Billing & Subscription', href: '/dashboard/billing', icon: CreditCard },
+      { name: 'Academic Sessions', href: '/dashboard/settings/sessions', icon: GraduationCap },
     ];
   } else {
     // Teachers, Parents, Students default links
