@@ -1666,6 +1666,22 @@ export default function DashboardHome() {
             return (
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
                 
+                {/* Red Outstanding Fees Alert Banner */}
+                {(!kid.feesPaid || activeStudentDetail?.invoices?.some((inv: any) => inv.status === 'OUTSTANDING' || inv.status === 'PARTIALLY_PAID')) && (
+                  <div className="lg:col-span-12 bg-rose-50 border border-rose-150 p-5 rounded-3xl flex gap-3 text-rose-800 animate-in fade-in duration-300">
+                    <AlertCircle className="w-5 h-5 text-rose-600 flex-shrink-0 mt-0.5" />
+                    <div className="flex-1 space-y-1">
+                      <h4 className="text-xs font-black uppercase tracking-wider text-rose-800">Outstanding School Fees Alert</h4>
+                      <p className="text-[11px] text-rose-700 font-semibold leading-relaxed">
+                        Our records show that your child <strong>{kid.firstName} {kid.lastName}</strong> has outstanding fees for this term. Please review the invoices below and settle the balance via card payment.
+                      </p>
+                      <p className="text-[11px] text-rose-700 font-semibold leading-relaxed">
+                        If you have payment challenges, wish to request an installment schedule, or need to verify a transfer, you can click <a href="/dashboard/messages" className="underline font-bold text-rose-800 hover:text-rose-900">Messages</a> to open a private chat thread with the Bursar.
+                      </p>
+                    </div>
+                  </div>
+                )}
+                
                 {/* Child profile details */}
                 <div className="lg:col-span-8 space-y-6">
                   

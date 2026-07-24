@@ -1872,7 +1872,8 @@ export default function RebuiltMessagesHub() {
                                           s.role === 'SUPER_ADMIN' ? 'Platform Admin' :
                                           s.role === 'CLASS_TEACHER' ? 'Class Teacher' :
                                           s.role === 'SUBJECT_TEACHER' ? 'Subject Teacher' :
-                                          s.role === 'HEAD_TEACHER' ? 'Head Teacher' : 'Staff';
+                                          s.role === 'HEAD_TEACHER' ? 'Head Teacher' :
+                                          s.role === 'BURSAR' ? 'Bursar' : 'Staff';
                         return (
                           <option key={s.id} value={s.id}>{s.firstName} {s.lastName} ({roleLabel})</option>
                         );

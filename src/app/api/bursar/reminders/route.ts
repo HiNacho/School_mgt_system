@@ -57,7 +57,7 @@ export async function POST(req: NextRequest) {
       let sentCount = 0;
       const processedParents = new Set<string>();
 
-      // 2. Loop through unpaid students and send DM chats
+      // 2. Loop through unpaid students and trigger dashboard notification alerts
       for (const student of unpaidStudents) {
         const parentUser = student.parent?.user;
         
@@ -70,40 +70,16 @@ export async function POST(req: NextRequest) {
 
         const balance = student.invoices.reduce((sum, inv) => sum + (inv.netAmount - inv.paidAmount), 0);
 
-        // Find or create ChatConversation
-        let conversation = await prisma.chatConversation.findFirst({
-          where: {
-            schoolId,
-            studentId: student.id,
-            parentId: parentUser.id,
-            teacherId: session.userId,
-            category: 'FEES'
-          }
-        });
+        const defaultAlert = balance > 0 
+          ? `[Bursar Notice] Outstanding school fees of ₦${balance.toLocaleString()} for your child ${student.firstName} ${student.lastName}. Please check your dashboard to review invoices.`
+          : `[Bursar Notice] Outstanding school fees notice for your child ${student.firstName} ${student.lastName}. Please check your dashboard.`;
 
-        if (!conversation) {
-          conversation = await prisma.chatConversation.create({
-            data: {
-              schoolId,
-              studentId: student.id,
-              parentId: parentUser.id,
-              teacherId: session.userId,
-              category: 'FEES',
-              subject: `School Fees Outstanding - ${student.firstName} ${student.lastName}`
-            }
-          });
-        }
-
-        const defaultMsg = balance > 0 
-          ? `Hello, this is a reminder regarding outstanding school fees of ₦${balance.toLocaleString()} for your child ${student.firstName} ${student.lastName} (${student.class.name}). Please review the invoice on your dashboard. You can reply directly to this chat message if you are having challenges paying, or need to clarify/confirm a bank payment.`
-          : `Hello, this is a reminder regarding outstanding school fees for your child ${student.firstName} ${student.lastName} (${student.class.name}). Please review the fees section on your dashboard. You can reply directly to this chat message if you are having challenges paying, or need to clarify/confirm a payment.`;
-
-        // Create ChatMessage
-        await prisma.chatMessage.create({
+        // Create system Notification record
+        await prisma.notification.create({
           data: {
-            conversationId: conversation.id,
-            senderId: session.userId,
-            body: content || defaultMsg
+            schoolId,
+            userId: parentUser.id,
+            message: content || defaultAlert
           }
         });
 
@@ -113,8 +89,8 @@ export async function POST(req: NextRequest) {
             schoolId,
             studentId: student.id,
             eventType: 'NOTE',
-            title: 'Overdue Broadcast DM Sent',
-            description: `Sent direct message payment reminder to parent. custom content: ${!!content}`,
+            title: 'Fees Alert Notification Sent',
+            description: `Sent official fees reminder alert to parent's dashboard. Custom content: ${!!content}`,
             referenceId: student.invoices[0]?.id || undefined
           }
         });

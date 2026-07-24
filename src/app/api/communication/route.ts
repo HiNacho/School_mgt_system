@@ -271,8 +271,21 @@ export async function POST(req: NextRequest) {
           teacherId = session.userId;
         }
 
-        const categoryVal = category || 'GENERAL';
-        const subjectVal = subject || 'Direct Chat';
+        // Fetch recipient's role to detect Bursar interaction
+        const recipientUser = await tx.user.findUnique({
+          where: { id: recipientId },
+          select: { role: true }
+        });
+
+        let categoryVal = category || 'GENERAL';
+        let subjectVal = subject || 'Direct Chat';
+
+        if (recipientUser?.role === 'BURSAR' || session.role === 'BURSAR') {
+          categoryVal = 'FEES';
+          if (!subject) {
+            subjectVal = 'Fees Inquiry';
+          }
+        }
 
         // Check if a conversation thread already exists for student + parent + teacher
         const existing = await tx.chatConversation.findFirst({
