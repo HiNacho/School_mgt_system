@@ -169,14 +169,29 @@ export default function BursarMessagesHub() {
 
   const handleSelectConversation = async (conv: ChatConversation) => {
     setSelectedConversation(conv);
-    setActiveChatMessages(conv.messages || []);
+    setActiveChatMessages([]);
     setReplyText('');
-    
-    // Trigger read sync
+    setErrorMsg('');
+
     try {
-      await fetch(`/api/communication?schoolId=${school.id}&conversationId=${conv.id}`);
-    } catch (e) {
-      console.error('Read receipts sync error:', e);
+      const res = await fetch(`/api/communication?schoolId=${school.id}&conversationId=${conv.id}`);
+      const json = await res.json();
+      if (res.ok && json.success) {
+        setActiveChatMessages(json.data.messages || []);
+        // Refresh conversations to update read status badges locally
+        const listRes = await fetch(`/api/communication?schoolId=${school.id}`);
+        const listJson = await listRes.json();
+        if (listRes.ok && listJson.success) {
+          const list = (listJson.data.conversations || []).filter((c: any) => 
+            c.category === 'FEES' || c.teacherId === currentUser.id
+          );
+          setConversations(list);
+        }
+      } else {
+        throw new Error(json.error || 'Failed to load message log');
+      }
+    } catch (e: any) {
+      setErrorMsg(e.message || 'Error fetching conversation thread');
     }
   };
 
@@ -194,7 +209,7 @@ export default function BursarMessagesHub() {
         body: JSON.stringify({
           schoolId: school.id,
           conversationId: selectedConversation.id,
-          body: textToSend
+          messageBody: textToSend
         })
       });
       const json = await res.json();
