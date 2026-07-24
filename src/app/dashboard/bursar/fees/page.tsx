@@ -878,23 +878,6 @@ export default function StudentFeesPage() {
                     <input type="number" required min="1" value={schValue} onChange={(e) => setSchValue(e.target.value)} className="w-full p-2.5 text-xs font-semibold" />
                   </div>
                 )}
-
-                <div className="border-t border-slate-100 pt-4 mt-2">
-                  <label className="block text-[10px] font-bold uppercase tracking-wider text-[#94a3b8] mb-1.5">Discount Category</label>
-                  <select value={discType} onChange={(e) => setDiscType(e.target.value)} className="w-full p-2.5 text-xs font-semibold">
-                    <option value="NONE">None</option>
-                    <option value="SIBLING">Sibling Discount (10% Off)</option>
-                    <option value="STAFF_CHILD">Staff Child Discount (50% Off)</option>
-                    <option value="EARLY_PAYMENT">Early Payment Discount (5% Off)</option>
-                    <option value="MANUAL">Manual Deducted Value</option>
-                  </select>
-                </div>
-                {discType === 'MANUAL' && (
-                  <div>
-                    <label className="block text-[10px] font-bold uppercase tracking-wider text-[#94a3b8] mb-1.5">Discount Custom Value (₦)</label>
-                    <input type="number" required min="1" value={discValue} onChange={(e) => setDiscValue(e.target.value)} className="w-full p-2.5 text-xs font-semibold" />
-                  </div>
-                )}
               </div>
 
               <div className="flex justify-end gap-2 pt-4 border-t border-slate-100">
