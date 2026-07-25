@@ -116,7 +116,7 @@ export default function LandingPage() {
     e.preventDefault();
     
     // Check if we are at the final step. If not, don't submit yet.
-    if (regStep < 4) {
+    if (regStep < 2) {
       setRegStep(prev => prev + 1);
       return;
     }
@@ -1051,19 +1051,17 @@ export default function LandingPage() {
                 <div>
                   <div className="flex items-center justify-between">
                     <span className="text-[10px] font-extrabold uppercase tracking-widest text-emerald-600">
-                      Step {regStep} of 4
+                      Step {regStep} of 2
                     </span>
                     <span className="text-[10px] font-bold text-[#94a3b8] uppercase tracking-wider">
                       {regStep === 1 && "Contact Profile"}
                       {regStep === 2 && "School Identity"}
-                      {regStep === 3 && "Scale & Volume"}
-                      {regStep === 4 && "Operations & Focus"}
                     </span>
                   </div>
                   
                   {/* Progress Bar */}
                   <div className="w-full bg-slate-100 h-1 mt-2 flex gap-1">
-                    {[1, 2, 3, 4].map((step) => (
+                    {[1, 2].map((step) => (
                       <div 
                         key={step} 
                         className={`h-full flex-1 transition-all duration-300 ${
@@ -1186,131 +1184,6 @@ export default function LandingPage() {
                     </div>
                   )}
 
-                  {/* STEP 3: School Scale */}
-                  {regStep === 3 && (
-                    <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
-                      <p className="text-[11px] text-[#64748b] leading-normal italic">
-                        Providing estimated student and teacher counts helps us optimize the grading engines and resource allocation for your sandbox tenant.
-                      </p>
-                      
-                      <div className="grid grid-cols-3 gap-4">
-                        <div className="space-y-1">
-                          <label className="block text-[9px] font-bold uppercase tracking-widest text-[#94a3b8]">Students</label>
-                          <input
-                            type="number"
-                            min="0"
-                            placeholder="e.g. 350"
-                            value={regStudentCount}
-                            onChange={(e) => setRegStudentCount(e.target.value)}
-                            className="w-full bg-[#f8f9fa] border border-[#e9ecef] px-3.5 py-2.5 text-xs focus:outline-none focus:border-[#cbd5e1] font-semibold text-slate-700 hover:border-[#cbd5e1] transition-colors"
-                          />
-                        </div>
-                        <div className="space-y-1">
-                          <label className="block text-[9px] font-bold uppercase tracking-widest text-[#94a3b8]">Teachers</label>
-                          <input
-                            type="number"
-                            min="0"
-                            placeholder="e.g. 24"
-                            value={regTeacherCount}
-                            onChange={(e) => setRegTeacherCount(e.target.value)}
-                            className="w-full bg-[#f8f9fa] border border-[#e9ecef] px-3.5 py-2.5 text-xs focus:outline-none focus:border-[#cbd5e1] font-semibold text-slate-700 hover:border-[#cbd5e1] transition-colors"
-                          />
-                        </div>
-                        <div className="space-y-1">
-                          <label className="block text-[9px] font-bold uppercase tracking-widest text-[#94a3b8]">Classes / Arms</label>
-                          <input
-                            type="number"
-                            min="0"
-                            placeholder="e.g. 12"
-                            value={regClassCount}
-                            onChange={(e) => setRegClassCount(e.target.value)}
-                            className="w-full bg-[#f8f9fa] border border-[#e9ecef] px-3.5 py-2.5 text-xs focus:outline-none focus:border-[#cbd5e1] font-semibold text-slate-700 hover:border-[#cbd5e1] transition-colors"
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* STEP 4: Operational Profile */}
-                  {regStep === 4 && (
-                    <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-1">
-                          <label className="block text-[9px] font-bold uppercase tracking-widest text-[#94a3b8]">Current Grading Method</label>
-                          <select
-                            value={regResultMethod}
-                            onChange={(e) => setRegResultMethod(e.target.value)}
-                            className="w-full bg-[#f8f9fa] border border-[#e9ecef] px-3.5 py-2.5 text-xs focus:outline-none focus:border-[#cbd5e1] font-semibold text-slate-700 hover:border-[#cbd5e1] transition-colors"
-                          >
-                            <option value="">Select method...</option>
-                            <option value="EXCEL">Microsoft Excel sheets</option>
-                            <option value="MANUAL">Manual paper calculation</option>
-                            <option value="SOFTWARE">Another software platform</option>
-                            <option value="OTHER">Other method</option>
-                          </select>
-                        </div>
-                        <div className="space-y-1">
-                          <label className="block text-[9px] font-bold uppercase tracking-widest text-[#94a3b8]">Attendance Compilation</label>
-                          <select
-                            value={regAttendanceMethod}
-                            onChange={(e) => setRegAttendanceMethod(e.target.value)}
-                            className="w-full bg-[#f8f9fa] border border-[#e9ecef] px-3.5 py-2.5 text-xs focus:outline-none focus:border-[#cbd5e1] font-semibold text-slate-700 hover:border-[#cbd5e1] transition-colors"
-                          >
-                            <option value="">Select method...</option>
-                            <option value="PAPER">Paper register books</option>
-                            <option value="SOFTWARE">Digital attendance software</option>
-                            <option value="NONE">Not compiled centrally</option>
-                          </select>
-                        </div>
-                      </div>
-
-                      <div className="space-y-1">
-                        <label className="block text-[9px] font-bold uppercase tracking-widest text-[#94a3b8]">What is your biggest operational challenge?</label>
-                        <textarea
-                          rows={2}
-                          value={regChallenge}
-                          onChange={(e) => setRegChallenge(e.target.value)}
-                          placeholder="e.g. Teachers take too long to submit scores; compiling reports takes over 2 weeks after exams."
-                          className="w-full bg-[#f8f9fa] border border-[#e9ecef] px-3.5 py-2.5 text-xs focus:outline-none focus:border-[#cbd5e1] font-semibold text-slate-700 hover:border-[#cbd5e1] resize-none transition-colors"
-                        />
-                      </div>
-
-                      <div className="space-y-1.5">
-                        <label className="block text-[9px] font-bold uppercase tracking-widest text-[#94a3b8]">Features of Interest (Optional)</label>
-                        <div className="flex flex-wrap gap-2 pt-0.5">
-                          {[
-                            { key: 'reports', label: 'Report Cards' },
-                            { key: 'attendance', label: 'Attendance' },
-                            { key: 'scores', label: 'Teacher Grading' },
-                            { key: 'portals', label: 'Parent Portal' }
-                          ].map((feat) => {
-                            const isSelected = regFeatures.includes(feat.key);
-                            return (
-                              <button
-                                key={feat.key}
-                                type="button"
-                                onClick={() => {
-                                  if (isSelected) {
-                                    setRegFeatures(regFeatures.filter(f => f !== feat.key));
-                                  } else {
-                                    setRegFeatures([...regFeatures, feat.key]);
-                                  }
-                                }}
-                                className={`px-3 py-1 border text-[10px] font-bold uppercase tracking-wider transition-all duration-150 ${
-                                  isSelected 
-                                    ? 'bg-[#1e293b] text-white border-[#1e293b]' 
-                                    : 'bg-white text-slate-600 border-slate-200 hover:border-slate-400'
-                                }`}
-                              >
-                                {feat.label}
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
                   {/* Modal Navigation Buttons */}
                   <div className="flex items-center gap-3 mt-6 pt-2 border-t border-slate-100">
                     {regStep > 1 && (
@@ -1335,7 +1208,7 @@ export default function LandingPage() {
                         </>
                       ) : (
                         <span>
-                          {regStep < 4 ? 'Continue' : 'Complete Onboarding'}
+                          {regStep < 2 ? 'Continue' : 'Complete Onboarding'}
                         </span>
                       )}
                     </button>
