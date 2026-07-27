@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { 
-  BookOpen, Plus, Shield, Users, CheckCircle, AlertCircle, 
+  BookOpen, Plus, Shield, Users, CheckCircle, AlertCircle, AlertTriangle,
   RefreshCw, Sparkles, X, UserCheck, GraduationCap, Trash2, Tag, Calendar, Search
 } from 'lucide-react';
 
@@ -94,9 +94,13 @@ export default function SubjectRegistryPage() {
   const [assignTeacherId, setAssignTeacherId] = useState('');
   const [assignTermId, setAssignTermId] = useState('');
 
-  // Alerts
   const [successMsg, setSuccessMsg] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
+  const [pendingAction, setPendingAction] = useState<{
+    type: 'deallocate' | 'delete';
+    targetId: string;
+    targetName: string;
+  } | null>(null);
 
   useEffect(() => {
     const sessionStr = localStorage.getItem('report_user_session');
@@ -237,11 +241,8 @@ export default function SubjectRegistryPage() {
     }
   };
   // 3. De-allocate Teacher Assignment slot
-  const handleDeallocateAssignment = async (assignmentId: string) => {
-    if (!window.confirm('Are you sure you want to de-allocate this teacher from this subject classroom slot? This will remove their exclusive score sheet entry permissions.')) {
-      return;
-    }
-
+  const confirmDeallocateAssignment = async (assignmentId: string) => {
+    setPendingAction(null);
     setErrorMsg('');
     setSuccessMsg('');
 
@@ -261,11 +262,8 @@ export default function SubjectRegistryPage() {
   };
 
   // 4. Delete Subject itself
-  const handleDeleteSubject = async (subjectId: string, subjectName: string) => {
-    if (!window.confirm(`Are you sure you want to permanently delete the subject "${subjectName}"? This will delete all student scores and teacher assignments associated with this subject!`)) {
-      return;
-    }
-
+  const confirmDeleteSubject = async (subjectId: string, subjectName: string) => {
+    setPendingAction(null);
     setErrorMsg('');
     setSuccessMsg('');
 
@@ -368,6 +366,49 @@ export default function SubjectRegistryPage() {
         </div>
       )}
 
+      {pendingAction && (
+        <div className="p-5 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900 text-xs flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 shadow-sm animate-fadeIn">
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+            <div className="space-y-1">
+              <h4 className="text-xs font-black uppercase tracking-wider text-amber-800">
+                {pendingAction.type === 'delete' ? 'Confirm Subject Deletion' : 'Confirm Instructor De-allocation'}
+              </h4>
+              <p className="text-[11px] text-amber-750 font-semibold leading-relaxed">
+                {pendingAction.type === 'delete' && (
+                  <>Are you sure you want to permanently delete the subject <strong>"{pendingAction.targetName}"</strong>? This will delete all student scores and teacher assignments associated with this subject! This action is irreversible!</>
+                )}
+                {pendingAction.type === 'deallocate' && (
+                  <>Are you sure you want to de-allocate instructor <strong>{pendingAction.targetName}</strong> from this subject classroom slot? This will remove their exclusive score sheet entry permissions.</>
+                )}
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 self-end sm:self-center font-bold">
+            <button
+              type="button"
+              onClick={() => setPendingAction(null)}
+              className="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-[10px] font-bold uppercase tracking-wider rounded-xl transition-all cursor-pointer"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                if (pendingAction.type === 'delete') {
+                  confirmDeleteSubject(pendingAction.targetId, pendingAction.targetName);
+                } else {
+                  confirmDeallocateAssignment(pendingAction.targetId);
+                }
+              }}
+              className="px-3.5 py-2 bg-amber-600 hover:bg-amber-500 text-white text-[10px] font-bold uppercase tracking-wider rounded-xl transition-all shadow-sm cursor-pointer"
+            >
+              Confirm
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* 3. Operational Statistics */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 font-semibold">
         <div className="p-5 rounded-3xl bg-white border border-slate-100 shadow-sm flex items-center gap-4">
@@ -463,7 +504,10 @@ export default function SubjectRegistryPage() {
                       </span>
                       <button
                         type="button"
-                        onClick={() => handleDeleteSubject(sub.id, sub.name)}
+                        onClick={() => {
+                          setPendingAction({ type: 'delete', targetId: sub.id, targetName: sub.name });
+                          window.scrollTo({ top: 0, behavior: 'smooth' });
+                        }}
                         className="p-1.5 rounded-lg bg-red-50 text-red-500 hover:bg-red-100 transition-colors cursor-pointer"
                         title={`Delete subject ${sub.name}`}
                       >
@@ -550,7 +594,14 @@ export default function SubjectRegistryPage() {
                           <td className="p-4 text-center">
                             <button
                               type="button"
-                              onClick={() => handleDeallocateAssignment(row.id)}
+                              onClick={() => {
+                                setPendingAction({
+                                  type: 'deallocate',
+                                  targetId: row.id,
+                                  targetName: `Mr./Mrs. ${row.teacher.lastName} (${row.subject.name})`
+                                });
+                                window.scrollTo({ top: 0, behavior: 'smooth' });
+                              }}
                               className="p-1.5 rounded-xl hover:bg-red-50 text-slate-400 hover:text-red-650 transition-colors"
                               title="De-allocate assignment"
                             >
