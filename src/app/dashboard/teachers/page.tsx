@@ -1554,7 +1554,7 @@ export default function TeachersDirectoryPage() {
                                         }}
                                         className={`px-2.5 py-1 rounded-xl text-[10px] font-black border transition-all cursor-pointer ${
                                           isChecked
-                                            ? 'bg-blue-50 text-blue-600 border-blue-150'
+                                            ? 'bg-emerald-50 text-emerald-600 border-emerald-200'
                                             : 'bg-slate-50 text-slate-500 border-slate-200 hover:bg-slate-100'
                                         }`}
                                       >
@@ -1856,7 +1856,7 @@ export default function TeachersDirectoryPage() {
                                         }}
                                         className={`px-2.5 py-1 rounded-xl text-[10px] font-black border transition-all cursor-pointer ${
                                           isChecked
-                                            ? 'bg-blue-50 text-blue-600 border-blue-150'
+                                            ? 'bg-emerald-50 text-emerald-600 border-emerald-200'
                                             : 'bg-slate-50 text-slate-500 border-slate-200 hover:bg-slate-100'
                                         }`}
                                       >
