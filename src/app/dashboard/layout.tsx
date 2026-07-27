@@ -245,10 +245,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         if (res.ok && json.isTester && !json.feedbackSubmitted) {
           setFeedbackLeadId(json.leadId);
           
-          // Trigger feedback modal after 45 seconds of cumulative active time
+          // Trigger feedback modal after 10 minutes of cumulative active time
           timer = setTimeout(() => {
             setFeedbackOpen(true);
-          }, 45000); // 45 seconds
+          }, 600000); // 10 minutes
         }
       } catch (err) {
         console.error('[Feedback] Error checking tester feedback status:', err);
