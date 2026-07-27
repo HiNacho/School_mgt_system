@@ -245,36 +245,7 @@ export default function SettingsPage() {
               <h3 className="text-xs font-black uppercase text-slate-800 tracking-wider">My Preferences</h3>
             </div>
 
-            {/* Theme selector */}
-            <div className="text-xs font-semibold space-y-2">
-              <label className="block text-[10px] font-extrabold uppercase tracking-wider text-slate-400">UI Display Theme</label>
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  onClick={() => setThemeMode('light')}
-                  className={`flex items-center justify-center gap-1.5 py-2 border rounded-xl font-bold transition-all ${
-                    themeMode === 'light' 
-                      ? 'bg-slate-100 border-slate-300 text-slate-800 shadow-sm'
-                      : 'border-slate-200 text-slate-400 hover:bg-slate-50'
-                  }`}
-                >
-                  <Sun className="w-3.5 h-3.5" />
-                  Light Mode
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setThemeMode('dark')}
-                  className={`flex items-center justify-center gap-1.5 py-2 border rounded-xl font-bold transition-all ${
-                    themeMode === 'dark' 
-                      ? 'bg-slate-900 border-slate-950 text-white shadow-sm'
-                      : 'border-slate-200 text-slate-400 hover:bg-slate-50'
-                  }`}
-                >
-                  <Moon className="w-3.5 h-3.5" />
-                  Dark Mode
-                </button>
-              </div>
-            </div>
+
 
             {/* Notification settings */}
             <div className="text-xs font-semibold space-y-3 pt-2">
