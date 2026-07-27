@@ -85,6 +85,10 @@ export default function SchoolTenantsPage() {
   const [successMsg, setSuccessMsg] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
   const [deletingTenant, setDeletingTenant] = useState<SchoolTenant | null>(null);
+  const [pendingAction, setPendingAction] = useState<{
+    type: 'suspend' | 'reset_password' | 'archive';
+    tenant: SchoolTenant;
+  } | null>(null);
 
   useEffect(() => {
     loadAllSaaSData();
@@ -356,11 +360,8 @@ The Operon Support Team
     }
   };
 
-  const handleResetAdminPassword = async (tenant: SchoolTenant) => {
-    if (!window.confirm(`Are you sure you want to reset the admin password for "${tenant.name}"? The password will be reset to "password".`)) {
-      return;
-    }
-
+  const confirmResetAdminPassword = async (tenant: SchoolTenant) => {
+    setPendingAction(null);
     setErrorMsg('');
     setSuccessMsg('');
 
@@ -383,13 +384,10 @@ The Operon Support Team
     }
   };
 
-  const handleToggleSuspension = async (tenant: SchoolTenant) => {
+  const confirmToggleSuspension = async (tenant: SchoolTenant) => {
+    setPendingAction(null);
     const isSuspended = tenant.subscriptionStatus === 'suspended';
     const nextStatus = isSuspended ? 'active' : 'suspended';
-    
-    if (!window.confirm(`Are you sure you want to set subscription status to "${nextStatus}" for "${tenant.name}"?`)) {
-      return;
-    }
 
     setErrorMsg('');
     setSuccessMsg('');
@@ -427,11 +425,8 @@ The Operon Support Team
     }
   };
 
-  const handleArchiveSchool = async (tenant: SchoolTenant) => {
-    if (!window.confirm(`Are you sure you want to archive "${tenant.name}"? This restricts active write access to all features.`)) {
-      return;
-    }
-
+  const confirmArchiveSchool = async (tenant: SchoolTenant) => {
+    setPendingAction(null);
     setErrorMsg('');
     setSuccessMsg('');
 
@@ -645,6 +640,46 @@ The Operon Support Team
               className="px-3.5 py-2 bg-red-600 hover:bg-red-500 text-white text-[10px] font-bold uppercase tracking-wider rounded-xl transition-all shadow-sm cursor-pointer"
             >
               Confirm Delete
+            </button>
+          </div>
+        </div>
+      )}
+
+      {pendingAction && !viewingTenant && (
+        <div className="p-5 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900 text-xs flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 shadow-sm animate-fadeIn">
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+            <div className="space-y-1">
+              <h4 className="text-xs font-black uppercase tracking-wider text-amber-800">Confirm Operations Request</h4>
+              <p className="text-[11px] text-amber-750 font-semibold leading-relaxed">
+                {pendingAction.type === 'suspend' && `Are you sure you want to set subscription status to "${pendingAction.tenant.subscriptionStatus === 'suspended' ? 'active' : 'suspended'}" for "${pendingAction.tenant.name}"?`}
+                {pendingAction.type === 'reset_password' && `Are you sure you want to reset the admin password for "${pendingAction.tenant.name}"? The password will be reset to "password".`}
+                {pendingAction.type === 'archive' && `Are you sure you want to archive "${pendingAction.tenant.name}"? This restricts active write access to all features.`}
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 self-end sm:self-center font-bold">
+            <button
+              type="button"
+              onClick={() => setPendingAction(null)}
+              className="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-[10px] font-bold uppercase tracking-wider rounded-xl transition-all cursor-pointer"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                if (pendingAction.type === 'suspend') {
+                  confirmToggleSuspension(pendingAction.tenant);
+                } else if (pendingAction.type === 'reset_password') {
+                  confirmResetAdminPassword(pendingAction.tenant);
+                } else if (pendingAction.type === 'archive') {
+                  confirmArchiveSchool(pendingAction.tenant);
+                }
+              }}
+              className="px-3.5 py-2 bg-amber-600 hover:bg-amber-500 text-white text-[10px] font-bold uppercase tracking-wider rounded-xl transition-all shadow-sm cursor-pointer"
+            >
+              Confirm Action
             </button>
           </div>
         </div>
@@ -893,7 +928,7 @@ The Operon Support Team
                               </button>
                               <button
                                 type="button"
-                                onClick={() => handleToggleSuspension(row)}
+                                onClick={() => setPendingAction({ type: 'suspend', tenant: row })}
                                 title={row.subscriptionStatus === 'suspended' ? 'Reactivate Tenant' : 'Suspend Tenant'}
                                 className="p-1.5 rounded-xl hover:bg-slate-100 text-slate-400 hover:text-amber-500 cursor-pointer transition-colors"
                               >
@@ -901,7 +936,7 @@ The Operon Support Team
                               </button>
                               <button
                                 type="button"
-                                onClick={() => handleResetAdminPassword(row)}
+                                onClick={() => setPendingAction({ type: 'reset_password', tenant: row })}
                                 title="Reset Admin Password"
                                 className="p-1.5 rounded-xl hover:bg-slate-100 text-slate-400 hover:text-slate-800 cursor-pointer transition-colors"
                               >
@@ -1089,6 +1124,47 @@ The Operon Support Team
                 </div>
               </div>
 
+              {/* Custom Inline Confirmation Alert */}
+              {pendingAction && pendingAction.tenant.id === viewingTenant.id && (
+                <div className="p-4 bg-amber-50 border border-amber-200 text-amber-900 rounded-2xl space-y-3 animate-in slide-in-from-top-2 duration-200 text-xs font-semibold">
+                  <div className="flex gap-2.5 items-start">
+                    <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+                    <div>
+                      <p className="font-extrabold uppercase tracking-wider text-[10px] text-amber-700">Confirm Operations Request</p>
+                      <p className="text-slate-700 mt-1 leading-relaxed">
+                        {pendingAction.type === 'suspend' && `Are you sure you want to set subscription status to "${viewingTenant.subscriptionStatus === 'suspended' ? 'active' : 'suspended'}" for "${viewingTenant.name}"?`}
+                        {pendingAction.type === 'reset_password' && `Are you sure you want to reset the admin password for "${viewingTenant.name}"? The password will be reset to "password".`}
+                        {pendingAction.type === 'archive' && `Are you sure you want to archive "${viewingTenant.name}"? This restricts active write access to all features.`}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex gap-2 justify-end font-bold">
+                    <button
+                      type="button"
+                      onClick={() => setPendingAction(null)}
+                      className="px-3.5 py-1.5 border border-slate-200 hover:bg-slate-50 text-slate-500 rounded-xl cursor-pointer transition-colors"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (pendingAction.type === 'suspend') {
+                          confirmToggleSuspension(pendingAction.tenant);
+                        } else if (pendingAction.type === 'reset_password') {
+                          confirmResetAdminPassword(pendingAction.tenant);
+                        } else if (pendingAction.type === 'archive') {
+                          confirmArchiveSchool(pendingAction.tenant);
+                        }
+                      }}
+                      className="px-3.5 py-1.5 bg-amber-500 hover:bg-amber-600 text-white rounded-xl cursor-pointer transition-colors shadow-sm"
+                    >
+                      Yes, Proceed
+                    </button>
+                  </div>
+                </div>
+              )}
+
               <div className="border-t border-slate-100 pt-3 space-y-2.5 text-xs font-semibold text-slate-500">
                 <p className="flex justify-between"><span className="text-slate-400">Unique URL Prefix:</span> <strong className="text-emerald-650 font-mono bg-slate-50 px-2 py-0.5 rounded border">/{viewingTenant.slug}</strong></p>
                 <p className="flex justify-between"><span className="text-slate-400">Grading Section Scale:</span> <strong className="text-slate-700 uppercase">{viewingTenant.gradingType} Rules</strong></p>
@@ -1178,7 +1254,7 @@ The Operon Support Team
                 </button>
                 <button
                   type="button"
-                  onClick={() => handleToggleSuspension(viewingTenant)}
+                  onClick={() => setPendingAction({ type: 'suspend', tenant: viewingTenant })}
                   className="py-2 px-4 rounded-xl text-xs font-black border border-slate-200 text-slate-700 hover:bg-slate-50 cursor-pointer"
                 >
                   {viewingTenant.subscriptionStatus === 'suspended' ? 'Reactivate Subscription' : 'Suspend Account'}
