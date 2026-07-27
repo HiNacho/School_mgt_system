@@ -184,9 +184,15 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    // Create TesterActivity telemetry tracker
-    await prisma.testerActivity.create({
-      data: {
+    // Create or update TesterActivity telemetry tracker
+    await prisma.testerActivity.upsert({
+      where: { leadId: lead.id },
+      update: {
+        userId: adminUser.id,
+        loginCount: 0,
+        timeSpent: 0,
+      },
+      create: {
         userId: adminUser.id,
         leadId: lead.id,
         loginCount: 0,
