@@ -563,6 +563,7 @@ export default function TeachersDirectoryPage() {
       setShowModal(false);
       
       await loadStaffRoster(school.id);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (err: any) {
       setErrorMsg(err.message || 'Error communicating with database.');
     } finally {
@@ -790,6 +791,7 @@ export default function TeachersDirectoryPage() {
 
       setSuccessMsg(`Teacher profile successfully updated!`);
       setShowEditModal(false);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (err: any) {
       setEditError(err.message || 'An error occurred while updating the profile.');
     } finally {
