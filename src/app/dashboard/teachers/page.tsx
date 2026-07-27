@@ -257,7 +257,12 @@ export default function TeachersDirectoryPage() {
       if (!res.ok) throw new Error(json.error || 'Failed to upload teachers list');
 
       setUploadResult(json.data);
-      setSuccessMsg(`Bulk teachers registration complete: successfully imported ${json.data.successCount} accounts!`);
+      setSuccessMsg(
+        `Bulk teachers registration complete: successfully imported ${json.data.successCount} accounts!\n\n` +
+        `• Default login password for all imported staff: "password"\n` +
+        `• Username: (Auto-generated unique username based on last name)\n\n` +
+        `Users will be prompted to update this default password on their first login.`
+      );
       setParsedTeachers([]);
       setShowUploadModal(false);
       
@@ -547,7 +552,13 @@ export default function TeachersDirectoryPage() {
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || 'Failed to register teacher profile.');
 
-      setSuccessMsg(`Teacher credentials successfully active for ${title ? `${title} ` : ''}${lastName} ${firstName}!`);
+      setSuccessMsg(
+        `Teacher account successfully registered for ${title ? `${title} ` : ''}${lastName} ${firstName}!\n\n` +
+        `Please copy and share these credentials with the teacher so they can log in:\n` +
+        `• Username: ${json.username}\n` +
+        `• Temporary Password: ${json.temporaryPassword}\n\n` +
+        `They will be prompted to update this temporary password upon first login.`
+      );
       
       // Reset form states
       setTitle('');
@@ -874,8 +885,8 @@ export default function TeachersDirectoryPage() {
       {successMsg && (
         <div className="p-4 rounded-2xl bg-green-50 border border-green-150 text-green-600 text-xs flex items-center justify-between font-bold animate-fadeIn">
           <div className="flex items-center gap-2">
-            <CheckCircle className="w-4 h-4" />
-            <span>{successMsg}</span>
+            <CheckCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+            <span className="whitespace-pre-line">{successMsg}</span>
           </div>
           <button type="button" onClick={() => setSuccessMsg('')} className="text-slate-400">✕</button>
         </div>
