@@ -63,7 +63,7 @@ export async function GET(req: NextRequest) {
 
       // Scoped role boundary checks
       if (session.role === 'STUDENT') {
-        if (student.user?.id !== session.userId) {
+        if ((student as any).user?.id !== session.userId) {
           return NextResponse.json({ error: 'Access Denied: You are only authorized to view your own student profile.' }, { status: 403 });
         }
       } else if (session.role === 'PARENT') {

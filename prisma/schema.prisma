@@ -68,7 +68,11 @@ model School {
   promotions              StudentPromotionHistory[]
   backups                 SessionBackup[]
   systemAuditLogs         SystemAuditLog[]
+  studentGuardians        StudentGuardian[]
+  studentMedicals         StudentMedical[]
+  studentDocuments        StudentDocument[]
 }
+
 
 model User {
   id           String   @id @default(uuid())
@@ -226,41 +230,73 @@ model Student {
   firstName       String
   lastName        String
   middleName      String?
-  admissionNumber String // Unique within the school
-  gender          String // MALE, FEMALE
+  preferredName   String?
+  admissionNumber String
+  gender          String   // MALE, FEMALE
   dateOfBirth     String?
-  passportPhoto   String? // Base64 string or image link
+  passportPhoto   String?  // Base64 string or image link
   classId         String
   armId           String
   status          String   @default("ACTIVE") // ACTIVE, GRADUATED, TRANSFERRED, WITHDRAWN, SUSPENDED, ARCHIVED
   feesPaid        Boolean  @default(false)
+
+  // Extended Biodata
+  nationality     String?
+  stateOfOrigin   String?
+  lga             String?  // Local Government Area
+  religion        String?
+  bloodGroup      String?
+  genotype        String?
+  address         String?
+  town            String?
+  state           String?
+  country         String?
+  phone           String?
+  email           String?
+  languages       String?  // JSON array string e.g. ["English","Yoruba"]
+  studentNotes    String?
+
+  // Academic Info
+  admissionDate       String?  // YYYY-MM-DD
+  admissionType       String?  // NEW, TRANSFER, RETURNING
+  category            String?  // DAY, BOARDING
+  house               String?
+  graduationDate      String?
+  transferDate        String?
+  transferDestination String?
+  previousSchool      String?
+  previousRecords     String?  // JSON string of previous academic records
+
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
-  school         School              @relation(fields: [schoolId], references: [id], onDelete: Cascade)
-  class          Class               @relation(fields: [classId], references: [id])
-  arm            Arm                 @relation(fields: [armId], references: [id])
-  scores         Score[]
-  reportComments ReportCardComment[]
-  attendance     Attendance[]
-  dailyAttendance DailyAttendance[]
-  parentId       String?
-  parent         Parent?             @relation(fields: [parentId], references: [id], onDelete: SetNull)
-  user           User?               @relation("StudentUser")
-  behaviorRatings BehaviorRating[]
-  chatConversations       ChatConversation[]
-  weeklyReports           WeeklyReport[]
-  behaviourLogs           BehaviourLog[]
-  meetingRequests         MeetingRequest[]
-  teacherNotes            TeacherNote[]
-  studentTimelines        StudentTimeline[]
-  invoices                Invoice[]
-  studentPayments         StudentPayment[]
-  scholarshipType         String?             @default("NONE") // NONE, PERCENTAGE_100, PERCENTAGE_75, PERCENTAGE_50, PERCENTAGE_25, CUSTOM
-  scholarshipValue        Float               @default(0)
-  discountType            String?             @default("NONE") // NONE, SIBLING, STAFF_CHILD, EARLY_PAYMENT, MANUAL
-  discountValue           Float               @default(0)
-  promotions              StudentPromotionHistory[]
+  school              School              @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  class               Class               @relation(fields: [classId], references: [id])
+  arm                 Arm                 @relation(fields: [armId], references: [id])
+  scores              Score[]
+  reportComments      ReportCardComment[]
+  attendance          Attendance[]
+  dailyAttendance     DailyAttendance[]
+  parentId            String?
+  parent              Parent?             @relation(fields: [parentId], references: [id], onDelete: SetNull)
+  user                User?               @relation("StudentUser")
+  behaviorRatings     BehaviorRating[]
+  chatConversations   ChatConversation[]
+  weeklyReports       WeeklyReport[]
+  behaviourLogs       BehaviourLog[]
+  meetingRequests     MeetingRequest[]
+  teacherNotes        TeacherNote[]
+  studentTimelines    StudentTimeline[]
+  invoices            Invoice[]
+  studentPayments     StudentPayment[]
+  scholarshipType     String?             @default("NONE") // NONE, PERCENTAGE_100, PERCENTAGE_75, PERCENTAGE_50, PERCENTAGE_25, CUSTOM
+  scholarshipValue    Float               @default(0)
+  discountType        String?             @default("NONE") // NONE, SIBLING, STAFF_CHILD, EARLY_PAYMENT, MANUAL
+  discountValue       Float               @default(0)
+  promotions          StudentPromotionHistory[]
+  guardians           StudentGuardian[]
+  medical             StudentMedical?
+  documents           StudentDocument[]
 
   @@unique([schoolId, admissionNumber])
 }
@@ -965,4 +1001,76 @@ model SystemAuditLog {
   createdAt      DateTime @default(now())
 
   school         School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+}
+
+// ─── Student Guardian (multi-guardian support) ───────────────────────────────
+model StudentGuardian {
+  id                      String   @id @default(uuid())
+  schoolId                String
+  studentId               String
+  firstName               String
+  lastName                String
+  relationship            String   // FATHER, MOTHER, GUARDIAN, EMERGENCY
+  phone                   String?
+  email                   String?
+  occupation              String?
+  employer                String?
+  address                 String?
+  photo                   String?  // base64
+  preferredComMethod      String?  // SMS, EMAIL, WHATSAPP, CALL
+  isPrimary               Boolean  @default(false)
+  isBillingContact        Boolean  @default(false)
+  isEmergencyContact      Boolean  @default(false)
+  isNotificationRecipient Boolean  @default(true)
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+
+  school   School  @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  student  Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+}
+
+// ─── Student Medical Record (role-gated) ─────────────────────────────────────
+model StudentMedical {
+  id                  String   @id @default(uuid())
+  schoolId            String
+  studentId           String   @unique
+  bloodGroup          String?
+  genotype            String?
+  allergies           String?  // free text / JSON
+  conditions          String?  // chronic conditions
+  medications         String?  // current medications
+  disabilities        String?
+  visualImpairment    Boolean  @default(false)
+  hearingImpairment   Boolean  @default(false)
+  specialNeeds        String?
+  doctorName          String?
+  hospital            String?
+  hospitalContact     String?
+  insurance           String?
+  emergencyNotes      String?  // shown to class teachers
+  vaccinationRecords  String?  // JSON array of { vaccine, date, nextDue }
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  school   School  @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  student  Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+}
+
+// ─── Student Document Repository ─────────────────────────────────────────────
+model StudentDocument {
+  id             String    @id @default(uuid())
+  schoolId       String
+  studentId      String
+  documentType   String    // BIRTH_CERTIFICATE, ADMISSION_LETTER, TRANSFER_LETTER, PREVIOUS_RESULT, MEDICAL_REPORT, PASSPORT, PARENT_ID, CERTIFICATE, OTHER
+  name           String
+  url            String    // base64 or /public/uploads/ path
+  mimeType       String?
+  sizeBytes      Int?
+  version        Int       @default(1)
+  archivedAt     DateTime?
+  uploadedById   String?
+  createdAt      DateTime  @default(now())
+
+  school   School  @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  student  Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
 }
