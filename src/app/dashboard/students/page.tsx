@@ -271,6 +271,103 @@ export default function StudentsDirectoryPage() {
     } catch (e: any) { showError(e.message); }
   };
 
+  // ── Download Excel Template ──────────────────────────────────────────────────
+  const downloadStudentTemplate = () => {
+    const sampleData = [
+      {
+        'First Name': 'Marilyn',
+        'Middle Name': 'Charlotte',
+        'Last Name': 'Kalba',
+        'Preferred Name': 'Mari',
+        'Admission No': '26001',
+        'Gender': 'FEMALE',
+        'Date of Birth': '2015-06-14',
+        'Class': 'Primary 1',
+        'Arm': 'A',
+        'Category': 'DAY',
+        'House': 'Blue House',
+        'Nationality': 'Nigerian',
+        'State of Origin': 'Nasarawa',
+        'LGA': 'Karu',
+        'Religion': 'Christianity',
+        'Blood Group': 'O+',
+        'Genotype': 'AA',
+        'Address': '12 Hospital Road',
+        'Town': 'Daura',
+        'State': 'Nasarawa',
+        'Country': 'Nigeria',
+        'Phone': '+2348012345678',
+        'Email': 'marilyn.kalba@example.com',
+        'Languages Spoken': 'English, Hausa',
+        'Student Notes': 'Enjoys mathematics and art',
+        'Admission Date': '2024-09-10',
+        'Admission Type': 'NEW',
+        'Previous School': 'Model Primary School',
+        'Guardian First Name': 'Charles',
+        'Guardian Last Name': 'Kalba',
+        'Guardian Relationship': 'FATHER',
+        'Guardian Phone': '+2348033334444',
+        'Guardian Email': 'charles.kalba@example.com',
+        'Guardian Occupation': 'Civil Engineer',
+        'Guardian Address': '12 Hospital Road, Daura',
+        'Allergies': 'Peanuts',
+        'Chronic Illnesses': 'Asthma',
+        'Disabilities': 'None',
+        'Emergency Instructions': 'Keep inhaler in school clinic',
+        'Medical Notes': 'Requires reading glasses',
+        'Immunization Status': 'Fully Vaccinated',
+      },
+      {
+        'First Name': 'David',
+        'Middle Name': 'Oluwaseun',
+        'Last Name': 'Adeyemi',
+        'Preferred Name': 'Dave',
+        'Admission No': '26002',
+        'Gender': 'MALE',
+        'Date of Birth': '2014-11-20',
+        'Class': 'Primary 2',
+        'Arm': 'B',
+        'Category': 'BOARDING',
+        'House': 'Red House',
+        'Nationality': 'Nigerian',
+        'State of Origin': 'Ogun',
+        'LGA': 'Abeokuta South',
+        'Religion': 'Christianity',
+        'Blood Group': 'A+',
+        'Genotype': 'AS',
+        'Address': '45 Crescent Way',
+        'Town': 'Abeokuta',
+        'State': 'Ogun',
+        'Country': 'Nigeria',
+        'Phone': '+2348098765432',
+        'Email': 'david.adeyemi@example.com',
+        'Languages Spoken': 'English, Yoruba',
+        'Student Notes': 'School football team captain',
+        'Admission Date': '2023-09-12',
+        'Admission Type': 'TRANSFER',
+        'Previous School': 'St. Nicholas Primary',
+        'Guardian First Name': 'Grace',
+        'Guardian Last Name': 'Adeyemi',
+        'Guardian Relationship': 'MOTHER',
+        'Guardian Phone': '+2348022221111',
+        'Guardian Email': 'grace.adeyemi@example.com',
+        'Guardian Occupation': 'Accountant',
+        'Guardian Address': '45 Crescent Way, Abeokuta',
+        'Allergies': 'None',
+        'Chronic Illnesses': 'None',
+        'Disabilities': 'None',
+        'Emergency Instructions': 'Contact mother immediately',
+        'Medical Notes': 'No special medical conditions',
+        'Immunization Status': 'Fully Vaccinated',
+      }
+    ];
+
+    const ws = XLSX.utils.json_to_sheet(sampleData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Comprehensive_Student_Template');
+    XLSX.writeFile(wb, 'Comprehensive_Student_Import_Template.xlsx');
+  };
+
   // ── Excel Upload ────────────────────────────────────────────────────────────
   const handleExcelFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -281,14 +378,52 @@ export default function StudentsDirectoryPage() {
       const ws = wb.Sheets[wb.SheetNames[0]];
       const rows: any[] = XLSX.utils.sheet_to_json(ws, { defval: '' });
       setParsedStudents(rows.map(r => ({
+        // Personal & Academic
         firstName: r['First Name'] || r['firstName'] || '',
         lastName: r['Last Name'] || r['lastName'] || '',
         middleName: r['Middle Name'] || r['middleName'] || '',
-        admissionNumber: r['Admission No'] || r['admissionNumber'] || '',
-        gender: (r['Gender'] || r['gender'] || 'MALE').toUpperCase(),
+        preferredName: r['Preferred Name'] || r['preferredName'] || '',
+        admissionNumber: String(r['Admission No'] || r['Admission Number'] || r['admissionNumber'] || '').trim(),
+        gender: String(r['Gender'] || r['gender'] || 'MALE').toUpperCase(),
         dateOfBirth: r['Date of Birth'] || r['dateOfBirth'] || '',
         className: r['Class'] || r['class'] || '',
         armName: r['Arm'] || r['arm'] || '',
+        category: r['Category'] || r['category'] || '',
+        house: r['House'] || r['house'] || '',
+        nationality: r['Nationality'] || r['nationality'] || '',
+        stateOfOrigin: r['State of Origin'] || r['stateOfOrigin'] || '',
+        lga: r['LGA'] || r['lga'] || '',
+        religion: r['Religion'] || r['religion'] || '',
+        bloodGroup: r['Blood Group'] || r['bloodGroup'] || '',
+        genotype: r['Genotype'] || r['genotype'] || '',
+        address: r['Address'] || r['address'] || '',
+        town: r['Town'] || r['town'] || '',
+        state: r['State'] || r['state'] || '',
+        country: r['Country'] || r['country'] || '',
+        phone: r['Phone'] || r['phone'] || '',
+        email: r['Email'] || r['email'] || '',
+        languages: r['Languages Spoken'] || r['languages'] || '',
+        studentNotes: r['Student Notes'] || r['studentNotes'] || '',
+        admissionDate: r['Admission Date'] || r['admissionDate'] || '',
+        admissionType: r['Admission Type'] || r['admissionType'] || '',
+        previousSchool: r['Previous School'] || r['previousSchool'] || '',
+
+        // Guardian Information
+        guardianFirstName: r['Guardian First Name'] || r['guardianFirstName'] || '',
+        guardianLastName: r['Guardian Last Name'] || r['guardianLastName'] || '',
+        guardianRelationship: r['Guardian Relationship'] || r['guardianRelationship'] || 'GUARDIAN',
+        guardianPhone: r['Guardian Phone'] || r['guardianPhone'] || '',
+        guardianEmail: r['Guardian Email'] || r['guardianEmail'] || '',
+        guardianOccupation: r['Guardian Occupation'] || r['guardianOccupation'] || '',
+        guardianAddress: r['Guardian Address'] || r['guardianAddress'] || '',
+
+        // Medical Information
+        allergies: r['Allergies'] || r['allergies'] || '',
+        chronicIllnesses: r['Chronic Illnesses'] || r['chronicIllnesses'] || '',
+        disabilities: r['Disabilities'] || r['disabilities'] || '',
+        emergencyInstructions: r['Emergency Instructions'] || r['emergencyInstructions'] || '',
+        medicalNotes: r['Medical Notes'] || r['medicalNotes'] || '',
+        immunizationStatus: r['Immunization Status'] || r['immunizationStatus'] || '',
       })));
     };
     reader.readAsArrayBuffer(file);
@@ -843,51 +978,132 @@ export default function StudentsDirectoryPage() {
       ════════════════════════════════════════════════════════════════════════ */}
       {excelOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)' }}>
-          <div className="w-full max-w-xl rounded-2xl border shadow-2xl" style={{ background: 'var(--bg-card)', borderColor: 'var(--border-color)' }}>
+          <div className="w-full max-w-2xl rounded-3xl border shadow-2xl overflow-hidden" style={{ background: 'var(--bg-card)', borderColor: 'var(--border-color)' }}>
             <div className="flex items-center justify-between px-6 py-4 border-b" style={{ borderColor: 'var(--border-color)' }}>
-              <h2 className="font-bold text-lg" style={{ color: 'var(--text-primary)' }}>Bulk Import Students</h2>
-              <button onClick={() => { setExcelOpen(false); setParsedStudents([]); setUploadResult(null); }} className="p-2 rounded-lg hover:text-red-400 transition-colors" style={{ color: 'var(--text-secondary)' }}><X className="w-5 h-5" /></button>
+              <div>
+                <h2 className="font-extrabold text-lg flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>
+                  <FileSpreadsheet className="w-5 h-5 text-violet-500" />
+                  Bulk Import Students
+                </h2>
+                <p className="text-xs opacity-60" style={{ color: 'var(--text-secondary)' }}>
+                  Upload student roster with personal, guardian, and medical profiles.
+                </p>
+              </div>
+              <button onClick={() => { setExcelOpen(false); setParsedStudents([]); setUploadResult(null); }} className="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" style={{ color: 'var(--text-secondary)' }}>
+                <X className="w-5 h-5" />
+              </button>
             </div>
-            <div className="p-6 space-y-4">
+            
+            <div className="p-6 space-y-4 max-h-[80vh] overflow-y-auto">
+              {/* Template Download Card */}
+              <div className="p-4 rounded-2xl border bg-violet-500/5 border-violet-500/20 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="space-y-0.5">
+                  <div className="flex items-center gap-2 font-bold text-xs text-violet-400">
+                    <FileSpreadsheet className="w-4 h-4" />
+                    <span>Comprehensive Excel Template</span>
+                  </div>
+                  <p className="text-[11px] text-slate-400">
+                    Includes columns for Personal Biodata, Academic Info, Guardians, and Medical Records.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={downloadStudentTemplate}
+                  className="flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-xs font-black bg-violet-600 hover:bg-violet-500 text-white transition-all shadow-sm active:scale-95 cursor-pointer whitespace-nowrap"
+                >
+                  <Download className="w-4 h-4" />
+                  Download Template (.xlsx)
+                </button>
+              </div>
+
               {uploadResult ? (
-                <div className="rounded-xl bg-emerald-500/10 border border-emerald-500/20 p-4 text-emerald-400">
-                  <div className="flex items-center gap-2 font-semibold mb-2"><CheckCircle className="w-5 h-5" /> Upload Complete</div>
-                  <p className="text-sm">{uploadResult.created || 0} students imported · {uploadResult.skipped || 0} skipped</p>
-                  <p className="text-xs mt-1 opacity-70">Default password for all imported students: <strong>password</strong></p>
+                <div className="rounded-2xl bg-emerald-500/10 border border-emerald-500/20 p-5 text-emerald-400 space-y-2">
+                  <div className="flex items-center gap-2 font-black text-sm"><CheckCircle className="w-5 h-5" /> Upload Complete</div>
+                  <p className="text-xs font-semibold">{uploadResult.created || 0} students imported · {uploadResult.skipped || 0} skipped/failed</p>
+                  <p className="text-xs opacity-75">Default password for all imported students: <strong className="font-mono bg-emerald-500/20 px-1.5 py-0.5 rounded">password</strong></p>
+                  
+                  {uploadResult.data?.failures && uploadResult.data.failures.length > 0 && (
+                    <div className="mt-3 pt-2 border-t border-emerald-500/20 space-y-1">
+                      <p className="text-[11px] font-bold text-red-400">Skipped Records Logs:</p>
+                      <div className="max-h-32 overflow-y-auto text-[10px] font-mono space-y-1 bg-red-500/10 p-2 rounded-xl text-red-300">
+                        {uploadResult.data.failures.map((f: any, idx: number) => (
+                          <div key={idx}>⚠️ {f.name} ({f.admissionNumber}): {f.error}</div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               ) : (
                 <>
-                  <div className="rounded-xl border-2 border-dashed p-6 text-center" style={{ borderColor: 'var(--border-color)' }}>
-                    <FileUp className="w-8 h-8 mx-auto mb-2 opacity-40" style={{ color: 'var(--text-secondary)' }} />
-                    <p className="text-sm mb-1" style={{ color: 'var(--text-primary)' }}>Upload Excel / CSV file</p>
-                    <p className="text-xs mb-3" style={{ color: 'var(--text-secondary)' }}>Columns: First Name, Last Name, Middle Name, Admission No, Gender, Date of Birth, Class, Arm</p>
-                    <input type="file" accept=".xlsx,.xls,.csv" onChange={handleExcelFile} className="text-xs" style={{ color: 'var(--text-secondary)' }} />
+                  {/* Drag & Drop Upload Zone */}
+                  <div className="rounded-2xl border-2 border-dashed p-6 text-center transition-all hover:border-violet-500/50" style={{ borderColor: 'var(--border-color)' }}>
+                    <FileUp className="w-9 h-9 mx-auto mb-2 opacity-50 text-violet-500" />
+                    <p className="text-sm font-bold mb-1" style={{ color: 'var(--text-primary)' }}>Select Excel or CSV File</p>
+                    <p className="text-xs mb-3 text-slate-400">
+                      Supports <span className="font-bold">.xlsx</span>, <span className="font-bold">.xls</span>, or <span className="font-bold">.csv</span>
+                    </p>
+
+                    <input type="file" accept=".xlsx,.xls,.csv" onChange={handleExcelFile} className="text-xs file:mr-3 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-violet-600 file:text-white hover:file:bg-violet-500 cursor-pointer" style={{ color: 'var(--text-secondary)' }} />
                   </div>
+
+                  {/* Section Coverage Tags */}
+                  <div className="flex flex-wrap gap-2 text-[10px] font-extrabold uppercase tracking-wider">
+                    <span className="px-2.5 py-1 rounded-lg bg-blue-500/10 text-blue-400 border border-blue-500/20">👤 Personal & Academic</span>
+                    <span className="px-2.5 py-1 rounded-lg bg-purple-500/10 text-purple-400 border border-purple-500/20">👨‍👩‍👧 Guardian & Contact</span>
+                    <span className="px-2.5 py-1 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">🏥 Medical & Health</span>
+                  </div>
+
+                  {/* Parsed Preview */}
                   {parsedStudents.length > 0 && (
-                    <div>
-                      <p className="text-sm font-medium mb-2" style={{ color: 'var(--text-primary)' }}>{parsedStudents.length} students ready to import</p>
-                      <div className="max-h-40 overflow-y-auto rounded-lg border text-xs" style={{ borderColor: 'var(--border-color)' }}>
-                        {parsedStudents.slice(0, 10).map((s, i) => (
-                          <div key={i} className="px-3 py-2 border-b flex items-center gap-2" style={{ borderColor: 'var(--border-color)' }}>
-                            <span className="opacity-50">{i + 1}.</span>
-                            <span style={{ color: 'var(--text-primary)' }}>{s.firstName} {s.lastName}</span>
-                            <span className="opacity-50">·</span>
-                            <span style={{ color: 'var(--text-secondary)' }}>{s.admissionNumber}</span>
-                            <span className="opacity-50">·</span>
-                            <span style={{ color: 'var(--text-secondary)' }}>{s.className} {s.armName}</span>
-                          </div>
-                        ))}
-                        {parsedStudents.length > 10 && <div className="px-3 py-2 text-center opacity-50">…and {parsedStudents.length - 10} more</div>}
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <p className="text-xs font-black uppercase tracking-wider text-emerald-400">✓ {parsedStudents.length} students ready to import</p>
+                      </div>
+                      <div className="max-h-48 overflow-y-auto rounded-2xl border text-xs divide-y divide-slate-100 dark:divide-slate-800" style={{ borderColor: 'var(--border-color)' }}>
+                        {parsedStudents.map((s, i) => {
+                          const hasGuardian = Boolean(s.guardianFirstName || s.guardianLastName || s.guardianPhone);
+                          const hasMedical = Boolean(s.allergies || s.chronicIllnesses || s.disabilities || s.bloodGroup || s.genotype);
+                          return (
+                            <div key={i} className="px-3.5 py-2.5 flex items-center justify-between gap-2 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                              <div className="flex items-center gap-2 font-medium">
+                                <span className="opacity-40 text-[10px] font-mono">{i + 1}.</span>
+                                <span className="font-bold text-slate-800 dark:text-slate-200">{s.lastName ? `${s.lastName}, ${s.firstName}` : s.firstName}</span>
+                                <span className="opacity-40">·</span>
+                                <span className="font-mono text-slate-500">{s.admissionNumber}</span>
+                                {(s.className || s.armName) && (
+                                  <>
+                                    <span className="opacity-40">·</span>
+                                    <span className="text-slate-400">{s.className} {s.armName}</span>
+                                  </>
+                                )}
+                              </div>
+
+                              <div className="flex items-center gap-1.5 flex-shrink-0">
+                                {hasGuardian && (
+                                  <span className="px-2 py-0.5 rounded-md text-[9px] font-bold bg-purple-500/10 text-purple-400 border border-purple-500/20">
+                                    + Guardian
+                                  </span>
+                                )}
+                                {hasMedical && (
+                                  <span className="px-2 py-0.5 rounded-md text-[9px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                                    + Medical
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
                       </div>
                     </div>
                   )}
                 </>
               )}
             </div>
+
             <div className="px-6 py-4 border-t flex justify-end gap-3" style={{ borderColor: 'var(--border-color)' }}>
-              <button onClick={() => { setExcelOpen(false); setParsedStudents([]); setUploadResult(null); }} className="px-4 py-2 rounded-xl text-sm border" style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}>Close</button>
+              <button onClick={() => { setExcelOpen(false); setParsedStudents([]); setUploadResult(null); }} className="px-4 py-2 rounded-xl text-sm border font-bold hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}>Close</button>
               {!uploadResult && parsedStudents.length > 0 && (
-                <button onClick={handleBulkUpload} disabled={uploading} className="flex items-center gap-2 px-5 py-2 rounded-xl text-sm font-semibold bg-violet-600 hover:bg-violet-500 text-white disabled:opacity-50">
+                <button onClick={handleBulkUpload} disabled={uploading} className="flex items-center gap-2 px-5 py-2 rounded-xl text-sm font-black bg-violet-600 hover:bg-violet-500 text-white shadow-lg shadow-violet-600/20 transition-all disabled:opacity-50 active:scale-95 cursor-pointer">
                   {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <UploadCloud className="w-4 h-4" />}
                   {uploading ? 'Importing…' : `Import ${parsedStudents.length} Students`}
                 </button>

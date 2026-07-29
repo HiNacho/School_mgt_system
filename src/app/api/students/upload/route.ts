@@ -12,25 +12,26 @@ export async function POST(req: NextRequest) {
     const body = await req.json().catch(() => ({}));
     const { schoolId, classId, armId, students } = body;
 
-    if (!schoolId || !classId || !armId || !students || !Array.isArray(students)) {
-      return NextResponse.json({ error: 'Missing required upload parameters (schoolId, classId, armId, and students array)' }, { status: 400 });
+    if (!schoolId || !students || !Array.isArray(students)) {
+      return NextResponse.json({ error: 'Missing required upload parameters (schoolId and students array)' }, { status: 400 });
     }
 
     requireSchoolScope(session, schoolId);
 
-    // Fetch the target Class and Arm details
-    const targetClass = await prisma.class.findFirst({
-      where: { id: classId, schoolId }
-    });
-    const targetArm = await prisma.arm.findFirst({
-      where: { id: armId, classId, schoolId }
+    // Pre-fetch all classes and arms for the school
+    const allClasses = await prisma.class.findMany({
+      where: { schoolId },
+      include: { arms: true }
     });
 
-    if (!targetClass || !targetArm) {
-      return NextResponse.json({ error: 'Selected target class level or arm stream not found' }, { status: 404 });
-    }
+    const classMapByName = new Map<string, any>();
+    const classMapById = new Map<string, any>();
+    allClasses.forEach(c => {
+      classMapByName.set(c.name.trim().toLowerCase(), c);
+      classMapById.set(c.id, c);
+    });
 
-    // Capacity limit enforcement
+    // Check capacity limits
     const existingStudents = await prisma.student.findMany({
       where: { schoolId },
       select: { admissionNumber: true, status: true }
@@ -49,9 +50,7 @@ export async function POST(req: NextRequest) {
       uniqueUploadedAdmissions.add(cleanAdmissionNumber);
 
       const existingStatus = existingMap.get(cleanAdmissionNumber);
-      if (!existingStatus) {
-        activeIncreaseCount++;
-      } else if (existingStatus !== 'ACTIVE') {
+      if (!existingStatus || existingStatus !== 'ACTIVE') {
         activeIncreaseCount++;
       }
     }
@@ -63,7 +62,7 @@ export async function POST(req: NextRequest) {
     const currentActiveCount = await prisma.student.count({
       where: { schoolId, status: 'ACTIVE' }
     });
-    const studentLimit = schoolObj?.maxStudents ?? 100;
+    const studentLimit = schoolObj?.maxStudents ?? 500;
 
     if (currentActiveCount + activeIncreaseCount > studentLimit) {
       return NextResponse.json({
@@ -78,7 +77,6 @@ export async function POST(req: NextRequest) {
       createdStudents: [] as any[]
     };
 
-    // Process students one by one inside a safe execution context
     for (const s of students) {
       const { firstName, lastName, middleName, admissionNumber, gender } = s;
 
@@ -103,8 +101,51 @@ export async function POST(req: NextRequest) {
         continue;
       }
 
+      // Resolve Target Class
+      let targetClass = null;
+      if (s.className) {
+        targetClass = classMapByName.get(String(s.className).trim().toLowerCase());
+      }
+      if (!targetClass && classId) {
+        targetClass = classMapById.get(classId);
+      }
+      if (!targetClass && allClasses.length > 0) {
+        targetClass = allClasses[0];
+      }
+
+      if (!targetClass) {
+        results.failCount++;
+        results.failures.push({
+          name: displayName,
+          admissionNumber: cleanAdmissionNumber,
+          error: `Class level '${s.className || 'default'}' not found in school registry.`
+        });
+        continue;
+      }
+
+      // Resolve Target Arm
+      let targetArm = null;
+      if (s.armName && targetClass.arms) {
+        targetArm = targetClass.arms.find((a: any) => a.name.trim().toLowerCase() === String(s.armName).trim().toLowerCase());
+      }
+      if (!targetArm && armId && targetClass.arms) {
+        targetArm = targetClass.arms.find((a: any) => a.id === armId);
+      }
+      if (!targetArm && targetClass.arms && targetClass.arms.length > 0) {
+        targetArm = targetClass.arms[0];
+      }
+
+      if (!targetArm) {
+        results.failCount++;
+        results.failures.push({
+          name: displayName,
+          admissionNumber: cleanAdmissionNumber,
+          error: `Arm stream '${s.armName || 'default'}' not found for class '${targetClass.name}'.`
+        });
+        continue;
+      }
+
       try {
-        // Check if admission number is already registered in the school
         const conflict = await prisma.student.findUnique({
           where: {
             schoolId_admissionNumber: {
@@ -118,23 +159,46 @@ export async function POST(req: NextRequest) {
         let username = '';
         let tempPassword = '';
 
+        const studentData = {
+          schoolId,
+          firstName: cleanFirstName,
+          lastName: cleanLastName || 'Student',
+          middleName: cleanMiddleName,
+          preferredName: s.preferredName ? String(s.preferredName).trim() : null,
+          admissionNumber: cleanAdmissionNumber,
+          gender: cleanGender,
+          dateOfBirth: s.dateOfBirth ? String(s.dateOfBirth).trim() : null,
+          classId: targetClass.id,
+          armId: targetArm.id,
+          status: 'ACTIVE',
+          category: s.category ? String(s.category).trim() : null,
+          house: s.house ? String(s.house).trim() : null,
+          nationality: s.nationality ? String(s.nationality).trim() : null,
+          stateOfOrigin: s.stateOfOrigin ? String(s.stateOfOrigin).trim() : null,
+          lga: s.lga ? String(s.lga).trim() : null,
+          religion: s.religion ? String(s.religion).trim() : null,
+          bloodGroup: s.bloodGroup ? String(s.bloodGroup).trim() : null,
+          genotype: s.genotype ? String(s.genotype).trim() : null,
+          address: s.address ? String(s.address).trim() : null,
+          town: s.town ? String(s.town).trim() : null,
+          state: s.state ? String(s.state).trim() : null,
+          country: s.country ? String(s.country).trim() : null,
+          phone: s.phone ? String(s.phone).trim() : null,
+          email: s.email ? String(s.email).trim() : null,
+          languages: s.languages ? String(s.languages).trim() : null,
+          studentNotes: s.studentNotes ? String(s.studentNotes).trim() : null,
+          admissionDate: s.admissionDate ? String(s.admissionDate).trim() : null,
+          admissionType: s.admissionType ? String(s.admissionType).trim() : null,
+          previousSchool: s.previousSchool ? String(s.previousSchool).trim() : null,
+        };
+
         if (conflict) {
           resultStudent = await prisma.$transaction(async (tx) => {
-            // 1. Update existing student record
             const student = await tx.student.update({
               where: { id: conflict.id },
-              data: {
-                firstName: cleanFirstName,
-                lastName: cleanLastName || 'Student',
-                middleName: cleanMiddleName,
-                gender: cleanGender,
-                classId,
-                armId,
-                status: 'ACTIVE'
-              }
+              data: studentData
             });
 
-            // 2. Find and update linked User
             const linkedUser = await tx.user.findFirst({
               where: { studentId: conflict.id }
             });
@@ -151,10 +215,63 @@ export async function POST(req: NextRequest) {
               username = linkedUser.username;
             }
 
+            // Create or update Guardian info if provided
+            if (s.guardianFirstName || s.guardianLastName || s.guardianPhone) {
+              const gFirstName = String(s.guardianFirstName || 'Guardian').trim();
+              const gLastName = String(s.guardianLastName || cleanLastName || 'Guardian').trim();
+              const gRel = String(s.guardianRelationship || 'GUARDIAN').trim().toUpperCase();
+
+              await tx.studentGuardian.create({
+                data: {
+                  schoolId,
+                  studentId: student.id,
+                  firstName: gFirstName,
+                  lastName: gLastName,
+                  relationship: ['FATHER', 'MOTHER', 'GUARDIAN', 'EMERGENCY'].includes(gRel) ? gRel : 'GUARDIAN',
+                  phone: s.guardianPhone ? String(s.guardianPhone).trim() : null,
+                  email: s.guardianEmail ? String(s.guardianEmail).trim() : null,
+                  occupation: s.guardianOccupation ? String(s.guardianOccupation).trim() : null,
+                  address: s.guardianAddress ? String(s.guardianAddress).trim() : null,
+                  isPrimary: true,
+                  isBillingContact: true,
+                  isEmergencyContact: true,
+                  isNotificationRecipient: true
+                }
+              });
+            }
+
+            // Upsert Medical record if provided
+            if (s.allergies || s.chronicIllnesses || s.disabilities || s.emergencyInstructions || s.medicalNotes || s.immunizationStatus || s.bloodGroup || s.genotype) {
+              await tx.studentMedical.upsert({
+                where: { studentId: student.id },
+                create: {
+                  schoolId,
+                  studentId: student.id,
+                  bloodGroup: s.bloodGroup ? String(s.bloodGroup).trim() : null,
+                  genotype: s.genotype ? String(s.genotype).trim() : null,
+                  allergies: s.allergies ? String(s.allergies).trim() : null,
+                  conditions: s.chronicIllnesses ? String(s.chronicIllnesses).trim() : null,
+                  disabilities: s.disabilities ? String(s.disabilities).trim() : null,
+                  emergencyNotes: s.emergencyInstructions ? String(s.emergencyInstructions).trim() : null,
+                  specialNeeds: s.medicalNotes ? String(s.medicalNotes).trim() : null,
+                  vaccinationRecords: s.immunizationStatus ? String(s.immunizationStatus).trim() : null,
+                },
+                update: {
+                  bloodGroup: s.bloodGroup ? String(s.bloodGroup).trim() : undefined,
+                  genotype: s.genotype ? String(s.genotype).trim() : undefined,
+                  allergies: s.allergies ? String(s.allergies).trim() : undefined,
+                  conditions: s.chronicIllnesses ? String(s.chronicIllnesses).trim() : undefined,
+                  disabilities: s.disabilities ? String(s.disabilities).trim() : undefined,
+                  emergencyNotes: s.emergencyInstructions ? String(s.emergencyInstructions).trim() : undefined,
+                  specialNeeds: s.medicalNotes ? String(s.medicalNotes).trim() : undefined,
+                  vaccinationRecords: s.immunizationStatus ? String(s.immunizationStatus).trim() : undefined,
+                }
+              });
+            }
+
             return student;
           });
         } else {
-          // Auto-generate credentials for student user
           tempPassword = generateTempPassword();
           const salt = await bcrypt.genSalt(10);
           const passwordHash = await bcrypt.hash(tempPassword, salt);
@@ -162,22 +279,10 @@ export async function POST(req: NextRequest) {
           const email = `${username}@student.local`;
 
           resultStudent = await prisma.$transaction(async (tx) => {
-            // 1. Create student record
             const student = await tx.student.create({
-              data: {
-                schoolId,
-                firstName: cleanFirstName,
-                lastName: cleanLastName || 'Student',
-                middleName: cleanMiddleName,
-                admissionNumber: cleanAdmissionNumber,
-                gender: cleanGender,
-                classId,
-                armId,
-                status: 'ACTIVE'
-              }
+              data: studentData
             });
 
-            // 2. Create linked User credentials
             await tx.user.create({
               data: {
                 schoolId,
@@ -193,6 +298,49 @@ export async function POST(req: NextRequest) {
                 isActive: true
               }
             });
+
+            // Create Guardian info if provided
+            if (s.guardianFirstName || s.guardianLastName || s.guardianPhone) {
+              const gFirstName = String(s.guardianFirstName || 'Guardian').trim();
+              const gLastName = String(s.guardianLastName || cleanLastName || 'Guardian').trim();
+              const gRel = String(s.guardianRelationship || 'GUARDIAN').trim().toUpperCase();
+
+              await tx.studentGuardian.create({
+                data: {
+                  schoolId,
+                  studentId: student.id,
+                  firstName: gFirstName,
+                  lastName: gLastName,
+                  relationship: ['FATHER', 'MOTHER', 'GUARDIAN', 'EMERGENCY'].includes(gRel) ? gRel : 'GUARDIAN',
+                  phone: s.guardianPhone ? String(s.guardianPhone).trim() : null,
+                  email: s.guardianEmail ? String(s.guardianEmail).trim() : null,
+                  occupation: s.guardianOccupation ? String(s.guardianOccupation).trim() : null,
+                  address: s.guardianAddress ? String(s.guardianAddress).trim() : null,
+                  isPrimary: true,
+                  isBillingContact: true,
+                  isEmergencyContact: true,
+                  isNotificationRecipient: true
+                }
+              });
+            }
+
+            // Create Medical record if provided
+            if (s.allergies || s.chronicIllnesses || s.disabilities || s.emergencyInstructions || s.medicalNotes || s.immunizationStatus || s.bloodGroup || s.genotype) {
+              await tx.studentMedical.create({
+                data: {
+                  schoolId,
+                  studentId: student.id,
+                  bloodGroup: s.bloodGroup ? String(s.bloodGroup).trim() : null,
+                  genotype: s.genotype ? String(s.genotype).trim() : null,
+                  allergies: s.allergies ? String(s.allergies).trim() : null,
+                  conditions: s.chronicIllnesses ? String(s.chronicIllnesses).trim() : null,
+                  disabilities: s.disabilities ? String(s.disabilities).trim() : null,
+                  emergencyNotes: s.emergencyInstructions ? String(s.emergencyInstructions).trim() : null,
+                  specialNeeds: s.medicalNotes ? String(s.medicalNotes).trim() : null,
+                  vaccinationRecords: s.immunizationStatus ? String(s.immunizationStatus).trim() : null,
+                }
+              });
+            }
 
             return student;
           });
@@ -220,13 +368,13 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({
       success: true,
+      created: results.successCount,
+      skipped: results.failCount,
       data: {
         successCount: results.successCount,
         failCount: results.failCount,
         failures: results.failures,
         createdStudents: results.createdStudents,
-        className: targetClass.name,
-        armName: targetArm.name
       }
     });
 
