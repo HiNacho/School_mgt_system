@@ -977,17 +977,17 @@ export default function TeachersDirectoryPage() {
               <button
                 type="button"
                 onClick={handleBatchArchive}
-                className="flex items-center gap-1.5 bg-blue-600 border border-blue-600 text-white px-4 py-2 rounded-xl text-xs font-black transition-all cursor-pointer shadow-sm font-sans active:scale-95 hover:bg-blue-500 hover:border-blue-500"
+                className="flex items-center gap-1.5 !bg-blue-600 !border-blue-600 !text-white px-4 py-2 rounded-xl text-xs font-black transition-all cursor-pointer shadow-sm font-sans active:scale-95 hover:!bg-blue-500 hover:!border-blue-500"
               >
-                <Archive className="w-3.5 h-3.5 text-white" />
+                <Archive className="w-3.5 h-3.5 !text-white" />
                 Archive Selected
               </button>
               <button
                 type="button"
                 onClick={handleBatchDelete}
-                className="flex items-center gap-1.5 bg-red-600 border border-red-600 text-white px-4 py-2 rounded-xl text-xs font-black transition-all cursor-pointer shadow-sm font-sans active:scale-95 hover:bg-red-500 hover:border-red-500"
+                className="flex items-center gap-1.5 !bg-red-600 !border-red-600 !text-white px-4 py-2 rounded-xl text-xs font-black transition-all cursor-pointer shadow-sm font-sans active:scale-95 hover:!bg-red-500 hover:!border-red-500"
               >
-                <Trash2 className="w-3.5 h-3.5 text-white" />
+                <Trash2 className="w-3.5 h-3.5 !text-white" />
                 Delete Selected
               </button>
             </div>
