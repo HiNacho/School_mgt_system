@@ -260,7 +260,14 @@ export async function POST(req: NextRequest) {
       data: {
         successCount: results.successCount,
         failCount: results.failCount,
-        failures: results.failures
+        failures: results.failures,
+        importedStaff: results.createdStaff.map(u => ({
+          id: u.id,
+          name: `${u.title || ''} ${u.firstName} ${u.lastName}`.trim(),
+          email: u.email,
+          username: u.username,
+          role: u.role
+        }))
       }
     });
 

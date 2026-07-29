@@ -235,6 +235,7 @@ export default function TeachersDirectoryPage() {
     e.preventDefault();
     setErrorMsg('');
     setSuccessMsg('');
+    setBulkImportResult(null);
     setUploading(true);
 
     if (parsedTeachers.length === 0) {
@@ -257,12 +258,7 @@ export default function TeachersDirectoryPage() {
       if (!res.ok) throw new Error(json.error || 'Failed to upload teachers list');
 
       setUploadResult(json.data);
-      setSuccessMsg(
-        `Bulk teachers registration complete: successfully imported ${json.data.successCount} accounts!\n\n` +
-        `• Default login password for all imported staff: "password"\n` +
-        `• Username: (Auto-generated unique username based on last name)\n\n` +
-        `Users will be prompted to update this default password on their first login.`
-      );
+      setBulkImportResult(json.data);
       setParsedTeachers([]);
       setShowUploadModal(false);
       
@@ -325,6 +321,7 @@ export default function TeachersDirectoryPage() {
   // Alerts
   const [successMsg, setSuccessMsg] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
+  const [bulkImportResult, setBulkImportResult] = useState<any | null>(null);
   const [currentUser, setCurrentUser] = useState<any>(null);
 
   const isAdmin = currentUser?.role === 'SUPER_ADMIN' || currentUser?.role === 'SCHOOL_ADMIN';
@@ -889,6 +886,85 @@ export default function TeachersDirectoryPage() {
             <span className="whitespace-pre-line">{successMsg}</span>
           </div>
           <button type="button" onClick={() => setSuccessMsg('')} className="text-slate-400">✕</button>
+        </div>
+      )}
+
+      {bulkImportResult && (
+        <div className="p-6 rounded-3xl bg-emerald-500/[0.03] border border-emerald-500/20 text-slate-700 space-y-4 animate-fadeIn shadow-sm">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-emerald-500/10 flex items-center justify-center text-emerald-600 flex-shrink-0">
+                <CheckCircle className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="font-extrabold text-sm text-slate-800">Bulk Teachers Registration Complete</h3>
+                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-0.5">
+                  Successfully imported {bulkImportResult.successCount} accounts · {bulkImportResult.failCount || 0} failed
+                </p>
+              </div>
+            </div>
+            <button 
+              type="button" 
+              onClick={() => setBulkImportResult(null)} 
+              className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-slate-600 transition-colors"
+            >
+              ✕
+            </button>
+          </div>
+
+          <div className="p-4 bg-emerald-500/[0.02] border border-emerald-500/10 rounded-2xl flex items-start gap-3">
+            <Sparkles className="w-4 h-4 text-emerald-600 mt-0.5 flex-shrink-0" />
+            <div className="space-y-1 text-xs">
+              <p className="font-bold text-slate-800">Login Credentials Information</p>
+              <p className="text-slate-500 font-semibold leading-relaxed">
+                All newly registered staff members have been assigned the default temporary password: <code className="bg-emerald-50 text-emerald-600 px-1.5 py-0.5 rounded font-mono font-bold">password</code>. They will be prompted to update this password on their first login.
+              </p>
+            </div>
+          </div>
+
+          {bulkImportResult.importedStaff && bulkImportResult.importedStaff.length > 0 && (
+            <div className="space-y-2">
+              <h4 className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest">Imported Staff Accounts</h4>
+              <div className="border border-slate-100 rounded-2xl overflow-hidden bg-white max-h-60 overflow-y-auto">
+                <table className="w-full text-left text-xs border-collapse">
+                  <thead>
+                    <tr className="bg-slate-50 border-b border-slate-150 text-slate-400 font-bold uppercase tracking-wider text-[9px]">
+                      <th className="py-2.5 px-4">Name</th>
+                      <th className="py-2.5 px-4">Username / Login Email</th>
+                      <th className="py-2.5 px-4">Role</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 text-slate-600 font-medium">
+                    {bulkImportResult.importedStaff.map((staff: any, index: number) => (
+                      <tr key={staff.id || index} className="hover:bg-slate-50/50">
+                        <td className="py-2 px-4 font-bold text-slate-800">{staff.name}</td>
+                        <td className="py-2 px-4 font-mono text-[10px] text-slate-500">{staff.username}</td>
+                        <td className="py-2 px-4">
+                          <span className="text-[9px] font-bold uppercase px-2.5 py-0.5 rounded-full bg-blue-500/10 text-blue-600 border border-blue-500/20">
+                            {staff.role.replace('_', ' ')}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {bulkImportResult.failures && bulkImportResult.failures.length > 0 && (
+            <div className="space-y-2">
+              <h4 className="text-[10px] font-extrabold text-red-500 uppercase tracking-widest">Failed or Skipped Records ({bulkImportResult.failures.length})</h4>
+              <div className="p-3.5 bg-red-50/50 border border-red-150 rounded-2xl max-h-40 overflow-y-auto font-mono text-[10px] text-red-500 space-y-1.5">
+                {bulkImportResult.failures.map((f: any, i: number) => (
+                  <div key={i} className="flex items-start gap-1.5">
+                    <span className="flex-shrink-0">⚠️</span>
+                    <span><strong>{f.name}</strong> ({f.email}): {f.error}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
 
