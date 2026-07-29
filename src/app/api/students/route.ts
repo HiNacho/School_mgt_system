@@ -445,4 +445,154 @@ export async function DELETE(req: NextRequest) {
   }
 }
 
+// 5. PATCH: Update student profile including all new extended profile fields
+export async function PATCH(req: NextRequest) {
+  try {
+    const session = await requireAuth(req);
+    requireRole(session, ['SUPER_ADMIN', 'SCHOOL_ADMIN']);
+
+    const body = await req.json();
+    const {
+      id,
+      firstName,
+      lastName,
+      middleName,
+      preferredName,
+      admissionNumber,
+      gender,
+      dateOfBirth,
+      classId,
+      armId,
+      status,
+      passportPhoto,
+      
+      // Extended biodata
+      nationality,
+      stateOfOrigin,
+      lga,
+      religion,
+      bloodGroup,
+      genotype,
+      address,
+      town,
+      state,
+      country,
+      phone,
+      email,
+      languages,
+      studentNotes,
+
+      // Academic info
+      admissionDate,
+      admissionType,
+      category,
+      house,
+      graduationDate,
+      transferDate,
+      transferDestination,
+      previousSchool,
+      previousRecords
+    } = body;
+
+    if (!id) {
+      return NextResponse.json({ error: 'Student ID is required for updates' }, { status: 400 });
+    }
+
+    const existing = await prisma.student.findUnique({ where: { id } });
+    if (!existing) {
+      return NextResponse.json({ error: 'Student profile not found' }, { status: 404 });
+    }
+
+    requireSchoolScope(session, existing.schoolId);
+
+    // Validate email format if provided
+    if (email) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email)) {
+        return NextResponse.json({ error: 'Invalid email address format.' }, { status: 400 });
+      }
+    }
+
+    // Check admission number conflict if changed
+    if (admissionNumber && admissionNumber !== existing.admissionNumber) {
+      const conflict = await prisma.student.findUnique({
+        where: {
+          schoolId_admissionNumber: {
+            schoolId: existing.schoolId,
+            admissionNumber: admissionNumber.trim(),
+          },
+        },
+      });
+      if (conflict) {
+        return NextResponse.json({
+          error: `Admission number '${admissionNumber}' is already assigned to another student`,
+        }, { status: 409 });
+      }
+    }
+
+    const result = await prisma.$transaction(async (tx) => {
+      // Update student profile
+      const updated = await tx.student.update({
+        where: { id },
+        data: {
+          firstName: firstName ? firstName.trim() : undefined,
+          lastName: lastName ? lastName.trim() : undefined,
+          middleName: middleName !== undefined ? middleName?.trim() || null : undefined,
+          preferredName: preferredName !== undefined ? preferredName?.trim() || null : undefined,
+          admissionNumber: admissionNumber ? admissionNumber.trim() : undefined,
+          gender: gender || undefined,
+          dateOfBirth: dateOfBirth !== undefined ? dateOfBirth : undefined,
+          classId: classId || undefined,
+          armId: armId || undefined,
+          status: status || undefined,
+          passportPhoto: passportPhoto !== undefined ? passportPhoto : undefined,
+          
+          nationality: nationality !== undefined ? nationality || null : undefined,
+          stateOfOrigin: stateOfOrigin !== undefined ? stateOfOrigin || null : undefined,
+          lga: lga !== undefined ? lga || null : undefined,
+          religion: religion !== undefined ? religion || null : undefined,
+          bloodGroup: bloodGroup !== undefined ? bloodGroup || null : undefined,
+          genotype: genotype !== undefined ? genotype || null : undefined,
+          address: address !== undefined ? address || null : undefined,
+          town: town !== undefined ? town || null : undefined,
+          state: state !== undefined ? state || null : undefined,
+          country: country !== undefined ? country || null : undefined,
+          phone: phone !== undefined ? phone || null : undefined,
+          email: email !== undefined ? email || null : undefined,
+          languages: languages !== undefined ? languages || null : undefined,
+          studentNotes: studentNotes !== undefined ? studentNotes || null : undefined,
+          
+          admissionDate: admissionDate !== undefined ? admissionDate : undefined,
+          admissionType: admissionType || undefined,
+          category: category || undefined,
+          house: house !== undefined ? house || null : undefined,
+          graduationDate: graduationDate !== undefined ? graduationDate : undefined,
+          transferDate: transferDate !== undefined ? transferDate : undefined,
+          transferDestination: transferDestination !== undefined ? transferDestination : undefined,
+          previousSchool: previousSchool !== undefined ? previousSchool : undefined,
+          previousRecords: previousRecords !== undefined ? previousRecords : undefined
+        },
+      });
+
+      // Synchronize changes to linked User details
+      await tx.user.updateMany({
+        where: { studentId: id },
+        data: {
+          firstName: firstName ? firstName.trim() : undefined,
+          lastName: lastName ? lastName.trim() : undefined,
+          status: status === 'ACTIVE' ? 'ACTIVE' : 'INACTIVE',
+          isActive: status === 'ACTIVE'
+        }
+      });
+
+      return updated;
+    });
+
+    return NextResponse.json({ success: true, data: result });
+  } catch (error: any) {
+    console.error('Student PATCH Error:', error);
+    return NextResponse.json({ error: error.message || 'Failed to update student profile' }, { status: error.status || 500 });
+  }
+}
+
 export const dynamic = 'force-dynamic';
