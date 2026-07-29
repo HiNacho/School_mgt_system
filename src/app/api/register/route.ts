@@ -69,24 +69,10 @@ export async function POST(req: NextRequest) {
         where: { email }
       });
       if (existingSchool) {
-        const existingAdmin = await prisma.user.findFirst({
-          where: { schoolId: existingSchool.id, role: 'SCHOOL_ADMIN' }
-        });
-        if (existingAdmin) {
-          return NextResponse.json({
-            success: true,
-            message: 'This email is already registered. Here are your credentials.',
-            credentials: {
-              email: existingAdmin.email,
-              username: existingAdmin.username,
-              password: 'password',
-              schoolName: existingSchool.name,
-              schoolSlug: existingSchool.slug,
-              isExisting: true
-            },
-            data: lead
-          }, { status: 200 });
-        }
+        return NextResponse.json(
+          { error: 'This email address is already registered to a school portal. Please use a unique email address to register a new school (e.g. your_email+schoolname@gmail.com).' },
+          { status: 400 }
+        );
       }
     }
 
