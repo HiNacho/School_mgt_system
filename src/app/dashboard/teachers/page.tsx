@@ -890,7 +890,7 @@ export default function TeachersDirectoryPage() {
       )}
 
       {bulkImportResult && (
-        <div className="p-5 rounded-2xl bg-emerald-500/[0.03] border border-emerald-500/20 text-slate-700 space-y-3.5 animate-fadeIn shadow-sm">
+        <div className="p-4 rounded-2xl bg-emerald-500/[0.03] border border-emerald-500/20 text-slate-700 space-y-3 animate-fadeIn shadow-sm">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="w-9 h-9 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-600 flex-shrink-0">
@@ -910,16 +910,6 @@ export default function TeachersDirectoryPage() {
             >
               ✕
             </button>
-          </div>
-
-          <div className="p-3.5 bg-emerald-500/[0.02] border border-emerald-500/10 rounded-xl text-xs font-semibold text-slate-600 space-y-1.5">
-            <p className="flex items-center gap-1.5 text-slate-800">
-              <Sparkles className="w-3.5 h-3.5 text-emerald-600 flex-shrink-0" />
-              <strong>Login Credentials Reminder</strong>
-            </p>
-            <p className="leading-relaxed pl-5">
-              Default password for all imported staff: <span className="font-mono font-black bg-emerald-50 text-emerald-600 px-1.5 py-0.5 rounded-md">password</span>. Users will be prompted to update this password on their first login.
-            </p>
           </div>
 
           {bulkImportResult.failures && bulkImportResult.failures.length > 0 && (
