@@ -322,6 +322,23 @@ export default function TeachersDirectoryPage() {
   const [successMsg, setSuccessMsg] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
   const [bulkImportResult, setBulkImportResult] = useState<any | null>(null);
+  const [confirmModal, setConfirmModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    confirmText: string;
+    cancelText: string;
+    onConfirm: () => void;
+    isDanger: boolean;
+  }>({
+    isOpen: false,
+    title: '',
+    message: '',
+    confirmText: '',
+    cancelText: '',
+    onConfirm: () => {},
+    isDanger: false,
+  });
   const [currentUser, setCurrentUser] = useState<any>(null);
 
   const isAdmin = currentUser?.role === 'SUPER_ADMIN' || currentUser?.role === 'SCHOOL_ADMIN';
@@ -610,29 +627,43 @@ export default function TeachersDirectoryPage() {
     setErrorMsg('');
     setSuccessMsg('');
 
+    const performStatusChange = async () => {
+      try {
+        const res = await fetch('/api/staff', {
+          method: 'PUT',
+          headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
+          body: JSON.stringify({
+            schoolId: school.id,
+            staffId: teacherId,
+            status: nextStatus
+          })
+        });
+
+        const json = await res.json();
+        if (!res.ok) throw new Error(json.error || 'Failed to archive teacher.');
+
+        setSuccessMsg(nextStatus === 'ARCHIVED' ? 'Teacher successfully archived!' : 'Teacher successfully reactivated!');
+        await loadStaffRoster(school.id);
+      } catch (err: any) {
+        setErrorMsg(err.message || 'Error archiving teacher.');
+      }
+    };
+
     if (nextStatus === 'ARCHIVED') {
-      const confirmAction = window.confirm("Are you sure you want to archive this teacher? They will be marked as fired/inactive.");
-      if (!confirmAction) return;
-    }
-
-    try {
-      const res = await fetch('/api/staff', {
-        method: 'PUT',
-        headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
-        body: JSON.stringify({
-          schoolId: school.id,
-          staffId: teacherId,
-          status: nextStatus
-        })
+      setConfirmModal({
+        isOpen: true,
+        title: "Archive Teacher Profile",
+        message: "Are you sure you want to archive this teacher? They will be marked as inactive.",
+        confirmText: "Archive",
+        cancelText: "Cancel",
+        isDanger: true,
+        onConfirm: () => {
+          performStatusChange();
+          setConfirmModal(prev => ({ ...prev, isOpen: false }));
+        }
       });
-
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.error || 'Failed to archive teacher.');
-
-      setSuccessMsg(nextStatus === 'ARCHIVED' ? 'Teacher successfully archived!' : 'Teacher successfully reactivated!');
-      await loadStaffRoster(school.id);
-    } catch (err: any) {
-      setErrorMsg(err.message || 'Error archiving teacher.');
+    } else {
+      performStatusChange();
     }
   };
 
@@ -640,77 +671,113 @@ export default function TeachersDirectoryPage() {
     setErrorMsg('');
     setSuccessMsg('');
 
-    const confirmAction = window.confirm("Are you sure you want to completely DELETE this teacher profile? This will delete all their teaching assignments and cannot be undone.");
-    if (!confirmAction) return;
+    const performDelete = async () => {
+      try {
+        const res = await fetch(`/api/staff?schoolId=${school.id}&staffId=${teacherId}`, {
+          method: 'DELETE',
+          headers: getAuthHeaders()
+        });
 
-    try {
-      const res = await fetch(`/api/staff?schoolId=${school.id}&staffId=${teacherId}`, {
-        method: 'DELETE',
-        headers: getAuthHeaders()
-      });
+        const json = await res.json();
+        if (!res.ok) throw new Error(json.error || 'Failed to delete teacher.');
 
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.error || 'Failed to delete teacher.');
+        setSuccessMsg('Teacher profile successfully deleted.');
+        setSelectedTeacherIds(prev => prev.filter(id => id !== teacherId));
+        await loadStaffRoster(school.id);
+      } catch (err: any) {
+        setErrorMsg(err.message || 'Error deleting teacher.');
+      }
+    };
 
-      setSuccessMsg('Teacher profile successfully deleted.');
-      setSelectedTeacherIds(prev => prev.filter(id => id !== teacherId));
-      await loadStaffRoster(school.id);
-    } catch (err: any) {
-      setErrorMsg(err.message || 'Error deleting teacher.');
-    }
+    setConfirmModal({
+      isOpen: true,
+      title: "Delete Teacher Profile",
+      message: "Are you sure you want to completely DELETE this teacher profile? This will delete all their teaching assignments and cannot be undone.",
+      confirmText: "Delete Profile",
+      cancelText: "Cancel",
+      isDanger: true,
+      onConfirm: () => {
+        performDelete();
+        setConfirmModal(prev => ({ ...prev, isOpen: false }));
+      }
+    });
   };
 
   const handleBatchArchive = async () => {
     setErrorMsg('');
     setSuccessMsg('');
 
-    const confirmAction = window.confirm(`Are you sure you want to archive the ${selectedTeacherIds.length} selected teachers?`);
-    if (!confirmAction) return;
+    const performBatchArchive = async () => {
+      try {
+        const res = await fetch('/api/staff', {
+          method: 'PUT',
+          headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
+          body: JSON.stringify({
+            schoolId: school.id,
+            staffIds: selectedTeacherIds,
+            status: 'ARCHIVED'
+          })
+        });
 
-    try {
-      const res = await fetch('/api/staff', {
-        method: 'PUT',
-        headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
-        body: JSON.stringify({
-          schoolId: school.id,
-          staffIds: selectedTeacherIds,
-          status: 'ARCHIVED'
-        })
-      });
+        const json = await res.json();
+        if (!res.ok) throw new Error(json.error || 'Failed to batch archive teachers.');
 
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.error || 'Failed to batch archive teachers.');
+        setSuccessMsg(`Successfully archived ${selectedTeacherIds.length} teachers.`);
+        setSelectedTeacherIds([]);
+        await loadStaffRoster(school.id);
+      } catch (err: any) {
+        setErrorMsg(err.message || 'Error archiving selected teachers.');
+      }
+    };
 
-      setSuccessMsg(`Successfully archived ${selectedTeacherIds.length} teachers.`);
-      setSelectedTeacherIds([]);
-      await loadStaffRoster(school.id);
-    } catch (err: any) {
-      setErrorMsg(err.message || 'Error archiving selected teachers.');
-    }
+    setConfirmModal({
+      isOpen: true,
+      title: "Archive Selected Teachers",
+      message: `Are you sure you want to archive the ${selectedTeacherIds.length} selected teachers? They will be marked as inactive.`,
+      confirmText: "Archive Selected",
+      cancelText: "Cancel",
+      isDanger: true,
+      onConfirm: () => {
+        performBatchArchive();
+        setConfirmModal(prev => ({ ...prev, isOpen: false }));
+      }
+    });
   };
 
   const handleBatchDelete = async () => {
     setErrorMsg('');
     setSuccessMsg('');
 
-    const confirmAction = window.confirm(`WARNING: Are you sure you want to completely DELETE the ${selectedTeacherIds.length} selected teachers? This will erase their schedules, assignments and cannot be undone!`);
-    if (!confirmAction) return;
+    const performBatchDelete = async () => {
+      try {
+        const res = await fetch(`/api/staff?schoolId=${school.id}&staffIds=${selectedTeacherIds.join(',')}`, {
+          method: 'DELETE',
+          headers: getAuthHeaders()
+        });
 
-    try {
-      const res = await fetch(`/api/staff?schoolId=${school.id}&staffIds=${selectedTeacherIds.join(',')}`, {
-        method: 'DELETE',
-        headers: getAuthHeaders()
-      });
+        const json = await res.json();
+        if (!res.ok) throw new Error(json.error || 'Failed to batch delete teachers.');
 
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.error || 'Failed to batch delete teachers.');
+        setSuccessMsg(`Successfully deleted ${selectedTeacherIds.length} teachers.`);
+        setSelectedTeacherIds([]);
+        await loadStaffRoster(school.id);
+      } catch (err: any) {
+        setErrorMsg(err.message || 'Error deleting selected teachers.');
+      }
+    };
 
-      setSuccessMsg(`Successfully deleted ${selectedTeacherIds.length} teachers.`);
-      setSelectedTeacherIds([]);
-      await loadStaffRoster(school.id);
-    } catch (err: any) {
-      setErrorMsg(err.message || 'Error deleting selected teachers.');
-    }
+    setConfirmModal({
+      isOpen: true,
+      title: "Delete Selected Teachers",
+      message: `WARNING: Are you sure you want to completely DELETE the ${selectedTeacherIds.length} selected teachers? This will erase their schedules, assignments and cannot be undone!`,
+      confirmText: "Delete Selected",
+      cancelText: "Cancel",
+      isDanger: true,
+      onConfirm: () => {
+        performBatchDelete();
+        setConfirmModal(prev => ({ ...prev, isOpen: false }));
+      }
+    });
   };
 
   const handleUpdateTeacherSubmit = async (e: React.FormEvent) => {
@@ -2085,6 +2152,54 @@ export default function TeachersDirectoryPage() {
                 </button>
               )}
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Custom Confirmation Modal */}
+      {confirmModal.isOpen && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[110] flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="bg-white border border-slate-200 max-w-md w-full p-6 shadow-2xl rounded-3xl relative animate-in zoom-in-95 duration-200 space-y-4">
+            
+            {/* Header / Icon */}
+            <div className="flex items-start gap-4">
+              <div className={`w-10 h-10 rounded-2xl flex items-center justify-center flex-shrink-0 ${
+                confirmModal.isDanger ? 'bg-red-50 text-red-600' : 'bg-blue-50 text-blue-600'
+              }`}>
+                <AlertTriangle className="w-5 h-5" />
+              </div>
+              <div className="space-y-1">
+                <h3 className="font-extrabold text-sm text-slate-800 tracking-tight font-sans">
+                  {confirmModal.title}
+                </h3>
+                <p className="text-slate-500 text-xs font-semibold leading-relaxed font-sans">
+                  {confirmModal.message}
+                </p>
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="flex justify-end gap-2.5 pt-2">
+              <button
+                type="button"
+                onClick={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
+                className="px-4 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-xs font-bold text-slate-500 cursor-pointer transition-colors active:scale-95"
+              >
+                {confirmModal.cancelText || 'Cancel'}
+              </button>
+              <button
+                type="button"
+                onClick={confirmModal.onConfirm}
+                className={`px-4 py-2 rounded-xl text-xs font-black text-white cursor-pointer transition-all active:scale-95 shadow-sm ${
+                  confirmModal.isDanger 
+                    ? '!bg-red-650 !border-red-650 hover:!bg-red-550' 
+                    : '!bg-blue-600 !border-blue-600 hover:!bg-blue-500'
+                }`}
+              >
+                {confirmModal.confirmText}
+              </button>
+            </div>
+
           </div>
         </div>
       )}
