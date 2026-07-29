@@ -977,9 +977,9 @@ export default function TeachersDirectoryPage() {
               <button
                 type="button"
                 onClick={handleBatchArchive}
-                className="flex items-center gap-1.5 bg-amber-500 border border-amber-500 text-slate-950 px-4 py-2 rounded-xl text-xs font-black transition-all cursor-pointer shadow-sm font-sans active:scale-95 hover:bg-amber-400 hover:border-amber-400"
+                className="flex items-center gap-1.5 bg-blue-600 border border-blue-600 text-white px-4 py-2 rounded-xl text-xs font-black transition-all cursor-pointer shadow-sm font-sans active:scale-95 hover:bg-blue-500 hover:border-blue-500"
               >
-                <Archive className="w-3.5 h-3.5 text-slate-950" />
+                <Archive className="w-3.5 h-3.5 text-white" />
                 Archive Selected
               </button>
               <button
