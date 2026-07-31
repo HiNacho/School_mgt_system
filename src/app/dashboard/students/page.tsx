@@ -395,6 +395,7 @@ export default function StudentsDirectoryPage() {
         'Guardian Relationship': 'FATHER',
         'Guardian Phone': '+2348033334444',
         'Guardian Email': 'charles.kalba@example.com',
+        'Guardian Date of Birth': '1978-08-14',
         'Guardian Occupation': 'Civil Engineer',
         'Guardian Address': '12 Hospital Road, Daura',
         'Allergies': 'Peanuts',
@@ -438,6 +439,7 @@ export default function StudentsDirectoryPage() {
         'Guardian Relationship': 'MOTHER',
         'Guardian Phone': '+2348022221111',
         'Guardian Email': 'grace.adeyemi@example.com',
+        'Guardian Date of Birth': '1982-12-05',
         'Guardian Occupation': 'Accountant',
         'Guardian Address': '45 Crescent Way, Abeokuta',
         'Allergies': 'None',
@@ -501,6 +503,7 @@ export default function StudentsDirectoryPage() {
         guardianRelationship: r['Guardian Relationship'] || r['guardianRelationship'] || 'GUARDIAN',
         guardianPhone: r['Guardian Phone'] || r['guardianPhone'] || '',
         guardianEmail: r['Guardian Email'] || r['guardianEmail'] || '',
+        guardianDateOfBirth: r['Guardian Date of Birth'] || r['Guardian DOB'] || r['guardianDateOfBirth'] || r['guardianDob'] || '',
         guardianOccupation: r['Guardian Occupation'] || r['guardianOccupation'] || '',
         guardianAddress: r['Guardian Address'] || r['guardianAddress'] || '',
 

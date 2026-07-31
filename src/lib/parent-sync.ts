@@ -25,6 +25,7 @@ export async function syncGuardiansToParents(schoolId: string) {
         const rawEmail = (primaryGuardian?.email || '').trim().toLowerCase();
         const gPhone = (primaryGuardian?.phone || '').trim();
         const gAddress = (primaryGuardian?.address || '').trim();
+        const gDob = (primaryGuardian?.dateOfBirth || '').trim();
 
         if (!gFirstName && !gLastName) continue;
 
@@ -66,6 +67,7 @@ export async function syncGuardiansToParents(schoolId: string) {
                 lastName: gLastName,
                 phone: gPhone || null,
                 address: gAddress || null,
+                dateOfBirth: gDob || null,
                 passwordHash,
                 status: 'ACTIVE'
               }

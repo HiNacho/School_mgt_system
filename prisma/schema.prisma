@@ -1013,6 +1013,7 @@ model StudentGuardian {
   relationship            String   // FATHER, MOTHER, GUARDIAN, EMERGENCY
   phone                   String?
   email                   String?
+  dateOfBirth             String?
   occupation              String?
   employer                String?
   address                 String?
