@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { 
-  Users, UserPlus, Search, ShieldCheck, RefreshCw, X, AlertCircle, Edit, Trash2, CheckCircle, Eye, Mail, Phone, MapPin, UserCheck, GraduationCap, Sparkles, Calendar
+  Users, UserPlus, Search, ShieldCheck, RefreshCw, X, AlertCircle, AlertTriangle, Edit, Trash2, CheckCircle, Eye, Mail, Phone, MapPin, UserCheck, GraduationCap, Sparkles, Calendar
 } from 'lucide-react';
 
 import * as XLSX from 'xlsx';
@@ -170,6 +170,24 @@ export default function ParentsRegistryPage() {
   const [loadingDetail, setLoadingDetail] = useState(false);
   const [activeDetailTab, setActiveDetailTab] = useState<'scores' | 'attendance' | 'comments'>('scores');
 
+  const [confirmModal, setConfirmModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    confirmText: string;
+    cancelText: string;
+    onConfirm: () => void;
+    isDanger: boolean;
+  }>({
+    isOpen: false,
+    title: '',
+    message: '',
+    confirmText: '',
+    cancelText: '',
+    onConfirm: () => {},
+    isDanger: false,
+  });
+
   // Form states
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
@@ -212,31 +230,39 @@ export default function ParentsRegistryPage() {
 
   const handleBatchDeleteParents = async () => {
     if (selectedParentIds.length === 0) return;
-    
-    const confirmAction = window.confirm(`WARNING: Are you sure you want to permanently delete the ${selectedParentIds.length} selected parent accounts? This will also delete their system logins, and cannot be undone.`);
-    if (!confirmAction) return;
 
-    setErrorMsg('');
-    setSuccessMsg('');
-    setSubmitting(true);
+    setConfirmModal({
+      isOpen: true,
+      title: "Delete Selected Parent Accounts",
+      message: `WARNING: Are you sure you want to permanently delete the ${selectedParentIds.length} selected parent account${selectedParentIds.length !== 1 ? 's' : ''}? This will also delete their system logins, and cannot be undone!`,
+      confirmText: "Delete Selected",
+      cancelText: "Cancel",
+      isDanger: true,
+      onConfirm: async () => {
+        setConfirmModal(prev => ({ ...prev, isOpen: false }));
+        setErrorMsg('');
+        setSuccessMsg('');
+        setSubmitting(true);
 
-    try {
-      const res = await fetch(`/api/parents?schoolId=${school.id}&ids=${selectedParentIds.join(',')}`, {
-        method: 'DELETE',
-        headers: getAuthHeaders()
-      });
+        try {
+          const res = await fetch(`/api/parents?schoolId=${school.id}&ids=${selectedParentIds.join(',')}`, {
+            method: 'DELETE',
+            headers: getAuthHeaders()
+          });
 
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.error || 'Failed to delete selected parents.');
+          const json = await res.json();
+          if (!res.ok) throw new Error(json.error || 'Failed to delete selected parents.');
 
-      setSuccessMsg(`Successfully deleted ${selectedParentIds.length} parent accounts.`);
-      setSelectedParentIds([]);
-      await loadParents(school.id);
-    } catch (err: any) {
-      setErrorMsg(err.message || 'Error deleting parents.');
-    } finally {
-      setSubmitting(false);
-    }
+          setSuccessMsg(`Successfully deleted ${selectedParentIds.length} parent accounts.`);
+          setSelectedParentIds([]);
+          await loadParents(school.id);
+        } catch (err: any) {
+          setErrorMsg(err.message || 'Error deleting parents.');
+        } finally {
+          setSubmitting(false);
+        }
+      }
+    });
   };
 
   const handleExportToExcel = () => {
@@ -398,27 +424,34 @@ export default function ParentsRegistryPage() {
   };
 
   const handleDeleteParent = async (parent: ParentMember) => {
-    if (!window.confirm(`Are you sure you want to permanently delete parent ${parent.firstName} ${parent.lastName}? This will also delete their active system login.`)) {
-      return;
-    }
+    setConfirmModal({
+      isOpen: true,
+      title: "Delete Parent Account",
+      message: `Are you sure you want to permanently delete parent ${parent.firstName} ${parent.lastName}? This will also delete their active system login.`,
+      confirmText: "Delete Account",
+      cancelText: "Cancel",
+      isDanger: true,
+      onConfirm: async () => {
+        setConfirmModal(prev => ({ ...prev, isOpen: false }));
+        setErrorMsg('');
+        setSuccessMsg('');
 
-    setErrorMsg('');
-    setSuccessMsg('');
+        try {
+          const res = await fetch(`/api/parents?id=${parent.id}`, {
+            method: 'DELETE',
+            headers: getAuthHeaders()
+          });
 
-    try {
-      const res = await fetch(`/api/parents?id=${parent.id}`, {
-        method: 'DELETE',
-        headers: getAuthHeaders()
-      });
+          const json = await res.json();
+          if (!res.ok) throw new Error(json.error || 'Failed to delete parent account.');
 
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.error || 'Failed to delete parent account.');
-
-      setSuccessMsg(`Parent profile and matching logins permanently deleted successfully.`);
-      await loadParents(school.id);
-    } catch (err: any) {
-      setErrorMsg(err.message || 'Error deleting parent.');
-    }
+          setSuccessMsg(`Parent profile and matching logins permanently deleted successfully.`);
+          await loadParents(school.id);
+        } catch (err: any) {
+          setErrorMsg(err.message || 'Error deleting parent.');
+        }
+      }
+    });
   };
 
   const resetForm = () => {
@@ -495,9 +528,9 @@ export default function ParentsRegistryPage() {
             <button
               type="button"
               onClick={handleBatchDeleteParents}
-              className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-2xl bg-red-50 hover:bg-red-100 text-red-650 text-xs font-bold transition-all shadow-sm border border-red-150 cursor-pointer animate-fadeIn"
+              className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-2xl !bg-red-600 !border-red-600 !text-white hover:!bg-red-500 text-xs font-black transition-all shadow-sm cursor-pointer animate-fadeIn active:scale-95"
             >
-              <Trash2 className="w-3.5 h-3.5" /> Delete Selected ({selectedParentIds.length})
+              <Trash2 className="w-3.5 h-3.5 !text-white" /> Delete Selected ({selectedParentIds.length})
             </button>
           )}
 
@@ -1698,9 +1731,55 @@ export default function ParentsRegistryPage() {
         </div>
       )}
 
+      {/* Custom Confirmation Modal */}
+      {confirmModal.isOpen && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[110] flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="bg-white border border-slate-200 max-w-md w-full p-6 shadow-2xl rounded-3xl relative animate-in zoom-in-95 duration-200 space-y-4">
+            
+            {/* Header / Icon */}
+            <div className="flex items-start gap-4">
+              <div className={`w-10 h-10 rounded-2xl flex items-center justify-center flex-shrink-0 ${
+                confirmModal.isDanger ? 'bg-red-50 text-red-600' : 'bg-blue-50 text-blue-600'
+              }`}>
+                <AlertTriangle className="w-5 h-5" />
+              </div>
+              <div className="space-y-1">
+                <h3 className="font-extrabold text-sm text-slate-800 tracking-tight font-sans">
+                  {confirmModal.title}
+                </h3>
+                <p className="text-slate-500 text-xs font-semibold leading-relaxed font-sans">
+                  {confirmModal.message}
+                </p>
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="flex justify-end gap-2.5 pt-2">
+              <button
+                type="button"
+                onClick={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
+                className="px-4 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-xs font-bold text-slate-500 cursor-pointer transition-colors active:scale-95"
+              >
+                {confirmModal.cancelText || 'Cancel'}
+              </button>
+              <button
+                type="button"
+                onClick={confirmModal.onConfirm}
+                className={`px-4 py-2 rounded-xl text-xs font-black text-white cursor-pointer transition-all active:scale-95 shadow-sm ${
+                  confirmModal.isDanger 
+                    ? '!bg-red-600 !border-red-600 hover:!bg-red-500' 
+                    : '!bg-blue-600 !border-blue-600 hover:!bg-blue-500'
+                }`}
+              >
+                {confirmModal.confirmText}
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
-
-export const dynamic = 'force-dynamic';
 
