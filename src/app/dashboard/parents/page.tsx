@@ -279,6 +279,7 @@ export default function ParentsRegistryPage() {
         'First Name': s.firstName,
         'Last Name': s.lastName,
         'Email Address': s.email,
+        'Login Username': s.user?.username || '',
         'Phone Number': s.phone || '',
         'Residential Address': s.address || '',
         'Linked Children (Names & Classes)': linkedWards,
