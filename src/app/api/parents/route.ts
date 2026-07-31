@@ -4,6 +4,7 @@ import prisma from '@/lib/db';
 import bcrypt from 'bcryptjs';
 import { requireAuth, requireRole, requireSchoolScope } from '@/lib/auth-middleware';
 import { generateUniqueUsername, generateTempPassword } from '@/lib/auth-utils';
+import { syncGuardiansToParents } from '@/lib/parent-sync';
 
 // 1. GET: Fetch list of parents in current school context
 export async function GET(req: NextRequest) {
@@ -19,6 +20,9 @@ export async function GET(req: NextRequest) {
     }
 
     requireSchoolScope(session, schoolId);
+
+    // Auto-populate & sync student guardians into parent accounts
+    await syncGuardiansToParents(schoolId);
 
     let query: any = { schoolId };
     const email = searchParams.get('email');

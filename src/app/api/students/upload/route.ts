@@ -3,6 +3,7 @@ import prisma from '@/lib/db';
 import bcrypt from 'bcryptjs';
 import { requireAuth, requireRole, requireSchoolScope } from '@/lib/auth-middleware';
 import { generateUniqueUsername, generateTempPassword } from '@/lib/auth-utils';
+import { syncGuardiansToParents } from '@/lib/parent-sync';
 
 export async function POST(req: NextRequest) {
   try {
@@ -365,6 +366,9 @@ export async function POST(req: NextRequest) {
         });
       }
     }
+
+    // Auto-sync uploaded student guardians into parent accounts and link wards
+    await syncGuardiansToParents(schoolId);
 
     return NextResponse.json({
       success: true,
