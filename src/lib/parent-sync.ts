@@ -31,31 +31,33 @@ export async function syncGuardiansToParents(schoolId: string) {
         // Fallback clean email if missing
         const cleanEmail = rawEmail || `${gFirstName.toLowerCase().replace(/[^a-z0-9]/g, '')}.${gLastName.toLowerCase().replace(/[^a-z0-9]/g, '')}@guardian.local`;
 
-        // Search for existing parent by email or phone
-        let parent = await prisma.parent.findFirst({
-          where: {
-            OR: [
-              { email: cleanEmail },
-              ...(gPhone ? [{ schoolId: student.schoolId, phone: gPhone }] : [])
-            ]
-          }
+        // 1. Try finding existing parent strictly by email first
+        let parent = await prisma.parent.findUnique({
+          where: { email: cleanEmail }
         });
 
+        // 2. If not found by email, try finding by school & phone
+        if (!parent && gPhone) {
+          parent = await prisma.parent.findFirst({
+            where: { schoolId: student.schoolId, phone: gPhone }
+          });
+        }
+
+        // 3. If still not found, create new Parent account
         if (!parent) {
-          // Verify email is free in User table
+          const tempPassword = 'Parent' + Math.floor(100000 + Math.random() * 900000);
+          const salt = await bcrypt.genSalt(10);
+          const passwordHash = await bcrypt.hash(tempPassword, salt);
+
           let finalEmail = cleanEmail;
-          const existingUser = await prisma.user.findUnique({ where: { email: finalEmail } });
-          if (existingUser && existingUser.role === 'PARENT' && existingUser.parentId) {
-            parent = await prisma.parent.findUnique({ where: { id: existingUser.parentId } });
-          } else if (existingUser) {
-            finalEmail = `${gFirstName.toLowerCase().replace(/[^a-z0-9]/g, '')}.${gLastName.toLowerCase().replace(/[^a-z0-9]/g, '')}.${Math.floor(100 + Math.random() * 900)}@guardian.local`;
+          // Ensure finalEmail is unique in Parent table
+          let attempts = 0;
+          while (await prisma.parent.findUnique({ where: { email: finalEmail } }) && attempts < 5) {
+            attempts++;
+            finalEmail = `${gFirstName.toLowerCase().replace(/[^a-z0-9]/g, '')}.${gLastName.toLowerCase().replace(/[^a-z0-9]/g, '')}.${student.admissionNumber || Math.floor(100 + Math.random() * 900)}@guardian.local`;
           }
 
-          if (!parent) {
-            const tempPassword = 'Parent' + Math.floor(100000 + Math.random() * 900000);
-            const salt = await bcrypt.genSalt(10);
-            const passwordHash = await bcrypt.hash(tempPassword, salt);
-
+          try {
             parent = await prisma.parent.create({
               data: {
                 schoolId: student.schoolId,
@@ -69,7 +71,7 @@ export async function syncGuardiansToParents(schoolId: string) {
               }
             });
 
-            // Create User account for parent login
+            // Create User account for parent login if not existing
             const baseUsername = `${gFirstName.toLowerCase().replace(/[^a-z0-9]/g, '')}.${gLastName.toLowerCase().replace(/[^a-z0-9]/g, '')}`;
             let username = baseUsername;
             let count = 1;
@@ -78,28 +80,27 @@ export async function syncGuardiansToParents(schoolId: string) {
               count++;
             }
 
-            await prisma.user.create({
-              data: {
-                schoolId: student.schoolId,
-                username,
-                email: finalEmail,
-                passwordHash,
-                firstName: gFirstName,
-                lastName: gLastName,
-                role: 'PARENT',
-                parentId: parent.id,
-                isFirstLogin: true,
-                status: 'ACTIVE',
-                isActive: true
-              }
-            });
-          }
-        } else {
-          if (!parent.phone && gPhone) {
-            await prisma.parent.update({
-              where: { id: parent.id },
-              data: { phone: gPhone }
-            });
+            const existingUser = await prisma.user.findUnique({ where: { email: finalEmail } });
+            if (!existingUser) {
+              await prisma.user.create({
+                data: {
+                  schoolId: student.schoolId,
+                  username,
+                  email: finalEmail,
+                  passwordHash,
+                  firstName: gFirstName,
+                  lastName: gLastName,
+                  role: 'PARENT',
+                  parentId: parent.id,
+                  isFirstLogin: true,
+                  status: 'ACTIVE',
+                  isActive: true
+                }
+              });
+            }
+          } catch (createErr) {
+            // On race condition or unique conflict, attempt to recover by email search
+            parent = await prisma.parent.findUnique({ where: { email: finalEmail } });
           }
         }
 
@@ -111,7 +112,7 @@ export async function syncGuardiansToParents(schoolId: string) {
           });
         }
       } catch (singleErr) {
-        console.error(`Skipped single guardian sync for student ${student.id}:`, singleErr);
+        console.error(`Error syncing guardian for student ${student.id}:`, singleErr);
       }
     }
   } catch (error) {
