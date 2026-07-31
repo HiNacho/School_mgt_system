@@ -103,6 +103,23 @@ export default function StudentsDirectoryPage() {
   // Notifications
   const [successMsg, setSuccessMsg] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
+  const [confirmModal, setConfirmModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    confirmText: string;
+    cancelText: string;
+    onConfirm: () => void;
+    isDanger: boolean;
+  }>({
+    isOpen: false,
+    title: '',
+    message: '',
+    confirmText: '',
+    cancelText: '',
+    onConfirm: () => {},
+    isDanger: false,
+  });
 
   // Create form
   const [form, setForm] = useState({
@@ -255,20 +272,90 @@ export default function StudentsDirectoryPage() {
     setSubmitting(false);
   };
 
-  // ── Archive Student ─────────────────────────────────────────────────────────
+  // ── Archive Single Student ──────────────────────────────────────────────────
   const archiveStudent = async (student: any) => {
-    if (!confirm(`Archive ${student.firstName} ${student.lastName}? They will no longer appear in active lists.`)) return;
-    try {
-      const res = await fetch('/api/students', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: student.id, status: 'ARCHIVED' }),
-      });
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.error || 'Failed to archive');
-      showSuccess(`${student.firstName} ${student.lastName} archived.`);
-      await loadAll(session);
-    } catch (e: any) { showError(e.message); }
+    setConfirmModal({
+      isOpen: true,
+      title: "Archive Student Profile",
+      message: `Are you sure you want to archive ${student.firstName} ${student.lastName}? They will be marked as inactive.`,
+      confirmText: "Archive Profile",
+      cancelText: "Cancel",
+      isDanger: true,
+      onConfirm: async () => {
+        setConfirmModal(prev => ({ ...prev, isOpen: false }));
+        try {
+          const res = await fetch('/api/students', {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: student.id, status: 'ARCHIVED' }),
+          });
+          const json = await res.json();
+          if (!res.ok) throw new Error(json.error || 'Failed to archive');
+          showSuccess(`${student.firstName} ${student.lastName} archived.`);
+          await loadAll(session);
+        } catch (e: any) { showError(e.message); }
+      }
+    });
+  };
+
+  // ── Batch Delete Students ─────────────────────────────────────────────────
+  const handleBatchDelete = async () => {
+    if (selectedIds.length === 0) return;
+
+    setConfirmModal({
+      isOpen: true,
+      title: "Delete Selected Students",
+      message: `WARNING: Are you sure you want to completely DELETE the ${selectedIds.length} selected student profile${selectedIds.length !== 1 ? 's' : ''}? This action cannot be undone!`,
+      confirmText: "Delete Selected",
+      cancelText: "Cancel",
+      isDanger: true,
+      onConfirm: async () => {
+        setConfirmModal(prev => ({ ...prev, isOpen: false }));
+        try {
+          const res = await fetch(`/api/students?ids=${selectedIds.join(',')}`, {
+            method: 'DELETE',
+          });
+          const json = await res.json();
+          if (!res.ok) throw new Error(json.error || 'Failed to delete selected students');
+          showSuccess(`Successfully deleted ${selectedIds.length} student profile${selectedIds.length !== 1 ? 's' : ''}.`);
+          clearSelection();
+          await loadAll(session);
+        } catch (e: any) {
+          showError(e.message || 'Error deleting selected students.');
+        }
+      }
+    });
+  };
+
+  // ── Batch Archive Students ────────────────────────────────────────────────
+  const handleBatchArchive = async () => {
+    if (selectedIds.length === 0) return;
+
+    setConfirmModal({
+      isOpen: true,
+      title: "Archive Selected Students",
+      message: `Are you sure you want to archive the ${selectedIds.length} selected student${selectedIds.length !== 1 ? 's' : ''}? They will be marked as inactive.`,
+      confirmText: "Archive Selected",
+      cancelText: "Cancel",
+      isDanger: true,
+      onConfirm: async () => {
+        setConfirmModal(prev => ({ ...prev, isOpen: false }));
+        try {
+          const res = await fetch('/api/students', {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ids: selectedIds, status: 'ARCHIVED' })
+          });
+          const json = await res.json();
+          if (!res.ok) throw new Error(json.error || 'Failed to archive selected students');
+          showSuccess(`Successfully archived ${selectedIds.length} student${selectedIds.length !== 1 ? 's' : ''}.`);
+          clearSelection();
+          await loadAll(session);
+        } catch (e: any) {
+          showError(e.message || 'Error archiving selected students.');
+        }
+      }
+    });
   };
 
   // ── Download Excel Template ──────────────────────────────────────────────────
@@ -612,15 +699,52 @@ export default function StudentsDirectoryPage() {
 
         {/* ── Bulk Action Bar ──────────────────────────────────────────────────── */}
         {selectedIds.length > 0 && (
-          <div className="flex items-center gap-3 px-4 py-3 rounded-xl border border-violet-500/30 bg-violet-500/10">
-            <CheckCircle className="w-4 h-4 text-violet-400" />
-            <span className="text-sm text-violet-300 font-medium">{selectedIds.length} student{selectedIds.length !== 1 ? 's' : ''} selected</span>
-            <div className="ml-auto flex gap-2">
-              <button onClick={exportCSV} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-violet-600 hover:bg-violet-500 text-white">
-                <Download className="w-3 h-3" /> Export Selected
+          <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-3 rounded-2xl border border-violet-500/30 bg-violet-500/10 backdrop-blur-sm animate-fadeIn shadow-sm">
+            <div className="flex items-center gap-2.5">
+              <span className="relative flex h-2.5 w-2.5">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-violet-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-violet-500"></span>
+              </span>
+              <span className="text-xs sm:text-sm font-extrabold text-violet-300">
+                Selected <span className="text-white font-black px-0.5">{selectedIds.length}</span> student{selectedIds.length !== 1 ? 's' : ''}
+              </span>
+            </div>
+
+            <div className="flex items-center gap-2 flex-wrap">
+              <button
+                type="button"
+                onClick={exportCSV}
+                className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-black bg-violet-600 hover:bg-violet-500 text-white transition-all cursor-pointer shadow-sm active:scale-95"
+              >
+                <Download className="w-3.5 h-3.5" /> Export Selected
               </button>
-              <button onClick={clearSelection} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border border-slate-600 text-slate-400 hover:text-slate-300">
-                <X className="w-3 h-3" /> Clear
+
+              {isAdmin && (
+                <>
+                  <button
+                    type="button"
+                    onClick={handleBatchArchive}
+                    className="flex items-center gap-1.5 !bg-blue-600 !border-blue-600 !text-white px-3.5 py-2 rounded-xl text-xs font-black transition-all cursor-pointer shadow-sm active:scale-95 hover:!bg-blue-500"
+                  >
+                    <Archive className="w-3.5 h-3.5 !text-white" /> Archive Selected
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleBatchDelete}
+                    className="flex items-center gap-1.5 !bg-red-600 !border-red-600 !text-white px-3.5 py-2 rounded-xl text-xs font-black transition-all cursor-pointer shadow-sm active:scale-95 hover:!bg-red-500"
+                  >
+                    <Trash2 className="w-3.5 h-3.5 !text-white" /> Delete Selected
+                  </button>
+                </>
+              )}
+
+              <button
+                type="button"
+                onClick={clearSelection}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold border border-slate-600/50 text-slate-300 hover:bg-slate-800/40 transition-colors cursor-pointer"
+              >
+                <X className="w-3.5 h-3.5" /> Clear
               </button>
             </div>
           </div>
@@ -1112,6 +1236,55 @@ export default function StudentsDirectoryPage() {
           </div>
         </div>
       )}
+
+      {/* Custom Confirmation Modal */}
+      {confirmModal.isOpen && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[110] flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="bg-white border border-slate-200 max-w-md w-full p-6 shadow-2xl rounded-3xl relative animate-in zoom-in-95 duration-200 space-y-4">
+            
+            {/* Header / Icon */}
+            <div className="flex items-start gap-4">
+              <div className={`w-10 h-10 rounded-2xl flex items-center justify-center flex-shrink-0 ${
+                confirmModal.isDanger ? 'bg-red-50 text-red-600' : 'bg-blue-50 text-blue-600'
+              }`}>
+                <AlertTriangle className="w-5 h-5" />
+              </div>
+              <div className="space-y-1">
+                <h3 className="font-extrabold text-sm text-slate-800 tracking-tight font-sans">
+                  {confirmModal.title}
+                </h3>
+                <p className="text-slate-500 text-xs font-semibold leading-relaxed font-sans">
+                  {confirmModal.message}
+                </p>
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="flex justify-end gap-2.5 pt-2">
+              <button
+                type="button"
+                onClick={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
+                className="px-4 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-xs font-bold text-slate-500 cursor-pointer transition-colors active:scale-95"
+              >
+                {confirmModal.cancelText || 'Cancel'}
+              </button>
+              <button
+                type="button"
+                onClick={confirmModal.onConfirm}
+                className={`px-4 py-2 rounded-xl text-xs font-black text-white cursor-pointer transition-all active:scale-95 shadow-sm ${
+                  confirmModal.isDanger 
+                    ? '!bg-red-600 !border-red-600 hover:!bg-red-500' 
+                    : '!bg-blue-600 !border-blue-600 hover:!bg-blue-500'
+                }`}
+              >
+                {confirmModal.confirmText}
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }

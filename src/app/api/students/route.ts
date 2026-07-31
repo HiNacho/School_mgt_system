@@ -454,6 +454,7 @@ export async function PATCH(req: NextRequest) {
     const body = await req.json();
     const {
       id,
+      ids,
       firstName,
       lastName,
       middleName,
@@ -494,8 +495,32 @@ export async function PATCH(req: NextRequest) {
       previousRecords
     } = body;
 
+    // Batch Status Updates (e.g. Batch Archiving)
+    if (ids && Array.isArray(ids) && ids.length > 0) {
+      const targetStudents = await prisma.student.findMany({
+        where: { id: { in: ids } },
+        select: { schoolId: true }
+      });
+      for (const ts of targetStudents) {
+        requireSchoolScope(session, ts.schoolId);
+      }
+
+      await prisma.$transaction(async (tx) => {
+        await tx.student.updateMany({
+          where: { id: { in: ids } },
+          data: { status: status || 'ARCHIVED' }
+        });
+        await tx.user.updateMany({
+          where: { studentId: { in: ids } },
+          data: { status: status === 'ACTIVE' ? 'ACTIVE' : 'INACTIVE', isActive: status === 'ACTIVE' }
+        });
+      });
+
+      return NextResponse.json({ success: true, message: `Successfully updated ${ids.length} student records.` });
+    }
+
     if (!id) {
-      return NextResponse.json({ error: 'Student ID is required for updates' }, { status: 400 });
+      return NextResponse.json({ error: 'Student ID or IDs array is required for updates' }, { status: 400 });
     }
 
     const existing = await prisma.student.findUnique({ where: { id } });
