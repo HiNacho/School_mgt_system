@@ -53,6 +53,19 @@ export async function GET(req: NextRequest) {
   try {
     await ensureSuperAdminExists();
 
+    const { searchParams } = new URL(req.url);
+    const slugParam = searchParams.get('slug');
+
+    if (slugParam) {
+      const singleSchool = await prisma.school.findFirst({
+        where: { slug: slugParam }
+      });
+      if (!singleSchool) {
+        return NextResponse.json({ error: 'School tenant not found' }, { status: 404 });
+      }
+      return NextResponse.json({ success: true, data: singleSchool });
+    }
+
     const schools = await prisma.school.findMany({
       where: {
         NOT: { slug: 'system-portal' }
