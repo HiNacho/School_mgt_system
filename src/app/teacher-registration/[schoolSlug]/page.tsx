@@ -90,8 +90,30 @@ export default function TeacherRegistrationPortal({ params }: { params: Promise<
   };
 
   const handleSubmitApplication = async () => {
-    if (!formData.firstName || !formData.lastName || !formData.email || !formData.phone) {
-      alert('Please fill in all required fields (First Name, Last Name, Email, Phone).');
+    setError('');
+    if (!formData.firstName.trim()) {
+      setError('Please fill in First Name.');
+      return;
+    }
+    if (!formData.lastName.trim()) {
+      setError('Please fill in Last Name.');
+      return;
+    }
+    if (!formData.email.trim()) {
+      setError('Please fill in Email Address.');
+      return;
+    }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.email.trim())) {
+      setError('Please enter a valid Email Address (e.g. name@example.com).');
+      return;
+    }
+    if (!formData.phone.trim()) {
+      setError('Please fill in Phone Number.');
+      return;
+    }
+    if (!formData.qualifications.trim()) {
+      setError('Please fill in Highest Qualification.');
       return;
     }
 

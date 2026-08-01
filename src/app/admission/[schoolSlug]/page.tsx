@@ -163,9 +163,78 @@ export default function StudentAdmissionPortal({ params }: { params: Promise<{ s
     reader.readAsDataURL(file);
   };
 
+  const validateStep = (step: number): boolean => {
+    setError('');
+    if (step === 1) {
+      if (!formData.firstName.trim()) {
+        setError('Please fill in Student First Name before proceeding.');
+        return false;
+      }
+      if (!formData.lastName.trim()) {
+        setError('Please fill in Student Last Name / Surname before proceeding.');
+        return false;
+      }
+      if (!formData.gender) {
+        setError('Please select Student Gender.');
+        return false;
+      }
+      if (!formData.dateOfBirth) {
+        setError('Please select Student Date of Birth.');
+        return false;
+      }
+      if (!formData.address.trim()) {
+        setError('Please fill in Student Residential Address.');
+        return false;
+      }
+    }
+
+    if (step === 2) {
+      if (!formData.className) {
+        setError('Please select the Applying Class.');
+        return false;
+      }
+      if (!formData.category) {
+        setError('Please select Student Category (Day or Boarding).');
+        return false;
+      }
+    }
+
+    if (step === 3) {
+      if (!formData.guardianFirstName.trim()) {
+        setError('Please fill in Primary Guardian First Name.');
+        return false;
+      }
+      if (!formData.guardianLastName.trim()) {
+        setError('Please fill in Primary Guardian Last Name.');
+        return false;
+      }
+      if (!formData.guardianPhone.trim()) {
+        setError('Please fill in Primary Guardian Phone Number.');
+        return false;
+      }
+      if (!formData.guardianEmail.trim()) {
+        setError('Please fill in Primary Guardian Email Address.');
+        return false;
+      }
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(formData.guardianEmail.trim())) {
+        setError('Please enter a valid Guardian Email Address (e.g. name@example.com).');
+        return false;
+      }
+    }
+
+    return true;
+  };
+
+  const handleNextStep = () => {
+    if (validateStep(currentStep)) {
+      setError('');
+      setCurrentStep(prev => Math.min(prev + 1, 6));
+    }
+  };
+
   const handleSubmitApplication = async () => {
-    if (!formData.firstName || !formData.lastName) {
-      alert('Please fill in student First Name and Last Name.');
+    if (!validateStep(1) || !validateStep(2) || !validateStep(3)) {
       return;
     }
 
@@ -702,12 +771,20 @@ export default function StudentAdmissionPortal({ params }: { params: Promise<{ s
                 </div>
               )}
 
+              {/* Error Banner */}
+              {error && (
+                <div className="p-4 rounded-2xl bg-red-950/80 border border-red-800 text-red-300 text-xs font-bold flex items-center gap-2 animate-fadeIn">
+                  <AlertCircle className="w-5 h-5 shrink-0 text-red-400" />
+                  <span>{error}</span>
+                </div>
+              )}
+
               {/* Navigation Controls */}
               <div className="flex justify-between items-center pt-4 border-t border-slate-800">
                 {currentStep > 1 ? (
                   <button
                     type="button"
-                    onClick={() => setCurrentStep(prev => prev - 1)}
+                    onClick={() => { setError(''); setCurrentStep(prev => prev - 1); }}
                     className="px-5 py-2.5 rounded-xl border border-slate-700 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all"
                   >
                     <ArrowLeft className="w-4 h-4" /> Previous Step
@@ -717,7 +794,7 @@ export default function StudentAdmissionPortal({ params }: { params: Promise<{ s
                 {currentStep < 6 ? (
                   <button
                     type="button"
-                    onClick={() => setCurrentStep(prev => prev + 1)}
+                    onClick={handleNextStep}
                     className="px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center gap-1.5 shadow-lg shadow-emerald-600/20 cursor-pointer transition-all"
                   >
                     Next Step <ArrowRight className="w-4 h-4" />
