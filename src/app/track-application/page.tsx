@@ -174,7 +174,16 @@ function ApplicationTrackerContent() {
                 </div>
                 <p className="text-slate-300 text-xs font-semibold leading-relaxed">{appData.correctionNotes}</p>
                 <div className="pt-2">
-                  <Link href={`/admission/${appData.schoolSlug}?ref=${appData.referenceNumber}`} className="inline-block px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs shadow-lg transition-all">
+                  <Link 
+                    href={
+                      appData.type === 'TEACHER' 
+                        ? `/teacher-registration/${appData.schoolSlug}?ref=${appData.referenceNumber}`
+                        : appData.type === 'STAFF'
+                        ? `/staff-registration/${appData.schoolSlug}?ref=${appData.referenceNumber}`
+                        : `/admission/${appData.schoolSlug}?ref=${appData.referenceNumber}`
+                    } 
+                    className="inline-block px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs shadow-lg transition-all"
+                  >
                     Edit & Resubmit Application
                   </Link>
                 </div>

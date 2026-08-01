@@ -8,9 +8,12 @@ import {
   Search, ShieldCheck, Check, Info, FileCheck, Phone, Mail, MapPin, Calendar, Clock
 } from 'lucide-react';
 
-export default function TeacherRegistrationPortal({ params }: { params: Promise<{ schoolSlug: string }> }) {
-  const resolvedParams = use(params);
-  const schoolSlug = resolvedParams.schoolSlug;
+import { useSearchParams } from 'next/navigation';
+import { Suspense } from 'react';
+
+function TeacherRegistrationContent({ schoolSlug }: { schoolSlug: string }) {
+  const searchParams = useSearchParams();
+  const refParam = searchParams.get('ref');
 
   const [school, setSchool] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -18,6 +21,7 @@ export default function TeacherRegistrationPortal({ params }: { params: Promise<
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submittedRef, setSubmittedRef] = useState<string | null>(null);
+  const [correctionNotesBanner, setCorrectionNotesBanner] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
     title: 'Mr.',
@@ -38,24 +42,40 @@ export default function TeacherRegistrationPortal({ params }: { params: Promise<
     employmentHistory: '',
     references: '',
     passportPhoto: '',
-    documents: [] as { name: string; type: string; url: string; mimeType: string; size: number }[]
+    documents: [] as { name: string; type: string; url: string; mimeType: string; size: number }[],
+    referenceNumber: ''
   });
 
   useEffect(() => {
-    async function loadSchool() {
+    async function loadSchoolAndApp() {
       try {
         const res = await fetch(`/api/schools?slug=${schoolSlug}`);
         const json = await res.json();
         if (!res.ok || !json.data) throw new Error('School not found or inactive');
         setSchool(json.data);
+
+        if (refParam) {
+          const appRes = await fetch(`/api/applications/track?ref=${encodeURIComponent(refParam)}`);
+          const appJson = await appRes.json();
+          if (appRes.ok && appJson.data?.parsedData) {
+            setFormData(prev => ({
+              ...prev,
+              ...appJson.data.parsedData,
+              referenceNumber: appJson.data.referenceNumber
+            }));
+            if (appJson.data.correctionNotes) {
+              setCorrectionNotesBanner(appJson.data.correctionNotes);
+            }
+          }
+        }
       } catch (err: any) {
         setError(err.message || 'Failed to load teacher portal.');
       } finally {
         setLoading(false);
       }
     }
-    loadSchool();
-  }, [schoolSlug]);
+    loadSchoolAndApp();
+  }, [schoolSlug, refParam]);
 
   const handleFieldChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -134,7 +154,8 @@ export default function TeacherRegistrationPortal({ params }: { params: Promise<
           department: 'Academic / Teaching Faculty',
           applicationData: formData,
           uploadedDocuments: formData.documents,
-          isDraft: false
+          isDraft: false,
+          referenceNumber: formData.referenceNumber || undefined
         })
       });
 
@@ -215,6 +236,16 @@ export default function TeacherRegistrationPortal({ params }: { params: Promise<
         ) : (
           <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6">
             
+            {correctionNotesBanner && (
+              <div className="bg-purple-950/80 border border-purple-800 rounded-3xl p-5 text-purple-200 text-xs font-semibold space-y-1.5 shadow-xl animate-fadeIn">
+                <div className="flex items-center gap-2 text-purple-300 font-extrabold text-xs uppercase tracking-wider">
+                  <FileText className="w-4 h-4 text-purple-400" /> Admin Correction Requested for {formData.referenceNumber}
+                </div>
+                <p className="leading-relaxed text-slate-200">{correctionNotesBanner}</p>
+                <p className="text-[11px] text-purple-400 font-bold pt-1">Your previously submitted details have been pre-filled below. Please update the requested information and submit to return your application to Pending Review.</p>
+              </div>
+            )}
+
             <div className="border-b border-slate-800 pb-4">
               <h3 className="text-lg font-black text-white flex items-center gap-2">
                 <Briefcase className="w-5 h-5 text-blue-400" /> Teaching Position Application Form
@@ -334,5 +365,14 @@ export default function TeacherRegistrationPortal({ params }: { params: Promise<
       </main>
 
     </div>
+  );
+}
+
+export default function TeacherRegistrationPortal({ params }: { params: Promise<{ schoolSlug: string }> }) {
+  const resolvedParams = use(params);
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-slate-900 text-white flex items-center justify-center"><RefreshCw className="w-8 h-8 animate-spin text-blue-400" /></div>}>
+      <TeacherRegistrationContent schoolSlug={resolvedParams.schoolSlug} />
+    </Suspense>
   );
 }
