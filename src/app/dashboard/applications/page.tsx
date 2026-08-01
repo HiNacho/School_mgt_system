@@ -214,6 +214,70 @@ export default function ApplicationsDashboardPage() {
         </button>
       </div>
 
+      {/* Public Shareable Registration Links Banner */}
+      {session?.school?.slug && (
+        <div className="bg-slate-900 text-white p-6 rounded-3xl border border-slate-800 shadow-xl space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 text-emerald-400 font-black text-sm">
+              <Sparkles className="w-4 h-4" /> Shareable Public Registration Links
+            </div>
+            <span className="text-[10px] font-mono font-bold text-slate-400 bg-slate-800 px-2.5 py-1 rounded-full uppercase tracking-wider">
+              Tenant: {session.school.slug}
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs font-semibold">
+            {/* Student Admission Link */}
+            <div className="p-3.5 rounded-2xl bg-slate-950 border border-slate-800 space-y-2 flex flex-col justify-between">
+              <div>
+                <span className="text-[10px] font-extrabold uppercase tracking-widest text-emerald-400">Student Admission</span>
+                <p className="text-slate-300 text-xs font-mono truncate pt-1">{`/admission/${session.school.slug}`}</p>
+              </div>
+              <div className="flex gap-2 pt-1">
+                <a href={`/admission/${session.school.slug}`} target="_blank" rel="noreferrer" className="flex-1 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[11px] text-center flex justify-center items-center gap-1 transition-all">
+                  <ExternalLink className="w-3 h-3" /> Open Portal
+                </a>
+                <button onClick={() => { navigator.clipboard.writeText(`${window.location.origin}/admission/${session.school.slug}`); alert('Student Admission link copied!'); }} className="px-3 py-1.5 rounded-lg border border-slate-700 bg-slate-800 hover:bg-slate-700 text-slate-200 text-[11px] font-bold">
+                  Copy
+                </button>
+              </div>
+            </div>
+
+            {/* Teacher Registration Link */}
+            <div className="p-3.5 rounded-2xl bg-slate-950 border border-slate-800 space-y-2 flex flex-col justify-between">
+              <div>
+                <span className="text-[10px] font-extrabold uppercase tracking-widest text-blue-400">Teacher Registration</span>
+                <p className="text-slate-300 text-xs font-mono truncate pt-1">{`/teacher-registration/${session.school.slug}`}</p>
+              </div>
+              <div className="flex gap-2 pt-1">
+                <a href={`/teacher-registration/${session.school.slug}`} target="_blank" rel="noreferrer" className="flex-1 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-bold text-[11px] text-center flex justify-center items-center gap-1 transition-all">
+                  <ExternalLink className="w-3 h-3" /> Open Portal
+                </a>
+                <button onClick={() => { navigator.clipboard.writeText(`${window.location.origin}/teacher-registration/${session.school.slug}`); alert('Teacher Registration link copied!'); }} className="px-3 py-1.5 rounded-lg border border-slate-700 bg-slate-800 hover:bg-slate-700 text-slate-200 text-[11px] font-bold">
+                  Copy
+                </button>
+              </div>
+            </div>
+
+            {/* Staff Registration Link */}
+            <div className="p-3.5 rounded-2xl bg-slate-950 border border-slate-800 space-y-2 flex flex-col justify-between">
+              <div>
+                <span className="text-[10px] font-extrabold uppercase tracking-widest text-purple-400">Staff Registration</span>
+                <p className="text-slate-300 text-xs font-mono truncate pt-1">{`/staff-registration/${session.school.slug}`}</p>
+              </div>
+              <div className="flex gap-2 pt-1">
+                <a href={`/staff-registration/${session.school.slug}`} target="_blank" rel="noreferrer" className="flex-1 py-1.5 rounded-lg bg-purple-600 hover:bg-purple-500 text-white font-bold text-[11px] text-center flex justify-center items-center gap-1 transition-all">
+                  <ExternalLink className="w-3 h-3" /> Open Portal
+                </a>
+                <button onClick={() => { navigator.clipboard.writeText(`${window.location.origin}/staff-registration/${session.school.slug}`); alert('Staff Registration link copied!'); }} className="px-3 py-1.5 rounded-lg border border-slate-700 bg-slate-800 hover:bg-slate-700 text-slate-200 text-[11px] font-bold">
+                  Copy
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Analytics Counter Cards */}
       {stats && (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
