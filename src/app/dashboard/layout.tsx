@@ -7,7 +7,7 @@ import {
   Home, Users, GraduationCap, BookOpen, Layers, ClipboardList, 
   MessageSquare, User, Settings, LogOut, Menu, X, 
   Bell, Award, Shield, Sparkles, Calendar, FileText, CheckCircle, CreditCard,
-  Percent, CheckSquare, AlertCircle, Clock, Activity, BarChart3
+  Percent, CheckSquare, AlertCircle, Clock, Activity, BarChart3, FileCheck
 } from 'lucide-react';
 
 interface SidebarItem {
@@ -356,6 +356,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   } else if (role === 'SCHOOL_ADMIN') {
     menuItems = [
       { name: 'Home', href: '/dashboard', icon: Home },
+      { name: 'Admissions & Apps', href: '/dashboard/applications', icon: FileCheck },
       { name: 'Staff Registry', href: '/dashboard/staff', icon: Shield },
       { name: 'Teachers', href: '/dashboard/teachers', icon: Users },
       { name: 'Students', href: '/dashboard/students', icon: GraduationCap },

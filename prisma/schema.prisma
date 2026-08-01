@@ -71,6 +71,7 @@ model School {
   studentGuardians        StudentGuardian[]
   studentMedicals         StudentMedical[]
   studentDocuments        StudentDocument[]
+  pendingApplications     PendingApplication[]
 }
 
 
@@ -1075,3 +1076,29 @@ model StudentDocument {
   school   School  @relation(fields: [schoolId], references: [id], onDelete: Cascade)
   student  Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
 }
+
+// ─── Pending Admission & Registration Staging Model ──────────────────────
+model PendingApplication {
+  id                String   @id @default(uuid())
+  schoolId          String
+  referenceNumber   String   @unique
+  type              String   // STUDENT, TEACHER, STAFF
+  status            String   @default("PENDING") // DRAFT, PENDING, UNDER_REVIEW, APPROVED, REJECTED, CORRECTION_REQUESTED
+  applicantName     String
+  applicantEmail    String?
+  applicantPhone    String?
+  applyingClass     String?  // for Students e.g. "Primary 1"
+  department        String?  // for Staff/Teachers
+  applicationData   String   // JSON string of full form fields
+  uploadedDocuments String?  // JSON string array of uploaded docs { type, name, url, mimeType, size }
+  reviewNotes       String?  // Internal admin notes
+  correctionNotes   String?  // Admin feedback when requesting correction
+  rejectionReason   String?  // Reason if application is rejected
+  reviewerId        String?  // Admin User ID who reviewed
+  submittedAt       DateTime @default(now())
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  school School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+}
+
