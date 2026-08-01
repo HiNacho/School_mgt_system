@@ -332,9 +332,10 @@ export async function DELETE(req: NextRequest) {
     const id = searchParams.get('id');
     const idsParam = searchParams.get('ids');
 
-    if (!id && !idsParam) {
-      return NextResponse.json({ error: 'Student ID or IDs parameter is required for deletion' }, { status: 400 });
-    }
+    let body: any = {};
+    try { body = await req.json(); } catch(e) {}
+
+    const force = searchParams.get('force') === 'true' || body?.force === true;
 
     if (idsParam) {
       const ids = idsParam.split(',').map(item => item.trim()).filter(Boolean);
@@ -353,31 +354,45 @@ export async function DELETE(req: NextRequest) {
       }
 
       // Check if any of these students has active academic records
-      const studentsWithRecords = await prisma.student.findMany({
-        where: {
-          id: { in: ids },
-          OR: [
-            { scores: { some: {} } },
-            { attendance: { some: {} } },
-            { reportComments: { some: {} } }
-          ]
-        },
-        select: {
-          firstName: true,
-          lastName: true
-        }
-      });
+      if (!force) {
+        const studentsWithRecords = await prisma.student.findMany({
+          where: {
+            id: { in: ids },
+            OR: [
+              { scores: { some: {} } },
+              { attendance: { some: {} } },
+              { reportComments: { some: {} } }
+            ]
+          },
+          select: {
+            firstName: true,
+            lastName: true
+          }
+        });
 
-      if (studentsWithRecords.length > 0) {
-        const names = studentsWithRecords.map(s => `${s.firstName} ${s.lastName}`).join(', ');
-        return NextResponse.json({
-          error: `Deletion Blocked: The following selected students have active academic records: ${names}. Hard-deleting them is prohibited to preserve academic history. Please change their status to "ARCHIVED" instead.`,
-          canArchive: true,
-        }, { status: 403 });
+        if (studentsWithRecords.length > 0) {
+          const names = studentsWithRecords.map(s => `${s.firstName} ${s.lastName}`).join(', ');
+          return NextResponse.json({
+            error: `Deletion Blocked: The following selected students have active academic records: ${names}. Hard-deleting them is prohibited to preserve academic history. Please change their status to "ARCHIVED" or select "Force Delete".`,
+            canArchive: true,
+            canForce: true
+          }, { status: 403 });
+        }
       }
 
-      // Delete student profiles and linked user accounts
+      // Delete student profiles and linked user accounts (with cascading wipe if force)
       await prisma.$transaction(async (tx) => {
+        if (force) {
+          await tx.score.deleteMany({ where: { studentId: { in: ids } } });
+          await tx.attendance.deleteMany({ where: { studentId: { in: ids } } });
+          await tx.dailyAttendance.deleteMany({ where: { studentId: { in: ids } } });
+          await tx.reportCardComment.deleteMany({ where: { studentId: { in: ids } } });
+          await tx.behaviorRating.deleteMany({ where: { studentId: { in: ids } } });
+          await tx.studentDocument.deleteMany({ where: { studentId: { in: ids } } });
+          await tx.studentMedical.deleteMany({ where: { studentId: { in: ids } } });
+          await tx.studentGuardian.deleteMany({ where: { studentId: { in: ids } } });
+        }
+
         await tx.user.deleteMany({
           where: { studentId: { in: ids } }
         });
@@ -405,34 +420,36 @@ export async function DELETE(req: NextRequest) {
 
       requireSchoolScope(session, student.schoolId);
 
-      const scoresCount = await prisma.score.count({
-        where: { studentId: id },
-      });
+      if (!force) {
+        const scoresCount = await prisma.score.count({ where: { studentId: id } });
+        const attendanceCount = await prisma.attendance.count({ where: { studentId: id } });
+        const commentsCount = await prisma.reportCardComment.count({ where: { studentId: id } });
 
-      const attendanceCount = await prisma.attendance.count({
-        where: { studentId: id },
-      });
+        const hasAcademicRecords = scoresCount > 0 || attendanceCount > 0 || commentsCount > 0;
 
-      const commentsCount = await prisma.reportCardComment.count({
-        where: { studentId: id },
-      });
-
-      const hasAcademicRecords = scoresCount > 0 || attendanceCount > 0 || commentsCount > 0;
-
-      if (hasAcademicRecords) {
-        return NextResponse.json({
-          error: 'Deletion Blocked: This student has active academic records. Hard-deleting is prohibited to preserve academic history. Please change student status to "ARCHIVED" or "WITHDRAWN" instead.',
-          canArchive: true,
-        }, { status: 403 });
+        if (hasAcademicRecords) {
+          return NextResponse.json({
+            error: 'Deletion Blocked: This student has active academic records. Hard-deleting is prohibited to preserve academic history. Please change student status to "ARCHIVED" or select "Force Delete".',
+            canArchive: true,
+            canForce: true
+          }, { status: 403 });
+        }
       }
 
       await prisma.$transaction(async (tx) => {
-        await tx.user.deleteMany({
-          where: { studentId: id }
-        });
-        await tx.student.delete({
-          where: { id },
-        });
+        if (force) {
+          await tx.score.deleteMany({ where: { studentId: id } });
+          await tx.attendance.deleteMany({ where: { studentId: id } });
+          await tx.dailyAttendance.deleteMany({ where: { studentId: id } });
+          await tx.reportCardComment.deleteMany({ where: { studentId: id } });
+          await tx.behaviorRating.deleteMany({ where: { studentId: id } });
+          await tx.studentDocument.deleteMany({ where: { studentId: id } });
+          await tx.studentMedical.deleteMany({ where: { studentId: id } });
+          await tx.studentGuardian.deleteMany({ where: { studentId: id } });
+        }
+
+        await tx.user.deleteMany({ where: { studentId: id } });
+        await tx.student.delete({ where: { id } });
       });
 
       return NextResponse.json({ success: true, message: 'Student profile permanently deleted' });

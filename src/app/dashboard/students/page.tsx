@@ -299,24 +299,43 @@ export default function StudentsDirectoryPage() {
   };
 
   // ── Batch Delete Students ─────────────────────────────────────────────────
-  const handleBatchDelete = async () => {
+  const handleBatchDelete = async (force: boolean = false) => {
     if (selectedIds.length === 0) return;
 
     setConfirmModal({
       isOpen: true,
-      title: "Delete Selected Students",
-      message: `WARNING: Are you sure you want to completely DELETE the ${selectedIds.length} selected student profile${selectedIds.length !== 1 ? 's' : ''}? This action cannot be undone!`,
-      confirmText: "Delete Selected",
+      title: force ? "Force Delete Selected Students" : "Delete Selected Students",
+      message: force 
+        ? `WARNING: You are about to FORCE PERMANENTLY DELETE ${selectedIds.length} student profile(s) AND ALL THEIR ACADEMIC SCORES & ATTENDANCE. This action CANNOT be undone! Proceed?`
+        : `Are you sure you want to delete ${selectedIds.length} selected student profile${selectedIds.length !== 1 ? 's' : ''}?`,
+      confirmText: force ? "Force Permanent Delete" : "Delete Selected",
       cancelText: "Cancel",
       isDanger: true,
       onConfirm: async () => {
         setConfirmModal(prev => ({ ...prev, isOpen: false }));
         try {
-          const res = await fetch(`/api/students?ids=${selectedIds.join(',')}`, {
+          const res = await fetch(`/api/students?ids=${selectedIds.join(',')}${force ? '&force=true' : ''}`, {
             method: 'DELETE',
           });
           const json = await res.json();
-          if (!res.ok) throw new Error(json.error || 'Failed to delete selected students');
+          if (!res.ok) {
+            if (json.canForce) {
+              setConfirmModal({
+                isOpen: true,
+                title: "Academic History Conflict",
+                message: `${json.error}\n\nDo you want to ARCHIVE these students to keep academic history, or FORCE DELETE (permanently wipes scores & attendance)?`,
+                confirmText: "Archive Students (Recommended)",
+                cancelText: "Cancel",
+                isDanger: true,
+                onConfirm: async () => {
+                  setConfirmModal(prev => ({ ...prev, isOpen: false }));
+                  await handleBatchArchive();
+                }
+              });
+              return;
+            }
+            throw new Error(json.error || 'Failed to delete selected students');
+          }
           showSuccess(`Successfully deleted ${selectedIds.length} student profile${selectedIds.length !== 1 ? 's' : ''}.`);
           clearSelection();
           await loadAll(session);
@@ -734,7 +753,7 @@ export default function StudentsDirectoryPage() {
 
                   <button
                     type="button"
-                    onClick={handleBatchDelete}
+                    onClick={() => handleBatchDelete()}
                     className="flex items-center gap-1.5 !bg-red-600 !border-red-600 !text-white px-3.5 py-2 rounded-xl text-xs font-black transition-all cursor-pointer shadow-sm active:scale-95 hover:!bg-red-500"
                   >
                     <Trash2 className="w-3.5 h-3.5 !text-white" /> Delete Selected
