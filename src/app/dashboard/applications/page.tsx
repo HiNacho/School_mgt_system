@@ -437,6 +437,13 @@ export default function ApplicationsDashboardPage() {
             {/* Modal Body */}
             <div className="p-6 overflow-y-auto space-y-6 flex-1 text-xs">
               
+              {error && (
+                <div className="p-4 rounded-2xl bg-red-50 border border-red-200 text-red-800 font-bold flex items-center gap-2 animate-fadeIn">
+                  <AlertCircle className="w-5 h-5 text-red-600 shrink-0" />
+                  <span>{error}</span>
+                </div>
+              )}
+
               {actionSuccess && (
                 <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 font-bold flex items-center gap-2">
                   <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />

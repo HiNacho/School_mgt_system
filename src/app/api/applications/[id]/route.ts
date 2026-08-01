@@ -160,21 +160,33 @@ export async function PATCH(
       let defaultPassword = '';
 
       if (application.type === 'STUDENT') {
-        // Find matching or default active class & arm
-        const targetClass = await prisma.class.findFirst({
+        // Find matching or default active class & arm (auto-create if none exist)
+        let targetClass = await prisma.class.findFirst({
           where: { schoolId, name: { contains: formData.className || application.applyingClass || 'Primary', mode: 'insensitive' } }
         }) || await prisma.class.findFirst({ where: { schoolId } });
 
         if (!targetClass) {
-          return NextResponse.json({ error: 'No active class configured for this school context. Please create classes first.' }, { status: 400 });
+          const className = formData.className || application.applyingClass || 'Primary 1';
+          targetClass = await prisma.class.create({
+            data: {
+              schoolId,
+              name: className
+            }
+          });
         }
 
-        const targetArm = await prisma.arm.findFirst({
+        let targetArm = await prisma.arm.findFirst({
           where: { schoolId, classId: targetClass.id }
         }) || await prisma.arm.findFirst({ where: { schoolId } });
 
         if (!targetArm) {
-          return NextResponse.json({ error: 'No active class arm configured for target class.' }, { status: 400 });
+          targetArm = await prisma.arm.create({
+            data: {
+              schoolId,
+              classId: targetClass.id,
+              name: 'Gold'
+            }
+          });
         }
 
         // Generate unique admission number
