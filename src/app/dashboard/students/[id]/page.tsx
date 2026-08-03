@@ -242,6 +242,46 @@ export default function StudentProfilePage({ params }: { params: Promise<{ id: s
   };
 
   // ── Save Personal Info ────────────────────────────────────────────────────────
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+
+  const handleDirectPhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      showError('Image file size exceeds maximum limit of 5MB.');
+      return;
+    }
+
+    setUploadingPhoto(true);
+    try {
+      const reader = new FileReader();
+      reader.onload = async (ev) => {
+        const base64Photo = ev.target?.result as string;
+        try {
+          const res = await fetch('/api/students', {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: studentId, passportPhoto: base64Photo }),
+          });
+          const json = await res.json();
+          if (!res.ok) throw new Error(json.error || 'Failed to upload photo');
+          setStudent((prev: any) => ({ ...prev, passportPhoto: base64Photo }));
+          setPersonalForm((p: any) => ({ ...p, passportPhoto: base64Photo }));
+          showSuccess('Passport photo updated successfully!');
+        } catch (err: any) {
+          showError(err.message || 'Failed to update passport photo.');
+        } finally {
+          setUploadingPhoto(false);
+        }
+      };
+      reader.readAsDataURL(file);
+    } catch (err: any) {
+      showError('Error reading image file');
+      setUploadingPhoto(false);
+    }
+  };
+
   const savePersonal = async () => {
     setSavingPersonal(true);
     try {
@@ -449,14 +489,12 @@ export default function StudentProfilePage({ params }: { params: Promise<{ id: s
               <Avatar photo={student.passportPhoto} name={fullName} size="2xl" />
               {isAdmin && (
                 <label className="absolute bottom-0 right-0 w-7 h-7 rounded-full bg-violet-600 hover:bg-violet-500 flex items-center justify-center cursor-pointer shadow-lg transition-colors" title="Change photo">
-                  <Camera className="w-3.5 h-3.5 text-white" />
-                  <input type="file" accept="image/*" className="hidden" onChange={e => {
-                    const file = e.target.files?.[0];
-                    if (!file) return;
-                    const reader = new FileReader();
-                    reader.onload = ev => setPersonalForm((p: any) => ({ ...p, passportPhoto: ev.target?.result }));
-                    reader.readAsDataURL(file);
-                  }} />
+                  {uploadingPhoto ? (
+                    <RefreshCw className="w-3.5 h-3.5 text-white animate-spin" />
+                  ) : (
+                    <Camera className="w-3.5 h-3.5 text-white" />
+                  )}
+                  <input type="file" accept="image/*" className="hidden" disabled={uploadingPhoto} onChange={handleDirectPhotoUpload} />
                 </label>
               )}
             </div>
