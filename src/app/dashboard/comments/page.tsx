@@ -2,7 +2,8 @@
 
 import React, { useEffect, useState } from 'react';
 import { 
-  MessageSquarePlus, CheckCircle, AlertCircle, Sparkles, Save, RefreshCw, UserCheck, HelpCircle
+  MessageSquarePlus, CheckCircle, AlertCircle, Sparkles, Save, RefreshCw, UserCheck, HelpCircle,
+  Send, Lock, Clock, XCircle, ShieldCheck, Award, Check
 } from 'lucide-react';
 
 const CATEGORIES = [
@@ -54,7 +55,13 @@ export default function AICommentsPage() {
   // Comments state
   const [comments, setComments] = useState<CommentRow[]>([]);
   const [modifiedIds, setModifiedIds] = useState<Set<string>>(new Set());
-  const [activeTab, setActiveTab] = useState<Record<string, 'academic' | 'conduct'>>({});
+  const [activeTab, setActiveTab] = useState<Record<string, 'academic' | 'principal' | 'conduct'>>({});
+
+  // Compilation & Approval status
+  const [compilationStatus, setCompilationStatus] = useState<'DRAFT' | 'AWAITING_APPROVAL' | 'APPROVED' | 'REJECTED'>('DRAFT');
+  const [statusFeedback, setStatusFeedback] = useState<string | null>(null);
+  const [submittingToPrincipal, setSubmittingToPrincipal] = useState(false);
+  const [approvingReports, setApprovingReports] = useState(false);
 
   // Indicators & Statuses
   const [savingStatus, setSavingStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
@@ -106,16 +113,26 @@ export default function AICommentsPage() {
     setSavingStatus('idle');
 
     try {
-      const [commentsRes, behaviorRes] = await Promise.all([
+      const [commentsRes, behaviorRes, statusRes] = await Promise.all([
         fetch(`/api/comments?schoolId=${session.school.id}&classId=${selectedClass}&armId=${selectedArm}&termId=${selectedTerm}`),
-        fetch(`/api/behavior?schoolId=${session.school.id}&classId=${selectedClass}&armId=${selectedArm}&termId=${selectedTerm}`)
+        fetch(`/api/behavior?schoolId=${session.school.id}&classId=${selectedClass}&armId=${selectedArm}&termId=${selectedTerm}`),
+        fetch(`/api/reports/status?schoolId=${session.school.id}&classId=${selectedClass}&armId=${selectedArm}&termId=${selectedTerm}`)
       ]);
 
       const commentsJson = await commentsRes.json();
       const behaviorJson = await behaviorRes.json();
+      const statusJson = await statusRes.json();
 
       if (!commentsRes.ok) throw new Error(commentsJson.error || 'Failed to fetch comments');
       if (!behaviorRes.ok) throw new Error(behaviorJson.error || 'Failed to fetch behavior ratings');
+
+      if (statusJson.success && statusJson.data) {
+        setCompilationStatus(statusJson.data.status || 'DRAFT');
+        setStatusFeedback(statusJson.data.feedback || null);
+      } else {
+        setCompilationStatus('DRAFT');
+        setStatusFeedback(null);
+      }
 
       const merged = (commentsJson.data || []).map((c: any) => {
         const b = (behaviorJson.data || []).find((x: any) => x.studentId === c.studentId);
@@ -154,6 +171,86 @@ export default function AICommentsPage() {
       next.add(studentId);
       return next;
     });
+  };
+
+  const handleHeadTeacherCommentChange = (studentId: string, text: string) => {
+    setComments(prev => prev.map(c => {
+      if (c.studentId === studentId) {
+        return { ...c, headTeacherComment: text };
+      }
+      return c;
+    }));
+    setModifiedIds(prev => {
+      const next = new Set(prev);
+      next.add(studentId);
+      return next;
+    });
+  };
+
+  const handlePushToPrincipal = async () => {
+    setSubmittingToPrincipal(true);
+    setErrorMsg('');
+    setSuccessMsg('');
+    try {
+      if (modifiedIds.size > 0) {
+        await handleSaveComments();
+      }
+
+      const res = await fetch('/api/reports/status', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          schoolId: session.school.id,
+          classId: selectedClass,
+          armId: selectedArm,
+          termId: selectedTerm,
+          status: 'AWAITING_APPROVAL'
+        })
+      });
+
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || 'Failed to submit report cards');
+
+      setCompilationStatus('AWAITING_APPROVAL');
+      setSuccessMsg('🚀 Class Report Cards, behavior ratings & teacher remarks submitted to Principal for official review & approval!');
+    } catch (e: any) {
+      setErrorMsg(e.message || 'Error submitting report cards to Principal');
+    } finally {
+      setSubmittingToPrincipal(false);
+    }
+  };
+
+  const handleApproveReportCards = async () => {
+    setApprovingReports(true);
+    setErrorMsg('');
+    setSuccessMsg('');
+    try {
+      if (modifiedIds.size > 0) {
+        await handleSaveComments();
+      }
+
+      const res = await fetch('/api/reports/status', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          schoolId: session.school.id,
+          classId: selectedClass,
+          armId: selectedArm,
+          termId: selectedTerm,
+          status: 'APPROVED'
+        })
+      });
+
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || 'Failed to approve report cards');
+
+      setCompilationStatus('APPROVED');
+      setSuccessMsg('🏆 Class Report Cards approved & signed officially by Principal! Published for students and parents.');
+    } catch (e: any) {
+      setErrorMsg(e.message || 'Error approving report cards');
+    } finally {
+      setApprovingReports(false);
+    }
   };
 
   const handleRatingChange = (studentId: string, category: string, value: number) => {
@@ -434,12 +531,63 @@ export default function AICommentsPage() {
         </div>
       </div>
 
+      {/* Workflow & Compilation Status Banner */}
+      <div className={`p-5 rounded-2xl border backdrop-blur-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4 ${
+        compilationStatus === 'APPROVED' ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300' :
+        compilationStatus === 'AWAITING_APPROVAL' ? 'bg-amber-500/10 border-amber-500/30 text-amber-300' :
+        compilationStatus === 'REJECTED' ? 'bg-red-500/10 border-red-500/30 text-red-300' :
+        'bg-slate-900/40 border-slate-800 text-slate-300'
+      }`}>
+        <div className="space-y-1">
+          <div className="flex items-center gap-2 font-extrabold text-sm">
+            {compilationStatus === 'APPROVED' && <><ShieldCheck className="w-5 h-5 text-emerald-400" /> 🏆 Approved & Signed by Principal</>}
+            {compilationStatus === 'AWAITING_APPROVAL' && <><Clock className="w-5 h-5 text-amber-400 animate-pulse" /> ⏳ Submitted to Principal — Awaiting Approval</>}
+            {compilationStatus === 'REJECTED' && <><XCircle className="w-5 h-5 text-red-400" /> 🔴 Returned by Principal for Correction</>}
+            {compilationStatus === 'DRAFT' && <><Lock className="w-5 h-5 text-slate-400" /> ✏️ Class Report Batch: Draft Mode</>}
+          </div>
+          <p className="text-xs text-slate-400">
+            {compilationStatus === 'APPROVED' && 'Report cards for this class arm have been officially approved, signed, and stamped by the Principal.'}
+            {compilationStatus === 'AWAITING_APPROVAL' && 'Class Teacher has finalized behavior ratings & remarks. Reports are awaiting Principal official review & signature.'}
+            {compilationStatus === 'REJECTED' && (statusFeedback ? `Principal feedback: "${statusFeedback}"` : 'Please correct the behavior ratings or remarks as requested.')}
+            {compilationStatus === 'DRAFT' && 'Grade students on all 8 behavior traits and enter remarks, then click "Push to Principal for Approval".'}
+          </p>
+        </div>
+
+        <div className="flex items-center gap-3 flex-shrink-0">
+          {/* Class Teacher Action: Push to Principal */}
+          {(compilationStatus === 'DRAFT' || compilationStatus === 'REJECTED') && (
+            <button
+              type="button"
+              disabled={submittingToPrincipal || comments.length === 0}
+              onClick={handlePushToPrincipal}
+              className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-black bg-violet-600 hover:bg-violet-500 text-white shadow-lg shadow-violet-600/20 transition-all cursor-pointer disabled:opacity-50 active:scale-95"
+            >
+              {submittingToPrincipal ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+              {submittingToPrincipal ? 'Submitting…' : '🚀 Push to Principal for Approval'}
+            </button>
+          )}
+
+          {/* Principal / Admin Action: Approve & Sign Report Cards */}
+          {session?.user?.role && ['SUPER_ADMIN', 'SCHOOL_ADMIN', 'HEAD_TEACHER'].includes(session.user.role) && (compilationStatus === 'AWAITING_APPROVAL' || compilationStatus === 'DRAFT' || compilationStatus === 'REJECTED') && (
+            <button
+              type="button"
+              disabled={approvingReports || comments.length === 0}
+              onClick={handleApproveReportCards}
+              className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-black bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg shadow-emerald-600/20 transition-all cursor-pointer disabled:opacity-50 active:scale-95"
+            >
+              {approvingReports ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Award className="w-4 h-4" />}
+              {approvingReports ? 'Approving…' : '🏆 Approve & Sign Report Cards'}
+            </button>
+          )}
+        </div>
+      </div>
+
       {/* Control Actions & Summary Panel */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-slate-900/20 p-5 rounded-2xl border border-slate-850/60">
         <div className="space-y-1">
-          <h3 className="text-xs font-bold text-slate-200">RRemarks Status Summary</h3>
+          <h3 className="text-xs font-bold text-slate-200">Remarks & Conduct Ratings Matrix</h3>
           <p className="text-[10px] text-slate-500">
-            Current Arm has <strong className="text-slate-300">{comments.length}</strong> active students. Click the batch button to draft all remarks instantly.
+            Current Arm has <strong className="text-slate-300">{comments.length}</strong> active students. Grade all 8 behavior categories (1-5) and enter counsel remarks.
           </p>
         </div>
 
@@ -577,25 +725,37 @@ export default function AICommentsPage() {
                         }`}
                       >
                         <MessageSquarePlus className="w-3.5 h-3.5" />
-                        Academic Comments
+                        Class Teacher's Remark
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setActiveTab(prev => ({ ...prev, [row.studentId]: 'principal' }))}
+                        className={`px-4 py-2 text-xs font-bold border-b-2 transition-all flex items-center gap-1.5 -mb-px ${
+                          activeTab[row.studentId] === 'principal'
+                            ? 'border-emerald-500 text-emerald-400'
+                            : 'border-transparent text-slate-400 hover:text-slate-200'
+                        }`}
+                      >
+                        <Award className="w-3.5 h-3.5" />
+                        Principal's Remark
                       </button>
                       <button
                         type="button"
                         onClick={() => setActiveTab(prev => ({ ...prev, [row.studentId]: 'conduct' }))}
                         className={`px-4 py-2 text-xs font-bold border-b-2 transition-all flex items-center gap-1.5 -mb-px ${
                           activeTab[row.studentId] === 'conduct'
-                            ? 'border-sky-500 text-sky-400'
+                            ? 'border-purple-500 text-purple-400'
                             : 'border-transparent text-slate-400 hover:text-slate-200'
                         }`}
                       >
                         <UserCheck className="w-3.5 h-3.5" />
-                        Conduct & Behaviour
+                        Behavior & Affective Domain
                       </button>
                     </div>
 
                     {(activeTab[row.studentId] || 'academic') === 'academic' ? (
                       <div className="space-y-2">
-                        <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500">Teacher's Academic Remark</label>
+                        <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500">Class Teacher's Remarks & Counsel</label>
                         <textarea
                           value={row.teacherComment || ''}
                           onChange={(e) => handleCommentChange(row.studentId, e.target.value)}
@@ -606,8 +766,23 @@ export default function AICommentsPage() {
                         <div className="flex items-center justify-between text-[10px] text-slate-500 font-mono">
                           <span>Remarks length: {row.teacherComment?.length || 0} characters</span>
                           {row.teacherComment && row.teacherComment.length > 250 && (
-                            <span className="text-amber-500">Remark is quite descriptive. Excel Template boundaries verified.</span>
+                            <span className="text-amber-500 font-bold">Descriptive counsel provided.</span>
                           )}
+                        </div>
+                      </div>
+                    ) : activeTab[row.studentId] === 'principal' ? (
+                      <div className="space-y-2">
+                        <label className="block text-[10px] font-bold uppercase tracking-wider text-emerald-400">Principal's Official Remarks & Stamp</label>
+                        <textarea
+                          value={row.headTeacherComment || ''}
+                          onChange={(e) => handleHeadTeacherCommentChange(row.studentId, e.target.value)}
+                          placeholder={`Enter official Principal's remark (e.g. "Sufficient performance. Keep striving." or "Excellent results! Keep it up.")...`}
+                          rows={3}
+                          className="w-full bg-slate-950 border border-emerald-500/30 hover:border-emerald-500/50 rounded-xl px-4 py-3 text-xs leading-relaxed text-slate-200 focus:outline-none focus:border-emerald-500 transition-colors placeholder:text-slate-700 font-medium"
+                        />
+                        <div className="flex items-center justify-between text-[10px] text-slate-500 font-mono">
+                          <span>Remarks length: {row.headTeacherComment?.length || 0} characters</span>
+                          <span className="text-emerald-400 font-bold">Appears on official PDF report under Principal's Signature block.</span>
                         </div>
                       </div>
                     ) : (
