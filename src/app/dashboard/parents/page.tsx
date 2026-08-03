@@ -32,6 +32,7 @@ interface ParentMember {
   address: string;
   dateOfBirth?: string | null;
   students: StudentChild[];
+  user?: { id: string; username: string; isFirstLogin?: boolean } | null;
   createdAt: string;
 }
 
@@ -538,9 +539,9 @@ export default function ParentsRegistryPage() {
           <button
             type="button"
             onClick={handleExportToExcel}
-            className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-2xl bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-bold transition-all shadow-sm shadow-slate-100 cursor-pointer animate-fadeIn"
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold border transition-colors bg-slate-900 border-slate-800 text-slate-200 hover:bg-slate-850"
           >
-            <Download className="w-3.5 h-3.5 text-blue-500" /> Export Registry
+            <Download className="w-3.5 h-3.5 text-emerald-400" /> Export Excel
           </button>
 
           <button
@@ -550,20 +551,29 @@ export default function ParentsRegistryPage() {
               setParsedParents([]);
               setShowUploadModal(true);
             }}
-            className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-2xl bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-bold transition-all shadow-sm shadow-slate-100 cursor-pointer animate-fadeIn"
+            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold border transition-colors bg-emerald-950/40 border-emerald-800/60 text-emerald-300 hover:bg-emerald-900/50"
           >
-            <FileSpreadsheet className="w-3.5 h-3.5 text-green-650" /> Bulk Upload Parents
+            <UploadCloud className="w-3.5 h-3.5 text-emerald-400" /> Bulk Import
           </button>
 
           <button
             type="button"
             onClick={() => { resetForm(); setShowAddModal(true); }}
-            className={`flex items-center gap-1.5 px-4 py-2.5 rounded-2xl text-xs font-black transition-all shadow-md cursor-pointer ${themeBgAccent}`}
+            className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold shadow-sm transition-all ${themeBgAccent}`}
           >
             <UserPlus className="w-4 h-4" /> Add Parent
           </button>
         </div>
+      </div>
 
+      {/* Default Parent Sign-In Notice Banner */}
+      <div className="p-4 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 text-xs flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+        <div className="flex items-center gap-2.5">
+          <Shield className="w-5 h-5 text-indigo-400 shrink-0" />
+          <p className="leading-relaxed">
+            <strong className="text-white font-extrabold">Default Parent Sign-In Credentials:</strong> All registered parents can sign in using their registered email with initial default password: <strong className="font-mono bg-indigo-500/20 text-indigo-200 px-2 py-0.5 rounded border border-indigo-500/30">password</strong>. Upon first login, parents are automatically prompted to change to a strong, custom password.
+          </p>
+        </div>
       </div>
 
       {/* Alerts */}

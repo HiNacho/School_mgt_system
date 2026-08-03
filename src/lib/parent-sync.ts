@@ -46,7 +46,7 @@ export async function syncGuardiansToParents(schoolId: string) {
 
         // 3. If still not found, create new Parent account
         if (!parent) {
-          const tempPassword = 'Parent123456';
+          const tempPassword = 'password';
           const salt = await bcrypt.genSalt(10);
           const passwordHash = await bcrypt.hash(tempPassword, salt);
 

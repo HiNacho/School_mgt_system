@@ -200,8 +200,11 @@ export default function ChangePasswordPage() {
               </span>
             </div>
             <h2 className="text-xl font-normal text-[#1e293b] tracking-tight">Update Temporary Password</h2>
-            <p className="text-[#64748b] text-xs font-semibold leading-relaxed max-w-[320px] mx-auto">
-              Hi <span className="text-slate-800 font-bold">{user.firstName}</span>, for security compliance you must update your temporary password before accessing the system.
+            <p className="text-[#64748b] text-xs font-semibold leading-relaxed max-w-[340px] mx-auto">
+              Hi <span className="text-slate-800 font-bold">{user.firstName}</span>, 
+              {user.role === 'PARENT' 
+                ? ' as a parent signing in with default credentials (password), please create a new, strong password to protect your account and your ward\'s records.'
+                : ' for security compliance you must update your temporary password before accessing the system.'}
             </p>
           </div>
 

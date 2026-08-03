@@ -353,7 +353,7 @@ export async function PATCH(
           application: updatedApp,
           provisionedRecord: createdRecord,
           generatedUsername,
-          temporaryPassword: defaultPassword || 'Parent123456'
+          temporaryPassword: defaultPassword || 'password'
         }
       });
     }
