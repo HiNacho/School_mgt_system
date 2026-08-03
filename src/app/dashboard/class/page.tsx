@@ -1794,14 +1794,22 @@ export default function ClassTeacherDashboard() {
                 </thead>
                 <tbody className="divide-y divide-slate-50">
                   {(reviewSubmission.scores || []).map((row: any) => {
+                    const studentObj = students.find((st: any) => st.id === row.studentId);
+                    const firstName = row.firstName || studentObj?.firstName || '';
+                    const lastName = row.lastName || studentObj?.lastName || '';
+                    const displayName = (firstName || lastName)
+                      ? `${lastName}${lastName && firstName ? ', ' : ''}${firstName}`
+                      : 'Student';
+                    const admNo = row.admissionNumber || studentObj?.admissionNumber || '—';
+
                     const total = [row.ca1, row.ca2, row.assignment, row.exam]
                       .filter((v: any) => v !== null && v !== undefined && v !== '')
                       .reduce((s: number, v: any) => s + Number(v), 0);
                     return (
                       <tr key={row.studentId} className="hover:bg-slate-50/60">
                         <td className="px-4 py-3">
-                          <p className="font-semibold text-slate-800">{row.lastName}, {row.firstName}</p>
-                          <p className="text-[9px] text-slate-400 font-mono">{row.admissionNumber}</p>
+                          <p className="font-semibold text-slate-800">{displayName}</p>
+                          <p className="text-[9px] text-slate-400 font-mono">{admNo}</p>
                         </td>
                         <td className="px-4 py-3 text-center font-mono text-slate-700">{row.ca1 ?? '—'}</td>
                         <td className="px-4 py-3 text-center font-mono text-slate-700">{row.ca2 ?? '—'}</td>

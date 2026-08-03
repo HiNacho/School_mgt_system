@@ -254,6 +254,9 @@ export default function ScoresManagerPage() {
       try {
         const payloadScores = scores.map((s: any) => ({
           studentId: s.studentId,
+          firstName: s.student?.firstName || s.firstName || '',
+          lastName: s.student?.lastName || s.lastName || '',
+          admissionNumber: s.student?.admissionNumber || s.admissionNumber || '',
           ca1: s.ca1,
           ca2: s.ca2,
           assignment: s.assignment,
@@ -298,6 +301,9 @@ export default function ScoresManagerPage() {
       const queuedScores = JSON.parse(cached);
       const payloadScores = queuedScores.map((s: any) => ({
         studentId: s.studentId,
+        firstName: s.student?.firstName || s.firstName || '',
+        lastName: s.student?.lastName || s.lastName || '',
+        admissionNumber: s.student?.admissionNumber || s.admissionNumber || '',
         ca1: s.ca1,
         ca2: s.ca2,
         assignment: s.assignment,
@@ -336,6 +342,9 @@ export default function ScoresManagerPage() {
       setSavingStatus('saving');
       const payloadScores = scores.map((s: any) => ({
         studentId: s.studentId,
+        firstName: s.student?.firstName || s.firstName || '',
+        lastName: s.student?.lastName || s.lastName || '',
+        admissionNumber: s.student?.admissionNumber || s.admissionNumber || '',
         ca1: s.ca1,
         ca2: s.ca2,
         assignment: s.assignment,
