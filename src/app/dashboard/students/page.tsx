@@ -7,7 +7,7 @@ import {
   CheckCircle, Eye, Loader2, LayoutGrid, List, Filter, SortAsc, SortDesc,
   Download, ChevronLeft, ChevronRight, MoreHorizontal, Activity, DollarSign,
   Award, BookOpen, Calendar, Phone, Mail, MapPin, User, Shield, AlertTriangle,
-  Clock, TrendingUp, TrendingDown, Star, XCircle, CheckSquare, Square
+  Clock, TrendingUp, TrendingDown, Star, XCircle, CheckSquare, Square, Sparkles
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 
@@ -99,6 +99,7 @@ export default function StudentsDirectoryPage() {
   const [parsedStudents, setParsedStudents] = useState<any[]>([]);
   const [uploading, setUploading] = useState(false);
   const [uploadResult, setUploadResult] = useState<any>(null);
+  const [importSuccessBanner, setImportSuccessBanner] = useState<{ count: number; skipped: number } | null>(null);
 
   // Notifications
   const [successMsg, setSuccessMsg] = useState('');
@@ -549,7 +550,12 @@ export default function StudentsDirectoryPage() {
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || 'Upload failed');
       setUploadResult(json);
-      showSuccess(`Bulk upload complete: ${json.created || 0} students imported.`);
+
+      const createdCount = json.created || json.data?.successCount || 0;
+      const skippedCount = json.skipped || json.data?.failCount || 0;
+
+      setImportSuccessBanner({ count: createdCount, skipped: skippedCount });
+      showSuccess(`🎉 Bulk import complete! Successfully imported ${createdCount} student${createdCount !== 1 ? 's' : ''}.`);
       await loadAll(session);
     } catch (e: any) { showError(e.message); }
     setUploading(false);
@@ -618,6 +624,30 @@ export default function StudentsDirectoryPage() {
             )}
           </div>
         </div>
+
+        {/* ── Bulk Import Success Notification Banner ────────────────────────────── */}
+        {importSuccessBanner && (
+          <div className="p-5 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 space-y-2 relative shadow-lg animate-fadeIn">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-emerald-300 font-extrabold text-sm">
+                <Sparkles className="w-5 h-5 text-emerald-400" />
+                <span>🎉 Bulk Import Successful!</span>
+              </div>
+              <button 
+                onClick={() => setImportSuccessBanner(null)}
+                className="text-xs font-bold px-2 py-1 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 transition-colors cursor-pointer"
+              >
+                Dismiss ✕
+              </button>
+            </div>
+            <p className="text-xs font-bold text-slate-200">
+              <strong className="text-emerald-400 text-sm">{importSuccessBanner.count}</strong> student{importSuccessBanner.count !== 1 ? 's' : ''} were successfully imported and provisioned into your registry.
+              {importSuccessBanner.skipped > 0 && (
+                <span className="text-amber-400 ml-2">({importSuccessBanner.skipped} record{importSuccessBanner.skipped !== 1 ? 's' : ''} skipped/failed)</span>
+              )}
+            </p>
+          </div>
+        )}
 
         {/* ── Stats Row ───────────────────────────────────────────────────────── */}
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
@@ -1163,17 +1193,40 @@ export default function StudentsDirectoryPage() {
               </div>
 
               {uploadResult ? (
-                <div className="rounded-2xl bg-emerald-500/10 border border-emerald-500/20 p-5 text-emerald-400 space-y-2">
-                  <div className="flex items-center gap-2 font-black text-sm"><CheckCircle className="w-5 h-5" /> Upload Complete</div>
-                  <p className="text-xs font-semibold">{uploadResult.created || 0} students imported · {uploadResult.skipped || 0} skipped/failed</p>
-                  <p className="text-xs opacity-75">Default password for all imported students: <strong className="font-mono bg-emerald-500/20 px-1.5 py-0.5 rounded">password</strong></p>
-                  
+                <div className="rounded-2xl bg-emerald-950/90 border border-emerald-500/30 p-6 text-white space-y-4 shadow-xl animate-fadeIn">
+                  <div className="flex items-center justify-between border-b border-emerald-500/20 pb-3">
+                    <div className="flex items-center gap-2 font-black text-base text-emerald-400">
+                      <CheckCircle className="w-6 h-6 text-emerald-400" /> Bulk Import Complete
+                    </div>
+                    <span className="px-3.5 py-1 rounded-full bg-emerald-500/20 text-emerald-300 text-xs font-black border border-emerald-500/30">
+                      🎉 {uploadResult.created || 0} Students Imported
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3 text-xs">
+                    <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-center space-y-0.5">
+                      <p className="text-slate-400 text-[10px] font-bold uppercase tracking-wider">Successfully Created</p>
+                      <p className="text-2xl font-black text-emerald-400">{uploadResult.created || 0}</p>
+                    </div>
+                    <div className="p-3.5 rounded-xl bg-slate-900/80 border border-slate-800 text-center space-y-0.5">
+                      <p className="text-slate-400 text-[10px] font-bold uppercase tracking-wider">Skipped / Failed</p>
+                      <p className={`text-2xl font-black ${uploadResult.skipped > 0 ? 'text-amber-400' : 'text-slate-400'}`}>{uploadResult.skipped || 0}</p>
+                    </div>
+                  </div>
+
+                  <p className="text-xs text-slate-300 leading-relaxed">
+                    All <strong className="text-emerald-400 font-extrabold">{uploadResult.created || 0}</strong> imported student profiles & guardian accounts are active in your registry. Initial login password: <strong className="font-mono bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded border border-emerald-500/30">password</strong>
+                  </p>
+
                   {uploadResult.data?.failures && uploadResult.data.failures.length > 0 && (
-                    <div className="mt-3 pt-2 border-t border-emerald-500/20 space-y-1">
-                      <p className="text-[11px] font-bold text-red-400">Skipped Records Logs:</p>
-                      <div className="max-h-32 overflow-y-auto text-[10px] font-mono space-y-1 bg-red-500/10 p-2 rounded-xl text-red-300">
+                    <div className="pt-3 border-t border-emerald-500/20 space-y-2">
+                      <p className="text-xs font-extrabold text-amber-400 flex items-center gap-1">⚠️ Skipped Records Log ({uploadResult.data.failures.length}):</p>
+                      <div className="max-h-36 overflow-y-auto text-[11px] font-mono space-y-1 bg-red-950/60 p-3 rounded-xl text-red-300 border border-red-800/40">
                         {uploadResult.data.failures.map((f: any, idx: number) => (
-                          <div key={idx}>⚠️ {f.name} ({f.admissionNumber}): {f.error}</div>
+                          <div key={idx} className="flex gap-1.5 items-start">
+                            <span className="text-red-400">❌</span>
+                            <span><strong>{f.name}</strong> ({f.admissionNumber}): {f.error}</span>
+                          </div>
                         ))}
                       </div>
                     </div>
