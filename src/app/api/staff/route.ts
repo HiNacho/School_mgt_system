@@ -70,7 +70,7 @@ export async function GET(req: NextRequest) {
       where: { 
         schoolId,
         NOT: {
-          role: { in: ['PARENT', 'STUDENT'] }
+          role: { in: ['PARENT', 'STUDENT', 'SUPER_ADMIN'] }
         }
       },
       include: {
@@ -98,35 +98,7 @@ export async function GET(req: NextRequest) {
       ]
     });
 
-    const superAdmins = await prisma.user.findMany({
-      where: {
-        role: 'SUPER_ADMIN',
-        status: 'ACTIVE'
-      },
-      include: {
-        classTeacherArms: {
-          include: {
-            class: true
-          }
-        },
-        subjectAssignments: {
-          include: {
-            subject: {
-              select: { name: true, code: true }
-            },
-            arm: {
-              include: {
-                class: true
-              }
-            }
-          }
-        }
-      }
-    });
-
-    const combined = [...staff, ...superAdmins];
-
-    const formatted = combined.map(s => ({
+    const formatted = staff.map(s => ({
       id: s.id,
       email: s.email,
       firstName: s.firstName,
@@ -379,7 +351,7 @@ export async function PATCH(req: NextRequest) {
     } = body;
 
     // Allow self-updates without requiring admin role permissions
-    const isSelfUpdate = session.id === staffId;
+    const isSelfUpdate = session.userId === staffId;
     if (!isSelfUpdate) {
       requireRole(session, ['SUPER_ADMIN', 'SCHOOL_ADMIN']);
     }
