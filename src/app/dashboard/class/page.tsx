@@ -1768,20 +1768,27 @@ export default function ClassTeacherDashboard() {
                       : 'Student';
                     const admNo = row.admissionNumber || studentObj?.admissionNumber || '—';
 
-                    const total = [row.ca1, row.ca2, row.assignment, row.exam]
+                    const formatScoreVal = (val: any) => {
+                      if (val === null || val === undefined || val === '' || isNaN(Number(val))) return '—';
+                      return Math.round((Number(val) + Number.EPSILON) * 100) / 100;
+                    };
+
+                    const rawTotal = [row.ca1, row.ca2, row.assignment, row.exam]
                       .filter((v: any) => v !== null && v !== undefined && v !== '')
                       .reduce((s: number, v: any) => s + Number(v), 0);
+                    const total = Math.round((rawTotal + Number.EPSILON) * 100) / 100;
+
                     return (
                       <tr key={row.studentId} className="hover:bg-slate-50/60">
                         <td className="px-4 py-3">
                           <p className="font-semibold text-slate-800">{displayName}</p>
                           <p className="text-[9px] text-slate-400 font-mono">{admNo}</p>
                         </td>
-                        <td className="px-4 py-3 text-center font-mono text-slate-700">{row.ca1 ?? '—'}</td>
-                        <td className="px-4 py-3 text-center font-mono text-slate-700">{row.ca2 ?? '—'}</td>
-                        <td className="px-4 py-3 text-center font-mono text-slate-700">{row.assignment ?? '—'}</td>
-                        <td className="px-4 py-3 text-center font-mono text-slate-700">{row.exam ?? '—'}</td>
-                        <td className="px-4 py-3 text-center font-black text-slate-800">{total || '—'}</td>
+                        <td className="px-4 py-3 text-center font-mono text-slate-700">{formatScoreVal(row.ca1)}</td>
+                        <td className="px-4 py-3 text-center font-mono text-slate-700">{formatScoreVal(row.ca2)}</td>
+                        <td className="px-4 py-3 text-center font-mono text-slate-700">{formatScoreVal(row.assignment)}</td>
+                        <td className="px-4 py-3 text-center font-mono text-slate-700">{formatScoreVal(row.exam)}</td>
+                        <td className="px-4 py-3 text-center font-black text-slate-800">{total !== 0 || [row.ca1, row.ca2, row.assignment, row.exam].some(x => x !== null && x !== undefined && x !== '') ? total : '—'}</td>
                       </tr>
                     );
                   })}

@@ -197,7 +197,7 @@ export default function ScoresManagerPage() {
     const c2 = row.ca2 || 0;
     const asg = row.assignment || 0;
     const ex = row.exam || 0;
-    const computedTotal = Number((c1 + c2 + asg + ex).toFixed(1));
+    const computedTotal = Math.round(((c1 + c2 + asg + ex) + Number.EPSILON) * 100) / 100;
 
     row.total = row.ca1 === null && row.ca2 === null && row.assignment === null && row.exam === null ? null : computedTotal;
 

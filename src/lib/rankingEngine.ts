@@ -56,7 +56,7 @@ export function calculateScoreDetails(
   const c2 = ca2 || 0;
   const asg = assignment || 0;
   const ex = exam || 0;
-  const total = Number((c1 + c2 + asg + ex).toFixed(1));
+  const total = Math.round(((c1 + c2 + asg + ex) + Number.EPSILON) * 100) / 100;
 
   // Find matching grading rule
   let grade = 'F';
@@ -130,10 +130,10 @@ export function compileClassResults(
           subjectId: sub.id,
           subjectName: sub.name,
           subjectCode: sub.code,
-          ca1: c1 || 0,
-          ca2: c2 || 0,
-          assignment: asg || 0,
-          exam: ex || 0,
+          ca1: Math.round(((c1 || 0) + Number.EPSILON) * 100) / 100,
+          ca2: Math.round(((c2 || 0) + Number.EPSILON) * 100) / 100,
+          assignment: Math.round(((asg || 0) + Number.EPSILON) * 100) / 100,
+          exam: Math.round(((ex || 0) + Number.EPSILON) * 100) / 100,
           total: details.total,
           grade: details.grade,
           remarks: details.remarks,
@@ -151,7 +151,7 @@ export function compileClassResults(
       }
     }
 
-    const average = countedSubjects > 0 ? Number((totalSum / countedSubjects).toFixed(2)) : 0;
+    const average = countedSubjects > 0 ? Math.round(((totalSum / countedSubjects) + Number.EPSILON) * 100) / 100 : 0;
 
     return {
       studentId: student.id,
@@ -160,7 +160,7 @@ export function compileClassResults(
       lastName: student.lastName,
       middleName: student.middleName,
       subjects: compiledSubjects,
-      aggregateScore: Number(totalSum.toFixed(1)),
+      aggregateScore: Math.round((totalSum + Number.EPSILON) * 100) / 100,
       averageScore: average,
       classPosition: 0, // Assigned later
       totalStudents: activeStudents.length,
