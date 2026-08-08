@@ -911,51 +911,69 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   {/* Glassmorphic Dropdown Panel */}
                   <div className="absolute right-0 mt-2.5 w-96 max-w-[90vw] bg-white border border-slate-200 rounded-2xl shadow-2xl z-[110] overflow-hidden font-sans animate-fadeIn">
                     {/* Panel Header */}
-                    <div className="p-4 border-b border-slate-100 flex items-center justify-between">
-                      <span className="text-xs font-black uppercase text-slate-800 tracking-wider">🔔 Notifications & Alerts</span>
-                      {unreadCount > 0 && (
+                    <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-black uppercase text-slate-800 tracking-wider">🔔 Notifications & Alerts</span>
+                        {unreadCount > 0 && (
+                          <span className="px-2 py-0.5 rounded-full bg-amber-500 text-slate-900 text-[9px] font-black">
+                            {unreadCount} new
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        {unreadCount > 0 && (
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              try {
+                                await Promise.all([
+                                  fetch('/api/messages', {
+                                    method: 'PATCH',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({
+                                      userId: session.user.id,
+                                      messageIds: latestAlerts.map(a => a.messageId)
+                                    })
+                                  }),
+                                  fetch('/api/notifications', {
+                                    method: 'PATCH',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({
+                                      schoolId: session.school.id,
+                                      userId: session.user.id
+                                    })
+                                  })
+                                ]);
+                                setUnreadCount(0);
+                                setLatestAlerts([]);
+                                setBellOpen(false);
+                              } catch (e) {
+                                console.error(e);
+                              }
+                            }}
+                            className="text-[10px] font-bold text-blue-600 hover:text-blue-500 hover:underline"
+                          >
+                            Mark all as read
+                          </button>
+                        )}
                         <button
                           type="button"
-                          onClick={async () => {
-                            try {
-                              await Promise.all([
-                                fetch('/api/messages', {
-                                  method: 'PATCH',
-                                  headers: { 'Content-Type': 'application/json' },
-                                  body: JSON.stringify({
-                                    userId: session.user.id,
-                                    messageIds: latestAlerts.map(a => a.messageId)
-                                  })
-                                }),
-                                fetch('/api/notifications', {
-                                  method: 'PATCH',
-                                  headers: { 'Content-Type': 'application/json' },
-                                  body: JSON.stringify({
-                                    schoolId: session.school.id,
-                                    userId: session.user.id
-                                  })
-                                })
-                              ]);
-                              setUnreadCount(0);
-                              setLatestAlerts([]);
-                              setBellOpen(false);
-                            } catch (e) {
-                              console.error(e);
-                            }
-                          }}
-                          className="text-[10px] font-bold text-blue-600 hover:text-blue-500"
+                          onClick={() => setBellOpen(false)}
+                          className="p-1 rounded-lg text-slate-400 hover:bg-slate-200 hover:text-slate-700 transition-colors"
+                          title="Close panel"
                         >
-                          Mark all as read
+                          <X className="w-4 h-4" />
                         </button>
-                      )}
+                      </div>
                     </div>
 
                     {/* Panel Content List */}
                     <div className="max-h-80 overflow-y-auto divide-y divide-slate-100">
                       {latestAlerts.length === 0 ? (
-                        <div className="p-6 text-center text-slate-400 space-y-2">
-                          <Bell className="w-8 h-8 mx-auto text-slate-200" />
-                          <p className="text-[11px] font-bold">All caught up!</p>
+                        <div className="p-8 text-center text-slate-400 space-y-2">
+                          <Bell className="w-8 h-8 mx-auto text-slate-300" />
+                          <p className="text-xs font-bold text-slate-700">All caught up!</p>
                           <p className="text-[10px] text-slate-400 font-normal">No unread notifications.</p>
                         </div>
                       ) : (
@@ -970,38 +988,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                           return (
                             <div 
                               key={alert.messageId}
-                              className="p-3.5 hover:bg-slate-50 transition-colors flex gap-2.5 items-start text-xs font-semibold cursor-pointer text-left"
-                              onClick={async () => {
-                                setBellOpen(false);
-                                try {
-                                  await Promise.all([
-                                    fetch('/api/messages', {
-                                      method: 'PATCH',
-                                      headers: { 'Content-Type': 'application/json' },
-                                      body: JSON.stringify({
-                                        userId: session.user.id,
-                                        messageIds: [alert.messageId]
-                                      })
-                                    }),
-                                    fetch('/api/notifications', {
-                                      method: 'PATCH',
-                                      headers: { 'Content-Type': 'application/json' },
-                                      body: JSON.stringify({
-                                        id: alert.messageId,
-                                        schoolId: session.school.id,
-                                        userId: session.user.id
-                                      })
-                                    })
-                                  ]);
-                                  setUnreadCount(prev => Math.max(0, prev - 1));
-                                  setLatestAlerts(prev => prev.filter(a => a.messageId !== alert.messageId));
-                                } catch (e) {
-                                  console.error(e);
-                                }
-                                router.push(alert.redirectUrl || '/dashboard/messages');
-                              }}
+                              className="p-4 hover:bg-slate-50/80 transition-colors flex flex-col gap-2 border-b border-slate-100 text-left relative group"
                             >
-                              <div className="space-y-1.5 flex-1">
+                              <div className="flex items-center justify-between gap-2">
                                 <div className="flex items-center gap-1.5">
                                   <span className={`px-1.5 py-0.5 rounded text-[8px] font-black uppercase ${priorityColor}`}>
                                     {alert.priority}
@@ -1010,10 +999,92 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                                     {alert.sender ? `${alert.sender.firstName} (${alert.sender.role.toLowerCase().replace('_', ' ')})` : 'System'}
                                   </span>
                                 </div>
-                                <h4 className="text-slate-850 font-bold leading-tight">{alert.title}</h4>
-                                <p className="text-[11px] text-slate-600 font-normal leading-relaxed">
+
+                                <button
+                                  type="button"
+                                  title="Dismiss notification"
+                                  onClick={async (e) => {
+                                    e.stopPropagation();
+                                    try {
+                                      await Promise.all([
+                                        fetch('/api/messages', {
+                                          method: 'PATCH',
+                                          headers: { 'Content-Type': 'application/json' },
+                                          body: JSON.stringify({
+                                            userId: session.user.id,
+                                            messageIds: [alert.messageId]
+                                          })
+                                        }),
+                                        fetch('/api/notifications', {
+                                          method: 'PATCH',
+                                          headers: { 'Content-Type': 'application/json' },
+                                          body: JSON.stringify({
+                                            id: alert.messageId,
+                                            schoolId: session.school.id,
+                                            userId: session.user.id
+                                          })
+                                        })
+                                      ]);
+                                      setUnreadCount(prev => Math.max(0, prev - 1));
+                                      setLatestAlerts(prev => prev.filter(a => a.messageId !== alert.messageId));
+                                    } catch (err) {
+                                      console.error(err);
+                                    }
+                                  }}
+                                  className="text-slate-300 hover:text-slate-600 p-1 rounded-md transition-colors"
+                                >
+                                  <X className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+
+                              <div>
+                                <h4 className="text-xs font-black text-slate-800 leading-tight mb-1">{alert.title}</h4>
+                                <p className="text-[11px] text-slate-600 leading-normal font-medium">
                                   {alert.body}
                                 </p>
+                              </div>
+
+                              <div className="pt-1.5 flex items-center justify-between gap-2 border-t border-slate-100/60 mt-1">
+                                <span className="text-[9px] font-bold text-slate-400 flex items-center gap-1">
+                                  <Clock className="w-3 h-3 text-slate-400" />
+                                  {new Date(alert.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                </span>
+
+                                <button
+                                  type="button"
+                                  onClick={async () => {
+                                    setBellOpen(false);
+                                    try {
+                                      await Promise.all([
+                                        fetch('/api/messages', {
+                                          method: 'PATCH',
+                                          headers: { 'Content-Type': 'application/json' },
+                                          body: JSON.stringify({
+                                            userId: session.user.id,
+                                            messageIds: [alert.messageId]
+                                          })
+                                        }),
+                                        fetch('/api/notifications', {
+                                          method: 'PATCH',
+                                          headers: { 'Content-Type': 'application/json' },
+                                          body: JSON.stringify({
+                                            id: alert.messageId,
+                                            schoolId: session.school.id,
+                                            userId: session.user.id
+                                          })
+                                        })
+                                      ]);
+                                      setUnreadCount(prev => Math.max(0, prev - 1));
+                                      setLatestAlerts(prev => prev.filter(a => a.messageId !== alert.messageId));
+                                    } catch (e) {
+                                      console.error(e);
+                                    }
+                                    router.push(alert.redirectUrl || '/dashboard/class');
+                                  }}
+                                  className="px-3 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-[10px] font-extrabold flex items-center gap-1 shadow-sm transition-all cursor-pointer"
+                                >
+                                  🚀 Review & Take Action
+                                </button>
                               </div>
                             </div>
                           );
@@ -1022,13 +1093,22 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     </div>
 
                     {/* Panel Footer */}
-                    <Link 
-                      href="/dashboard/messages"
-                      onClick={() => setBellOpen(false)}
-                      className="p-3 bg-slate-50 border-t border-slate-100 text-center block text-[10px] font-bold text-slate-600 hover:bg-slate-100 hover:text-slate-800 transition-colors"
-                    >
-                      View Inbox & Announcements
-                    </Link>
+                    <div className="p-3 bg-slate-50 border-t border-slate-100 flex items-center justify-between text-[10px] font-bold">
+                      <Link 
+                        href="/dashboard/messages"
+                        onClick={() => setBellOpen(false)}
+                        className="text-slate-600 hover:text-slate-900 transition-colors"
+                      >
+                        View Inbox & Announcements
+                      </Link>
+                      <button
+                        type="button"
+                        onClick={() => setBellOpen(false)}
+                        className="text-slate-400 hover:text-slate-700"
+                      >
+                        Close (✕)
+                      </button>
+                    </div>
                   </div>
                 </>
               )}
