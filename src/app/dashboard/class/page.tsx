@@ -685,40 +685,6 @@ export default function ClassTeacherDashboard() {
 
             {/* Right: actions */}
             <div className="flex items-center gap-2 flex-shrink-0">
-              {/* Notifications bell */}
-              <div className="relative">
-                <button
-                  onClick={() => setShowNotifications(v => !v)}
-                  className="relative p-2 rounded-xl hover:bg-slate-100 text-slate-500 hover:text-slate-700 transition-colors"
-                >
-                  <Bell className="w-4 h-4" />
-                  {unreadCount > 0 && (
-                    <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full" />
-                  )}
-                </button>
-
-                {showNotifications && (
-                  <div className="absolute right-0 top-full mt-2 w-80 bg-white border border-slate-200 rounded-2xl shadow-lg z-50 overflow-hidden">
-                    <div className="p-4 border-b border-slate-100 flex items-center justify-between">
-                      <span className="text-xs font-bold text-slate-700 uppercase tracking-wide">Notifications</span>
-                      <button onClick={() => setShowNotifications(false)} className="text-slate-400 hover:text-slate-600">
-                        <X className="w-4 h-4" />
-                      </button>
-                    </div>
-                    <div className="max-h-72 overflow-y-auto divide-y divide-slate-50">
-                      {notifications.length === 0 ? (
-                        <div className="p-6 text-center text-xs text-slate-400 font-medium">No notifications</div>
-                      ) : notifications.map((n: any) => (
-                        <div key={n.id} className={`px-4 py-3 text-xs ${n.isRead ? 'text-slate-400' : 'text-slate-700 bg-indigo-50/30'}`}>
-                          <p className="font-medium leading-relaxed">{n.message}</p>
-                          <p className="text-[10px] text-slate-400 mt-1">{formatDate(n.createdAt)}</p>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-
               {/* Teacher avatar */}
               <div className="w-8 h-8 rounded-full bg-indigo-100 text-indigo-700 text-[10px] font-black flex items-center justify-center border border-indigo-200">
                 {initials(user.firstName, user.lastName)}
