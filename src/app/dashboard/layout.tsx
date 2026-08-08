@@ -874,7 +874,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       {/* 3. Main Content Wrapper */}
       <div className="flex-1 flex flex-col overflow-hidden relative">
         {/* Topbar */}
-        <header className="h-16 bg-white border-b border-slate-200/80 px-6 flex items-center justify-between flex-shrink-0 z-30">
+        <header className="h-16 bg-white border-b border-slate-200/80 px-6 flex items-center justify-between flex-shrink-0 z-[100]">
           {/* Left menu toggle */}
           <div className="flex items-center gap-4">
             <button
@@ -906,26 +906,36 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               {bellOpen && (
                 <>
                   {/* Invisible Overlay to close on click outside */}
-                  <div className="fixed inset-0 z-40" onClick={() => setBellOpen(false)} />
+                  <div className="fixed inset-0 z-[105]" onClick={() => setBellOpen(false)} />
                   
                   {/* Glassmorphic Dropdown Panel */}
-                  <div className="absolute right-0 mt-2.5 w-80 bg-white border border-slate-200 rounded-2xl shadow-xl z-50 overflow-hidden font-sans animate-fadeIn">
+                  <div className="absolute right-0 mt-2.5 w-96 max-w-[90vw] bg-white border border-slate-200 rounded-2xl shadow-2xl z-[110] overflow-hidden font-sans animate-fadeIn">
                     {/* Panel Header */}
                     <div className="p-4 border-b border-slate-100 flex items-center justify-between">
-                      <span className="text-xs font-black uppercase text-slate-800 tracking-wider">🔔 Announcements</span>
+                      <span className="text-xs font-black uppercase text-slate-800 tracking-wider">🔔 Notifications & Alerts</span>
                       {unreadCount > 0 && (
                         <button
                           type="button"
                           onClick={async () => {
                             try {
-                              await fetch('/api/messages', {
-                                method: 'PATCH',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({
-                                  userId: session.user.id,
-                                  messageIds: latestAlerts.map(a => a.messageId)
+                              await Promise.all([
+                                fetch('/api/messages', {
+                                  method: 'PATCH',
+                                  headers: { 'Content-Type': 'application/json' },
+                                  body: JSON.stringify({
+                                    userId: session.user.id,
+                                    messageIds: latestAlerts.map(a => a.messageId)
+                                  })
+                                }),
+                                fetch('/api/notifications', {
+                                  method: 'PATCH',
+                                  headers: { 'Content-Type': 'application/json' },
+                                  body: JSON.stringify({
+                                    schoolId: session.school.id,
+                                    userId: session.user.id
+                                  })
                                 })
-                              });
+                              ]);
                               setUnreadCount(0);
                               setLatestAlerts([]);
                               setBellOpen(false);
@@ -941,12 +951,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     </div>
 
                     {/* Panel Content List */}
-                    <div className="max-h-64 overflow-y-auto divide-y divide-slate-100">
+                    <div className="max-h-80 overflow-y-auto divide-y divide-slate-100">
                       {latestAlerts.length === 0 ? (
                         <div className="p-6 text-center text-slate-400 space-y-2">
                           <Bell className="w-8 h-8 mx-auto text-slate-200" />
                           <p className="text-[11px] font-bold">All caught up!</p>
-                          <p className="text-[10px] text-slate-400 font-normal">No unread announcements.</p>
+                          <p className="text-[10px] text-slate-400 font-normal">No unread notifications.</p>
                         </div>
                       ) : (
                         latestAlerts.map((alert: any) => {
@@ -964,15 +974,25 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                               onClick={async () => {
                                 setBellOpen(false);
                                 try {
-                                  await fetch('/api/messages', {
-                                    method: 'PATCH',
-                                    headers: { 'Content-Type': 'application/json' },
-                                    body: JSON.stringify({
-                                      userId: session.user.id,
-                                      messageIds: [alert.messageId]
+                                  await Promise.all([
+                                    fetch('/api/messages', {
+                                      method: 'PATCH',
+                                      headers: { 'Content-Type': 'application/json' },
+                                      body: JSON.stringify({
+                                        userId: session.user.id,
+                                        messageIds: [alert.messageId]
+                                      })
+                                    }),
+                                    fetch('/api/notifications', {
+                                      method: 'PATCH',
+                                      headers: { 'Content-Type': 'application/json' },
+                                      body: JSON.stringify({
+                                        id: alert.messageId,
+                                        schoolId: session.school.id,
+                                        userId: session.user.id
+                                      })
                                     })
-                                  });
-                                  // Refresh layout stats unread count locally
+                                  ]);
                                   setUnreadCount(prev => Math.max(0, prev - 1));
                                   setLatestAlerts(prev => prev.filter(a => a.messageId !== alert.messageId));
                                 } catch (e) {
@@ -991,7 +1011,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                                   </span>
                                 </div>
                                 <h4 className="text-slate-850 font-bold leading-tight">{alert.title}</h4>
-                                <p className="text-[11px] text-slate-400 font-normal line-clamp-2 leading-relaxed">
+                                <p className="text-[11px] text-slate-600 font-normal leading-relaxed">
                                   {alert.body}
                                 </p>
                               </div>

@@ -117,8 +117,10 @@ export async function GET(req: NextRequest) {
         msgLower.includes('appointment')
       ) {
         redirectUrl = '/dashboard/messages';
+      } else if (msgLower.includes('scores received') || msgLower.includes('scores submitted') || msgLower.includes('received from') || msgLower.includes('score submission')) {
+        redirectUrl = role === 'CLASS_TEACHER' ? '/dashboard/class' : '/dashboard/compile';
       } else if (role === 'SCHOOL_ADMIN' || role === 'SUPER_ADMIN') {
-        if (msgLower.includes('score submission') || msgLower.includes('pending review') || msgLower.includes('approval')) {
+        if (msgLower.includes('pending review') || msgLower.includes('approval')) {
           redirectUrl = '/dashboard/compile';
         } else if (msgLower.includes('class') || msgLower.includes('arm') || msgLower.includes('roster')) {
           redirectUrl = '/dashboard/classes';
@@ -127,14 +129,16 @@ export async function GET(req: NextRequest) {
         }
       } else if (role === 'CLASS_TEACHER' || role === 'SUBJECT_TEACHER') {
         if (msgLower.includes('scores') || msgLower.includes('published') || msgLower.includes('marks')) {
-          redirectUrl = '/dashboard/scores';
+          redirectUrl = '/dashboard/class';
         } else if (msgLower.includes('report card') || msgLower.includes('approved') || msgLower.includes('released')) {
           redirectUrl = '/dashboard/compile';
         }
       }
 
       let title = 'System Alert';
-      if (msgLower.includes('announcement') || msgLower.includes('broadcast')) {
+      if (msgLower.includes('scores received') || msgLower.includes('scores submitted') || msgLower.includes('received from') || msgLower.includes('score submission')) {
+        title = 'Subject Scores Submitted';
+      } else if (msgLower.includes('announcement') || msgLower.includes('broadcast')) {
         title = 'Announcement Alert';
       } else if (msgLower.includes('meeting') || msgLower.includes('appointment')) {
         title = 'Meeting Planner Alert';
@@ -152,9 +156,9 @@ export async function GET(req: NextRequest) {
         priority: 'HIGH',
         createdAt: n.createdAt,
         sender: {
-          firstName: 'System',
-          lastName: 'Alert',
-          role: 'SYSTEM'
+          firstName: 'Subject',
+          lastName: 'Teacher',
+          role: 'SUBJECT_TEACHER'
         },
         redirectUrl
       };
