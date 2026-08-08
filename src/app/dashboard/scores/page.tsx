@@ -576,15 +576,15 @@ export default function ScoresManagerPage() {
                 : submissionStatus === 'PENDING'
                   ? 'bg-amber-50 border-amber-250 text-amber-700 animate-pulse'
                   : submissionStatus === 'REJECTED'
-                    ? 'bg-red-50 border-red-200 text-red-700'
+                    ? 'bg-rose-600 border-rose-700 text-white font-extrabold shadow-sm shadow-rose-600/30 animate-pulse'
                     : 'bg-slate-100 border-slate-200 text-slate-600'
             }`}>
               <span className={`w-1.5 h-1.5 rounded-full ${
                 submissionStatus === 'APPROVED' ? 'bg-emerald-500' :
                 submissionStatus === 'PENDING' ? 'bg-amber-500 animate-ping' :
-                submissionStatus === 'REJECTED' ? 'bg-red-500' : 'bg-slate-400'
+                submissionStatus === 'REJECTED' ? 'bg-white' : 'bg-slate-400'
               }`} />
-              <span>Status: {submissionStatus}</span>
+              <span>Status: {submissionStatus === 'REJECTED' ? 'CORRECTIONS REQUIRED' : submissionStatus}</span>
             </div>
           )}
 
@@ -625,14 +625,14 @@ export default function ScoresManagerPage() {
 
       {/* Correction / Rejection feedback warning banner */}
       {submissionStatus === 'REJECTED' && (
-        <div className="p-4 rounded-xl bg-red-50 border border-red-200 text-red-800 text-xs flex flex-col gap-2 animate-fadeIn shadow-sm">
-          <div className="flex items-center gap-2 font-bold uppercase tracking-wider text-[10px]">
-            <AlertCircle className="w-4 h-4 text-red-500" />
-            <span>Scoresheet Returned for Correction</span>
+        <div className="p-4.5 rounded-2xl bg-rose-600 text-white border border-rose-700 text-xs flex flex-col gap-2.5 animate-fadeIn shadow-lg shadow-rose-600/25">
+          <div className="flex items-center gap-2 font-black uppercase tracking-wider text-[11px] text-rose-100">
+            <AlertCircle className="w-5 h-5 text-white" />
+            <span>🚨 CORRECTIONS REQUIRED — Scoresheet Returned</span>
           </div>
           {submissionState?.feedback && (
-            <p className="text-[11px] text-slate-700 leading-relaxed font-semibold bg-red-100/50 p-3 rounded-lg border border-red-200/40 mt-1">
-              Feedback from Class Teacher: <strong className="text-red-950">"{submissionState.feedback}"</strong>
+            <p className="text-xs text-white leading-relaxed font-bold bg-rose-700/80 p-3.5 rounded-xl border border-rose-500/50 mt-1">
+              Feedback from Class Teacher: <strong className="text-amber-200">"{submissionState.feedback}"</strong>
             </p>
           )}
         </div>

@@ -1317,8 +1317,8 @@ export default function DashboardHome() {
                   statusLabel = 'Published';
                   badgeStyle = 'bg-green-50 border-green-100 text-green-600';
                 } else if (subStatus === 'REJECTED') {
-                  statusLabel = 'Corrections Required';
-                  badgeStyle = 'bg-red-50 border-red-100 text-red-600 animate-pulse';
+                  statusLabel = 'CORRECTIONS REQUIRED';
+                  badgeStyle = 'bg-rose-600 border-rose-700 text-white font-black animate-pulse shadow-md shadow-rose-600/30';
                 }
 
                 const className = `${assignment.class.name} ${assignment.arm.name}`;
@@ -1431,23 +1431,47 @@ export default function DashboardHome() {
                   {notifications.length === 0 ? (
                     <p className="text-[11px] text-slate-400 font-bold text-center py-8">No alerts received.</p>
                   ) : (
-                    notifications.map((n: any) => (
-                      <div key={n.id} className={`p-3 rounded-2xl border text-[11px] leading-relaxed relative pr-8 ${n.isRead ? 'bg-slate-50 border-slate-100 text-slate-400' : 'bg-blue-50/30 border-blue-100 text-slate-700'}`}>
-                        {!n.isRead && <span className="absolute top-3 right-3 w-1.5 h-1.5 rounded-full bg-blue-500" />}
-                        
-                        {/* Individual Dismiss Button */}
-                        <button
-                          onClick={() => handleDismissNotification(n.id)}
-                          className="absolute bottom-3 right-3 text-slate-455 hover:text-red-500 transition-colors font-extrabold text-[10px]"
-                          title="Dismiss alert"
+                    notifications.map((n: any) => {
+                      const isCorrection = 
+                        n.message.toLowerCase().includes('returned') || 
+                        n.message.toLowerCase().includes('reason') || 
+                        n.message.toLowerCase().includes('correction') || 
+                        n.message.toLowerCase().includes('rejected');
+
+                      return (
+                        <div 
+                          key={n.id} 
+                          className={`p-3.5 rounded-2xl border text-xs leading-relaxed relative pr-8 transition-all ${
+                            isCorrection
+                              ? 'bg-rose-600 text-white border-rose-700 shadow-md shadow-rose-600/20 font-medium'
+                              : n.isRead 
+                              ? 'bg-slate-50 border-slate-100 text-slate-400' 
+                              : 'bg-blue-50/30 border-blue-100 text-slate-700'
+                          }`}
                         >
-                          ✕
-                        </button>
-                        
-                        <p>{n.message}</p>
-                        <span className="block text-[8px] text-slate-400 font-extrabold mt-1">{new Date(n.createdAt).toLocaleDateString()}</span>
-                      </div>
-                    ))
+                          {isCorrection && (
+                            <div className="flex items-center gap-1 font-black text-[9px] uppercase tracking-wider text-rose-100 mb-1">
+                              <span>🚨 CORRECTIONS REQUIRED</span>
+                            </div>
+                          )}
+                          
+                          <p className={`font-semibold ${isCorrection ? 'text-white' : ''}`}>{n.message}</p>
+                          <span className={`block text-[9px] mt-1 font-bold ${isCorrection ? 'text-rose-200' : 'text-slate-400'}`}>
+                            {new Date(n.createdAt).toLocaleDateString()}
+                          </span>
+
+                          <button
+                            onClick={() => handleDismissNotification(n.id)}
+                            className={`absolute right-3.5 top-3.5 p-1 rounded-lg transition-colors font-black text-xs ${
+                              isCorrection ? 'text-rose-200 hover:bg-rose-700 hover:text-white' : 'text-slate-400 hover:bg-slate-100 hover:text-slate-700'
+                            }`}
+                            title="Dismiss alert"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      );
+                    })
                   )}
                 </div>
               </div>
