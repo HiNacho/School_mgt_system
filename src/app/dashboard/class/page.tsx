@@ -1,12 +1,13 @@
 'use client';
 
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
+import * as XLSX from 'xlsx';
 import {
   Users, Calendar, CheckCircle, AlertCircle, Clock, BookOpen, Award,
   Search, Filter, ChevronLeft, ChevronRight, X, Eye, FileText,
   TrendingUp, Bell, RefreshCw, Check, UserCheck, BarChart2, Printer,
   ArrowRight, User, ClipboardList, Star, Percent, Activity, ChevronDown,
-  ChevronUp, TriangleAlert, Info, GraduationCap, Loader2, Send
+  ChevronUp, TriangleAlert, Info, GraduationCap, Loader2, Send, FileSpreadsheet
 } from 'lucide-react';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -137,6 +138,171 @@ export default function ClassTeacherDashboard() {
   const [reportStatus, setReportStatus] = useState<string>('DRAFT');
   const [statusFeedback, setStatusFeedback] = useState<string | null>(null);
   const [updatingStatus, setUpdatingStatus] = useState<boolean>(false);
+
+  // Broadsheet Export & Import states
+  const [broadsheetLoading, setBroadsheetLoading] = useState(false);
+  const [importingBroadsheet, setImportingBroadsheet] = useState(false);
+  const broadsheetFileInputRef = React.useRef<HTMLInputElement>(null);
+
+  const handleExportBroadsheet = async () => {
+    if (!session?.school?.id || !classInfo?.class?.id || !classInfo?.arm?.id) {
+      alert('Class or Arm information is not loaded.');
+      return;
+    }
+    const term = setupData?.terms?.find((t: any) => t.isCurrent) || setupData?.terms?.[0];
+    if (!term) return;
+
+    setBroadsheetLoading(true);
+    try {
+      const res = await fetch(`/api/broadsheet?schoolId=${session.school.id}&classId=${classInfo.class.id}&armId=${classInfo.arm.id}&termId=${term.id}`);
+      const json = await res.json();
+      if (!res.ok || !json.success) {
+        alert(json.error || 'Failed to fetch broadsheet data');
+        return;
+      }
+
+      const { class: cls, arm, term: trm, subjects, students: compiledStudents } = json.data;
+
+      const rows: any[] = [];
+
+      compiledStudents.forEach((st: any) => {
+        const row: Record<string, any> = {
+          'Admission Number': st.admissionNumber || '—',
+          'Student Name': `${st.lastName}, ${st.firstName}${st.middleName ? ' ' + st.middleName : ''}`
+        };
+
+        subjects.forEach((sub: any) => {
+          const subResult = st.subjects.find((s: any) => s.subjectId === sub.id);
+          const subName = sub.name;
+
+          row[`${subName} CA1 (15)`] = subResult?.ca1 ?? '';
+          row[`${subName} CA2 (15)`] = subResult?.ca2 ?? '';
+          row[`${subName} ASG (10)`] = subResult?.assignment ?? '';
+          row[`${subName} EXAM (60)`] = subResult?.exam ?? '';
+          row[`${subName} TOTAL`] = subResult?.total ?? '';
+          row[`${subName} GRADE`] = subResult?.grade ?? '';
+        });
+
+        row['Overall Aggregate'] = st.aggregateScore ?? '';
+        row['Term Average (%)'] = st.averageScore ?? '';
+        row['Class Position'] = st.classPosition ? `${st.classPosition}` : '—';
+
+        rows.push(row);
+      });
+
+      const wb = XLSX.utils.book_new();
+      const ws = XLSX.utils.json_to_sheet(rows);
+
+      const colWidths = [
+        { wch: 18 },
+        { wch: 28 },
+      ];
+      subjects.forEach(() => {
+        colWidths.push({ wch: 14 }, { wch: 14 }, { wch: 14 }, { wch: 14 }, { wch: 14 }, { wch: 12 });
+      });
+      colWidths.push({ wch: 18 }, { wch: 18 }, { wch: 16 });
+      ws['!cols'] = colWidths;
+
+      XLSX.utils.book_append_sheet(wb, ws, 'Academic Broadsheet');
+
+      const fileName = `${cls.name.replace(/\s+/g, '_')}_Arm_${arm.name}_Academic_Broadsheet.xlsx`;
+      XLSX.writeFile(wb, fileName);
+    } catch (err: any) {
+      console.error('Broadsheet export error:', err);
+      alert('Failed to generate Broadsheet Excel file.');
+    } finally {
+      setBroadsheetLoading(false);
+    }
+  };
+
+  const handleImportBroadsheetFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!session?.school?.id || !classInfo?.class?.id || !classInfo?.arm?.id) {
+      alert('Class or Arm information is not loaded.');
+      return;
+    }
+    const term = setupData?.terms?.find((t: any) => t.isCurrent) || setupData?.terms?.[0];
+    if (!term) return;
+
+    const reader = new FileReader();
+    reader.onload = async (evt) => {
+      try {
+        setImportingBroadsheet(true);
+        const data = new Uint8Array(evt.target?.result as ArrayBuffer);
+        const workbook = XLSX.read(data, { type: 'array' });
+        const firstSheet = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[firstSheet];
+        const parsedRows: any[] = XLSX.utils.sheet_to_json(worksheet, { defval: '' });
+
+        if (parsedRows.length === 0) {
+          alert('The uploaded Excel file contains no student data rows.');
+          setImportingBroadsheet(false);
+          return;
+        }
+
+        const formattedRecords = parsedRows.map((row: any) => {
+          const admissionNumber = String(row['Admission Number'] || row['Admission ID'] || row['Adm No'] || row['admissionNumber'] || '').trim();
+          const studentName = String(row['Student Name'] || row['Name'] || row['studentName'] || '').trim();
+
+          const scores: Record<string, any> = {};
+
+          Object.keys(row).forEach(header => {
+            const match = header.match(/^(.*?)\s*(CA1|CA2|ASG|ASSIGNMENT|EXAM)\s*(\(\d+\))?$/i);
+            if (match) {
+              const subjectName = match[1].trim();
+              const componentType = match[2].toUpperCase();
+              const val = row[header];
+
+              if (!scores[subjectName]) {
+                scores[subjectName] = {};
+              }
+
+              if (componentType === 'CA1') scores[subjectName].ca1 = val;
+              else if (componentType === 'CA2') scores[subjectName].ca2 = val;
+              else if (componentType === 'ASG' || componentType === 'ASSIGNMENT') scores[subjectName].assignment = val;
+              else if (componentType === 'EXAM') scores[subjectName].exam = val;
+            }
+          });
+
+          return {
+            admissionNumber,
+            studentName,
+            scores
+          };
+        });
+
+        const res = await fetch('/api/broadsheet/import', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            schoolId: session.school.id,
+            classId: classInfo.class.id,
+            armId: classInfo.arm.id,
+            termId: term.id,
+            records: formattedRecords
+          })
+        });
+
+        const json = await res.json();
+        if (res.ok && json.success) {
+          setSuccessMsg(json.message);
+          fetchAllSubmissions(session.school.id, classInfo.class.id, classInfo.arm.id, term.id, setupData, students, session.user.id);
+          fetchReportStatus(session.school.id, classInfo.class.id, classInfo.arm.id, term.id);
+        } else {
+          alert(json.error || 'Failed to import broadsheet scores.');
+        }
+      } catch (err: any) {
+        console.error('Broadsheet parse error:', err);
+        alert('Error reading Excel broadsheet file. Please ensure it is a valid .xlsx file.');
+      } finally {
+        setImportingBroadsheet(false);
+        if (e.target) e.target.value = '';
+      }
+    };
+    reader.readAsArrayBuffer(file);
+  };
 
   const fetchReportStatus = async (schoolId: string, classId: string, armId: string, termId: string) => {
     try {
@@ -720,6 +886,37 @@ export default function ClassTeacherDashboard() {
 
             {/* Right: actions */}
             <div className="flex items-center gap-2 flex-shrink-0">
+              {/* Hidden file input for Broadsheet import */}
+              <input
+                type="file"
+                ref={broadsheetFileInputRef}
+                onChange={handleImportBroadsheetFile}
+                accept=".xlsx, .xls"
+                className="hidden"
+              />
+
+              <button
+                type="button"
+                onClick={handleExportBroadsheet}
+                disabled={broadsheetLoading || !classInfo}
+                className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-700 hover:bg-slate-100 text-[11px] font-bold transition-all disabled:opacity-50"
+                title="Download class academic broadsheet Excel file"
+              >
+                <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600" />
+                {broadsheetLoading ? 'Generating...' : '📥 Export Broadsheet'}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => broadsheetFileInputRef.current?.click()}
+                disabled={importingBroadsheet || !classInfo}
+                className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 hover:bg-emerald-100 text-[11px] font-bold transition-all disabled:opacity-50"
+                title="Import filled Broadsheet Excel file to auto-generate report cards"
+              >
+                <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600" />
+                {importingBroadsheet ? 'Importing...' : '📤 Import Broadsheet'}
+              </button>
+
               {/* Teacher avatar */}
               <div className="w-8 h-8 rounded-full bg-indigo-100 text-indigo-700 text-[10px] font-black flex items-center justify-center border border-indigo-200">
                 {initials(user.firstName, user.lastName)}
