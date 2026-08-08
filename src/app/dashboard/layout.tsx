@@ -87,6 +87,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       if (res.ok && json.success) {
         setUnreadCount(json.data.unreadCount);
         setLatestAlerts(json.data.latest || []);
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('app_submissions_updated'));
+        }
       }
     } catch (err) {
       console.error('Navbar Bell Fetch Error:', err);

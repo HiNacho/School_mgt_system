@@ -356,6 +356,41 @@ export default function ClassTeacherDashboard() {
     if (session && classInfo) fetchAttendanceForDate(attendanceDate);
   }, [attendanceDate]);
 
+  // Real-time Silent Polling for Submissions & Report Status (every 8 seconds)
+  useEffect(() => {
+    if (!session?.school?.id || !classInfo?.class?.id || !classInfo?.arm?.id) return;
+    const term = setupData?.terms?.find((t: any) => t.isCurrent) || setupData?.terms?.[0];
+    if (!term) return;
+
+    const schoolId = session.school.id;
+    const userId = session.user.id;
+    const classId = classInfo.class.id;
+    const armId = classInfo.arm.id;
+
+    const pollSubmissions = async () => {
+      try {
+        const res = await fetch(`/api/submissions?schoolId=${schoolId}&classTeacherId=${userId}&status=all`, { cache: 'no-store' });
+        if (res.ok) {
+          const j = await res.json();
+          setSubmissions(j.data || []);
+        }
+        await fetchReportStatus(schoolId, classId, armId, term.id);
+      } catch (e) {
+        console.error('Silent submission poll error:', e);
+      }
+    };
+
+    const interval = setInterval(pollSubmissions, 8000);
+
+    const handleCustomEvent = () => pollSubmissions();
+    window.addEventListener('app_submissions_updated', handleCustomEvent);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('app_submissions_updated', handleCustomEvent);
+    };
+  }, [session, classInfo, setupData]);
+
   // Fetch attendance history
   const fetchAttendanceHistory = useCallback(async () => {
     if (!session || !classInfo) return;
