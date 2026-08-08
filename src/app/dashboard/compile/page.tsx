@@ -102,6 +102,13 @@ export default function ReportCardCompilerPage() {
   const [importingBroadsheet, setImportingBroadsheet] = useState(false);
   const broadsheetFileInputRef = React.useRef<HTMLInputElement>(null);
 
+  const getAuthHeaders = () => {
+    const token = typeof window !== 'undefined' ? (localStorage.getItem('report_auth_token') || '') : '';
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    return headers;
+  };
+
   const handleExportBroadsheet = async () => {
     if (!session?.school?.id || !selectedClass || !selectedArm || !selectedTerm) {
       alert('Please select a Class, Arm, and Term first.');
@@ -110,7 +117,10 @@ export default function ReportCardCompilerPage() {
 
     setBroadsheetLoading(true);
     try {
-      const res = await fetch(`/api/broadsheet?schoolId=${session.school.id}&classId=${selectedClass}&armId=${selectedArm}&termId=${selectedTerm}`);
+      const res = await fetch(
+        `/api/broadsheet?schoolId=${session.school.id}&classId=${selectedClass}&armId=${selectedArm}&termId=${selectedTerm}`,
+        { headers: getAuthHeaders() }
+      );
       const json = await res.json();
       if (!res.ok || !json.success) {
         alert(json.error || 'Failed to fetch broadsheet data');
@@ -229,7 +239,7 @@ export default function ReportCardCompilerPage() {
 
         const res = await fetch('/api/broadsheet/import', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: getAuthHeaders(),
           body: JSON.stringify({
             schoolId: session.school.id,
             classId: selectedClass,
@@ -316,7 +326,7 @@ export default function ReportCardCompilerPage() {
     queryTermId: string | null
   ) => {
     try {
-      const res = await fetch(`/api/setup?schoolId=${sess.school.id}`);
+      const res = await fetch(`/api/setup?schoolId=${sess.school.id}`, { headers: getAuthHeaders() });
       const json = await res.json();
       setSetup(json.data);
 
@@ -377,7 +387,7 @@ export default function ReportCardCompilerPage() {
         url += `&studentId=${queryStudentId}`;
       }
 
-      const res = await fetch(url);
+      const res = await fetch(url, { headers: getAuthHeaders() });
       const json = await res.json();
 
       if (!res.ok) throw new Error(json.error || 'Failed to compile reports');
@@ -394,7 +404,8 @@ export default function ReportCardCompilerPage() {
 
       // Fetch status
       const statusRes = await fetch(
-        `/api/reports/status?schoolId=${session.school.id}&classId=${selectedClass}&armId=${selectedArm}&termId=${selectedTerm}`
+        `/api/reports/status?schoolId=${session.school.id}&classId=${selectedClass}&armId=${selectedArm}&termId=${selectedTerm}`,
+        { headers: getAuthHeaders() }
       );
       if (statusRes.ok) {
         const statusJson = await statusRes.json();
@@ -422,9 +433,7 @@ export default function ReportCardCompilerPage() {
     try {
       const res = await fetch('/api/reports/status', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: getAuthHeaders(),
         body: JSON.stringify({
           schoolId: session.school.id,
           classId: selectedClass,

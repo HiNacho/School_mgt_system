@@ -144,6 +144,13 @@ export default function ClassTeacherDashboard() {
   const [importingBroadsheet, setImportingBroadsheet] = useState(false);
   const broadsheetFileInputRef = React.useRef<HTMLInputElement>(null);
 
+  const getAuthHeaders = () => {
+    const token = typeof window !== 'undefined' ? (localStorage.getItem('report_auth_token') || '') : '';
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    return headers;
+  };
+
   const handleExportBroadsheet = async () => {
     if (!session?.school?.id || !classInfo?.class?.id || !classInfo?.arm?.id) {
       alert('Class or Arm information is not loaded.');
@@ -154,7 +161,10 @@ export default function ClassTeacherDashboard() {
 
     setBroadsheetLoading(true);
     try {
-      const res = await fetch(`/api/broadsheet?schoolId=${session.school.id}&classId=${classInfo.class.id}&armId=${classInfo.arm.id}&termId=${term.id}`);
+      const res = await fetch(
+        `/api/broadsheet?schoolId=${session.school.id}&classId=${classInfo.class.id}&armId=${classInfo.arm.id}&termId=${term.id}`,
+        { headers: getAuthHeaders() }
+      );
       const json = await res.json();
       if (!res.ok || !json.success) {
         alert(json.error || 'Failed to fetch broadsheet data');
@@ -275,7 +285,7 @@ export default function ClassTeacherDashboard() {
 
         const res = await fetch('/api/broadsheet/import', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: getAuthHeaders(),
           body: JSON.stringify({
             schoolId: session.school.id,
             classId: classInfo.class.id,

@@ -270,7 +270,10 @@ export async function GET(req: NextRequest) {
     });
   } catch (error: any) {
     console.error('Reports compile GET Error:', error);
-    return NextResponse.json({ error: 'Failed to compile report card data' }, { status: 500 });
+    if (error.status) {
+      return NextResponse.json({ error: error.message }, { status: error.status });
+    }
+    return NextResponse.json({ error: error.message || 'Failed to compile report card data' }, { status: 500 });
   }
 }
 export const dynamic = 'force-dynamic';
