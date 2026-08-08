@@ -173,42 +173,79 @@ export default function ClassTeacherDashboard() {
 
       const { class: cls, arm, term: trm, subjects, students: compiledStudents } = json.data;
 
-      const rows: any[] = [];
+      const headerRow1: string[] = ['Admission Number', 'Student Name'];
+      const headerRow2: string[] = ['', ''];
+      const merges: XLSX.Range[] = [
+        { s: { r: 0, c: 0 }, e: { r: 1, c: 0 } },
+        { s: { r: 0, c: 1 }, e: { r: 1, c: 1 } },
+      ];
+
+      let colIndex = 2;
+
+      subjects.forEach((sub: any) => {
+        const numSubCols = 6;
+        headerRow1.push(sub.name);
+        for (let i = 1; i < numSubCols; i++) {
+          headerRow1.push('');
+        }
+
+        headerRow2.push('CA1 (15)', 'CA2 (15)', 'ASG (10)', 'EXAM (60)', 'TOTAL (100)', 'GRADE');
+
+        merges.push({
+          s: { r: 0, c: colIndex },
+          e: { r: 0, c: colIndex + numSubCols - 1 }
+        });
+
+        colIndex += numSubCols;
+      });
+
+      headerRow1.push('SUMMARY METRICS', '', '');
+      headerRow2.push('Overall Aggregate', 'Term Average (%)', 'Class Position');
+
+      merges.push({
+        s: { r: 0, c: colIndex },
+        e: { r: 0, c: colIndex + 2 }
+      });
+
+      const aoa: any[][] = [headerRow1, headerRow2];
 
       compiledStudents.forEach((st: any) => {
-        const row: Record<string, any> = {
-          'Admission Number': st.admissionNumber || '—',
-          'Student Name': `${st.lastName}, ${st.firstName}${st.middleName ? ' ' + st.middleName : ''}`
-        };
+        const rowData: any[] = [
+          st.admissionNumber || '—',
+          `${st.lastName}, ${st.firstName}${st.middleName ? ' ' + st.middleName : ''}`
+        ];
 
         subjects.forEach((sub: any) => {
           const subResult = st.subjects.find((s: any) => s.subjectId === sub.id);
-          const subName = sub.name;
-
-          row[`${subName} CA1 (15)`] = subResult?.ca1 ?? '';
-          row[`${subName} CA2 (15)`] = subResult?.ca2 ?? '';
-          row[`${subName} ASG (10)`] = subResult?.assignment ?? '';
-          row[`${subName} EXAM (60)`] = subResult?.exam ?? '';
-          row[`${subName} TOTAL`] = subResult?.total ?? '';
-          row[`${subName} GRADE`] = subResult?.grade ?? '';
+          rowData.push(
+            subResult?.ca1 ?? '',
+            subResult?.ca2 ?? '',
+            subResult?.assignment ?? '',
+            subResult?.exam ?? '',
+            subResult?.total ?? '',
+            subResult?.grade ?? ''
+          );
         });
 
-        row['Overall Aggregate'] = st.aggregateScore ?? '';
-        row['Term Average (%)'] = st.averageScore ?? '';
-        row['Class Position'] = st.classPosition ? `${st.classPosition}` : '—';
+        rowData.push(
+          st.aggregateScore ?? '',
+          st.averageScore ?? '',
+          st.classPosition ? `${st.classPosition}` : '—'
+        );
 
-        rows.push(row);
+        aoa.push(rowData);
       });
 
       const wb = XLSX.utils.book_new();
-      const ws = XLSX.utils.json_to_sheet(rows);
+      const ws = XLSX.utils.aoa_to_sheet(aoa);
+      ws['!merges'] = merges;
 
       const colWidths = [
         { wch: 18 },
         { wch: 28 },
       ];
       subjects.forEach(() => {
-        colWidths.push({ wch: 14 }, { wch: 14 }, { wch: 14 }, { wch: 14 }, { wch: 14 }, { wch: 12 });
+        colWidths.push({ wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 14 }, { wch: 10 });
       });
       colWidths.push({ wch: 18 }, { wch: 18 }, { wch: 16 });
       ws['!cols'] = colWidths;
@@ -244,44 +281,91 @@ export default function ClassTeacherDashboard() {
         const workbook = XLSX.read(data, { type: 'array' });
         const firstSheet = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[firstSheet];
-        const parsedRows: any[] = XLSX.utils.sheet_to_json(worksheet, { defval: '' });
 
-        if (parsedRows.length === 0) {
+        const rawAoA: any[][] = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' });
+
+        if (rawAoA.length < 2) {
+          alert('The uploaded Excel file contains insufficient rows.');
+          setImportingBroadsheet(false);
+          return;
+        }
+
+        const row0 = (rawAoA[0] || []).map(c => String(c).trim());
+        const row1 = (rawAoA[1] || []).map(c => String(c).trim());
+
+        const is2RowLayout = row1.some(cell => /^(CA1|CA2|ASG|ASSIGNMENT|EXAM)/i.test(cell));
+
+        let studentDataRows: any[][] = [];
+        let columnSubjectMap: Record<number, { subjectName: string; component: string }> = {};
+
+        if (is2RowLayout) {
+          studentDataRows = rawAoA.slice(2);
+          let currentSubject = '';
+          for (let c = 2; c < Math.max(row0.length, row1.length); c++) {
+            const cellSubject = row0[c];
+            if (cellSubject && !/SUMMARY|OVERALL|TOTAL|AVERAGE|POSITION/i.test(cellSubject)) {
+              currentSubject = cellSubject;
+            }
+            const compText = row1[c] || '';
+            const match = compText.match(/^(CA1|CA2|ASG|ASSIGNMENT|EXAM)/i);
+            if (currentSubject && match) {
+              const componentType = match[1].toUpperCase();
+              columnSubjectMap[c] = {
+                subjectName: currentSubject,
+                component: componentType === 'ASG' ? 'ASSIGNMENT' : componentType
+              };
+            }
+          }
+        } else {
+          studentDataRows = rawAoA.slice(1);
+          for (let c = 2; c < row0.length; c++) {
+            const header = row0[c];
+            const match = header.match(/^(.*?)\s*(CA1|CA2|ASG|ASSIGNMENT|EXAM)\s*(\(\d+\))?$/i);
+            if (match) {
+              const subjectName = match[1].trim();
+              const componentType = match[2].toUpperCase();
+              columnSubjectMap[c] = {
+                subjectName,
+                component: componentType === 'ASG' ? 'ASSIGNMENT' : componentType
+              };
+            }
+          }
+        }
+
+        if (studentDataRows.length === 0) {
           alert('The uploaded Excel file contains no student data rows.');
           setImportingBroadsheet(false);
           return;
         }
 
-        const formattedRecords = parsedRows.map((row: any) => {
-          const admissionNumber = String(row['Admission Number'] || row['Admission ID'] || row['Adm No'] || row['admissionNumber'] || '').trim();
-          const studentName = String(row['Student Name'] || row['Name'] || row['studentName'] || '').trim();
+        const formattedRecords = studentDataRows
+          .filter(r => r && (r[0] || r[1]))
+          .map((r: any[]) => {
+            const admissionNumber = String(r[0] || '').trim();
+            const studentName = String(r[1] || '').trim();
+            const scores: Record<string, any> = {};
 
-          const scores: Record<string, any> = {};
-
-          Object.keys(row).forEach(header => {
-            const match = header.match(/^(.*?)\s*(CA1|CA2|ASG|ASSIGNMENT|EXAM)\s*(\(\d+\))?$/i);
-            if (match) {
-              const subjectName = match[1].trim();
-              const componentType = match[2].toUpperCase();
-              const val = row[header];
+            Object.keys(columnSubjectMap).forEach(colIdxStr => {
+              const c = Number(colIdxStr);
+              const { subjectName, component } = columnSubjectMap[c];
+              const val = r[c];
 
               if (!scores[subjectName]) {
                 scores[subjectName] = {};
               }
 
-              if (componentType === 'CA1') scores[subjectName].ca1 = val;
-              else if (componentType === 'CA2') scores[subjectName].ca2 = val;
-              else if (componentType === 'ASG' || componentType === 'ASSIGNMENT') scores[subjectName].assignment = val;
-              else if (componentType === 'EXAM') scores[subjectName].exam = val;
-            }
-          });
+              if (component === 'CA1') scores[subjectName].ca1 = val;
+              else if (component === 'CA2') scores[subjectName].ca2 = val;
+              else if (component === 'ASSIGNMENT') scores[subjectName].assignment = val;
+              else if (component === 'EXAM') scores[subjectName].exam = val;
+            });
 
-          return {
-            admissionNumber,
-            studentName,
-            scores
-          };
-        });
+            return {
+              admissionNumber,
+              studentName,
+              scores
+            };
+          });
 
         const res = await fetch('/api/broadsheet/import', {
           method: 'POST',
