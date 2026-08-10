@@ -380,6 +380,9 @@ export async function POST(req: NextRequest) {
       });
 
       return newMessage;
+    }, {
+      maxWait: 10000,
+      timeout: 15000
     });
 
     return NextResponse.json({ success: true, data: result });

@@ -11,6 +11,7 @@ import {
 
 interface ChatConversation {
   id: string;
+  schoolId?: string;
   category: string;
   subject: string;
   status: string;
@@ -28,12 +29,14 @@ interface ChatConversation {
     firstName: string;
     lastName: string;
     email: string;
+    role?: string;
   };
   teacher: {
     id: string;
     firstName: string;
     lastName: string;
     email: string;
+    role?: string;
   };
   messages: ChatMessage[];
 }
@@ -101,6 +104,7 @@ interface MeetingRequest {
     firstName: string;
     lastName: string;
     email: string;
+    role?: string;
   };
 }
 
@@ -544,7 +548,8 @@ export default function RebuiltMessagesHub() {
   };
 
   // Helper: load teachers overseeing a specific student's arm
-  const fetchTeachersForStudent = async (schoolId: string, studentId: string) => {
+  const fetchTeachersForStudent = async (schoolId: string | null, studentId: string) => {
+    if (!schoolId) return;
     try {
       const res = await fetch(`/api/wellbeing?schoolId=${schoolId}&studentId=${studentId}`);
       const json = await res.json();
@@ -680,7 +685,7 @@ export default function RebuiltMessagesHub() {
     try {
       const res = await fetch('/api/communication', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders(),
         body: JSON.stringify({
           schoolId: school.id,
           studentId: finalStudentId,
@@ -693,12 +698,15 @@ export default function RebuiltMessagesHub() {
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || 'Failed to start chat thread');
 
+      setErrorMsg('');
       setSuccessMsg('Chat thread successfully created!');
       setNewChatBody('');
       setShowNewChatModal(false);
 
       // Refresh chats list and select the new one
-      const refreshRes = await fetch(`/api/communication?schoolId=${school.id}`);
+      const refreshRes = await fetch(`/api/communication?schoolId=${school.id}`, {
+        headers: getAuthHeaders(null)
+      });
       const refreshJson = await refreshRes.json();
       if (refreshRes.ok && refreshJson.success) {
         const chats: ChatConversation[] = refreshJson.data.conversations || [];

@@ -136,6 +136,9 @@ export async function POST(req: NextRequest) {
       });
 
       return newMeeting;
+    }, {
+      maxWait: 10000,
+      timeout: 15000
     });
 
     return NextResponse.json({ success: true, data: result });
@@ -234,6 +237,9 @@ export async function PATCH(req: NextRequest) {
       }
 
       return updated;
+    }, {
+      maxWait: 10000,
+      timeout: 15000
     });
 
     return NextResponse.json({ success: true, data: result });
