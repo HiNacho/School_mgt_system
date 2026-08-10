@@ -6,7 +6,7 @@ import {
   RefreshCw, Calendar, Megaphone, Inbox, Bookmark, Eye,
   AlertTriangle, Clock, ArrowRight, ShieldAlert, Award, FileText,
   ArrowLeft, Check, BookOpen, Sparkles, Filter, Search, Plus, 
-  Settings, CheckSquare, XCircle, UserCheck, Paperclip, ChevronRight
+  Settings, CheckSquare, XCircle, UserCheck, Paperclip, ChevronRight, X
 } from 'lucide-react';
 
 interface ChatConversation {
@@ -1108,15 +1108,33 @@ export default function RebuiltMessagesHub() {
       <div className="max-w-7xl mx-auto p-4 md:p-6">
         {/* Alerts messages */}
         {errorMsg && (
-          <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-xs font-semibold flex items-center gap-2 animate-fadeIn">
-            <AlertCircle className="w-4 h-4 text-red-500 flex-shrink-0" />
-            <span>{errorMsg}</span>
+          <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-xs font-semibold flex items-center justify-between gap-2 animate-fadeIn">
+            <div className="flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 text-red-500 flex-shrink-0" />
+              <span>{errorMsg}</span>
+            </div>
+            <button 
+              onClick={() => setErrorMsg('')} 
+              className="p-1 text-red-400 hover:text-red-700 rounded-md hover:bg-red-100 transition-colors"
+              title="Dismiss alert"
+            >
+              <X className="w-4 h-4" />
+            </button>
           </div>
         )}
         {successMsg && (
-          <div className="mb-4 p-3 bg-emerald-50 border border-emerald-200 rounded-lg text-emerald-700 text-xs font-semibold flex items-center gap-2 animate-fadeIn">
-            <CheckCircle className="w-4 h-4 text-emerald-500 flex-shrink-0" />
-            <span>{successMsg}</span>
+          <div className="mb-4 p-3 bg-emerald-50 border border-emerald-200 rounded-lg text-emerald-700 text-xs font-semibold flex items-center justify-between gap-2 animate-fadeIn">
+            <div className="flex items-center gap-2">
+              <CheckCircle className="w-4 h-4 text-emerald-500 flex-shrink-0" />
+              <span>{successMsg}</span>
+            </div>
+            <button 
+              onClick={() => setSuccessMsg('')} 
+              className="p-1 text-emerald-500 hover:text-emerald-800 rounded-md hover:bg-emerald-100 transition-colors"
+              title="Dismiss alert"
+            >
+              <X className="w-4 h-4" />
+            </button>
           </div>
         )}
 
