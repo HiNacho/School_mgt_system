@@ -621,7 +621,10 @@ export default function AttendanceSheetsPage() {
 
                       {/* Term Cumulative counts */}
                       <td className="p-4 text-center">
-                        <div className="inline-flex items-center gap-3 bg-slate-50 border border-slate-200/40 px-3 py-1 rounded-xl font-mono text-[11px] font-bold text-slate-600 shadow-inner">
+                        <div className="inline-flex items-center gap-2.5 bg-slate-50 border border-slate-200/60 px-3 py-1 rounded-xl font-mono text-[11px] font-bold text-slate-600 shadow-inner">
+                          <span className="bg-slate-200/90 text-slate-900 px-2 py-0.5 rounded font-black text-xs font-mono">
+                            {student.totalPresent}/{student.totalPresent + student.totalAbsent}
+                          </span>
                           <span className="text-emerald-600">{student.totalPresent} Present</span>
                           <span className="text-slate-300">|</span>
                           <span className="text-red-500">{student.totalAbsent} Absent</span>

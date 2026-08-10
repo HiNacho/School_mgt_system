@@ -1540,6 +1540,7 @@ export default function ClassTeacherDashboard() {
                             <th className="px-5 py-3 text-left font-bold text-slate-500 uppercase tracking-wider text-[10px]">Student</th>
                             <th className="px-5 py-3 text-center font-bold text-slate-500 uppercase tracking-wider text-[10px]">Present</th>
                             <th className="px-5 py-3 text-center font-bold text-slate-500 uppercase tracking-wider text-[10px]">Absent</th>
+                            <th className="px-5 py-3 text-center font-bold text-slate-500 uppercase tracking-wider text-[10px]">Ratio (Present/Total)</th>
                             <th className="px-5 py-3 text-center font-bold text-slate-500 uppercase tracking-wider text-[10px]">Rate</th>
                             <th className="px-5 py-3 text-center font-bold text-slate-500 uppercase tracking-wider text-[10px]">Status</th>
                           </tr>
@@ -1555,6 +1556,11 @@ export default function ClassTeacherDashboard() {
                               </td>
                               <td className="px-5 py-3 text-center font-bold text-emerald-600">{s.totalPresent}</td>
                               <td className="px-5 py-3 text-center font-bold text-red-500">{s.totalAbsent}</td>
+                              <td className="px-5 py-3 text-center">
+                                <span className="inline-flex items-center justify-center px-2.5 py-1 rounded-lg bg-slate-100 border border-slate-200/80 text-slate-900 font-extrabold font-mono text-xs shadow-inner">
+                                  {s.totalPresent}/{s.totalPresent + s.totalAbsent}
+                                </span>
+                              </td>
                               <td className="px-5 py-3 text-center">
                                 <div className="flex flex-col items-center gap-1">
                                   <span className={`font-bold ${
