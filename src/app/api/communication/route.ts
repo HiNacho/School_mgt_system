@@ -449,5 +449,88 @@ export async function PATCH(req: NextRequest) {
   }
 }
 
+// DELETE: Clear a single conversation or clear all chat conversations for user
+export async function DELETE(req: NextRequest) {
+  try {
+    const { searchParams } = new URL(req.url);
+    const conversationId = searchParams.get('conversationId');
+    const schoolId = searchParams.get('schoolId');
+    const clearAll = searchParams.get('clearAll') === 'true';
+
+    const session = await requireAuth(req);
+
+    if (clearAll) {
+      if (!schoolId) {
+        return NextResponse.json({ error: 'School ID is required to clear all chats' }, { status: 400 });
+      }
+
+      // Delete all conversations where user is parent or teacher/participant
+      let whereClause: any = { schoolId };
+      if (session.role === 'PARENT') {
+        whereClause.parentId = session.userId;
+      } else if (session.role === 'SUPER_ADMIN') {
+        whereClause.schoolId = schoolId;
+      } else {
+        whereClause.OR = [
+          { teacherId: session.userId },
+          { parentId: session.userId }
+        ];
+      }
+
+      const deleted = await prisma.chatConversation.deleteMany({
+        where: whereClause
+      });
+
+      return NextResponse.json({
+        success: true,
+        message: `Successfully cleared ${deleted.count} previous chat conversation(s).`
+      });
+    }
+
+    if (!conversationId) {
+      return NextResponse.json({ error: 'Conversation ID or clearAll flag is required' }, { status: 400 });
+    }
+
+    const conversation = await prisma.chatConversation.findUnique({
+      where: { id: conversationId }
+    });
+
+    if (!conversation) {
+      return NextResponse.json({ error: 'Conversation thread not found' }, { status: 404 });
+    }
+
+    // Verify user authorization: must be parent, teacher, or authorized school staff
+    const isParticipant =
+      conversation.teacherId === session.userId ||
+      conversation.parentId === session.userId;
+
+    const isStaffOrAdmin =
+      session.role === 'SCHOOL_ADMIN' ||
+      session.role === 'SUPER_ADMIN' ||
+      session.role === 'HEAD_TEACHER' ||
+      session.role === 'CLASS_TEACHER' ||
+      session.role === 'SUBJECT_TEACHER' ||
+      session.role === 'BURSAR';
+
+    if (!isParticipant && !isStaffOrAdmin) {
+      return NextResponse.json({ error: 'Unauthorized to delete this chat conversation' }, { status: 403 });
+    }
+
+    // Cascade delete conversation and all associated ChatMessage records
+    await prisma.chatConversation.delete({
+      where: { id: conversationId }
+    });
+
+    return NextResponse.json({
+      success: true,
+      message: 'Chat conversation successfully deleted.'
+    });
+
+  } catch (error: any) {
+    console.error('Chat DELETE Error:', error);
+    return NextResponse.json({ error: error.message || 'Failed to delete chat conversation' }, { status: 500 });
+  }
+}
+
 export const dynamic = 'force-dynamic';
 

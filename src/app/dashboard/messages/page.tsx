@@ -885,6 +885,62 @@ export default function RebuiltMessagesHub() {
     }
   };
 
+  // Clear single chat conversation
+  const handleClearConversation = async (conversationId: string) => {
+    if (!school) return;
+    if (!window.confirm('Are you sure you want to clear/delete this previous chat conversation? This will permanently remove its message history.')) return;
+
+    const convObj = conversations.find(c => c.id === conversationId);
+    const targetSchoolId = (convObj as any)?.schoolId || school.id;
+
+    setErrorMsg('');
+    setSuccessMsg('');
+    try {
+      const res = await fetch(`/api/communication?schoolId=${targetSchoolId}&conversationId=${conversationId}`, {
+        method: 'DELETE',
+        headers: getAuthHeaders()
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || 'Failed to delete chat conversation');
+
+      setSuccessMsg('Chat conversation cleared successfully');
+
+      // Update local state
+      setConversations(prev => prev.filter(c => c.id !== conversationId));
+      if (selectedConversation?.id === conversationId) {
+        setSelectedConversation(null);
+        setActiveChatMessages([]);
+      }
+    } catch (err: any) {
+      setErrorMsg(err.message || 'Failed to clear chat conversation');
+    }
+  };
+
+  // Clear all previous chat conversations
+  const handleClearAllConversations = async () => {
+    if (!school) return;
+    if (!window.confirm('Are you sure you want to clear ALL previous chats? This will permanently delete your chat history.')) return;
+
+    setErrorMsg('');
+    setSuccessMsg('');
+    try {
+      const res = await fetch(`/api/communication?schoolId=${school.id}&clearAll=true`, {
+        method: 'DELETE',
+        headers: getAuthHeaders()
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || 'Failed to clear previous chats');
+
+      setSuccessMsg('All previous chats cleared successfully!');
+
+      setConversations([]);
+      setSelectedConversation(null);
+      setActiveChatMessages([]);
+    } catch (err: any) {
+      setErrorMsg(err.message || 'Failed to clear previous chats');
+    }
+  };
+
   // Save Settings (Admin only)
   const handleSaveSettings = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -1292,15 +1348,27 @@ export default function RebuiltMessagesHub() {
                   <div className="p-4 border-b border-slate-200 space-y-3 bg-white">
                     <div className="flex items-center justify-between">
                       <h2 className="text-sm font-bold text-slate-800">Conversations</h2>
-                      {currentUser?.role !== 'STUDENT' && (
-                        <button 
-                          onClick={() => { setStudentSearchQuery(''); setShowNewChatModal(true); }} 
-                          className="px-2 py-1 bg-indigo-600 hover:bg-indigo-700 text-white rounded text-[11px] font-bold flex items-center gap-1 transition-all"
-                        >
-                          <Plus className="w-3.5 h-3.5" />
-                          Start Chat
-                        </button>
-                      )}
+                      <div className="flex items-center gap-1.5">
+                        {conversations.length > 0 && (
+                          <button
+                            onClick={handleClearAllConversations}
+                            className="px-2 py-1 bg-red-50 hover:bg-red-100 text-red-600 border border-red-200/60 rounded text-[10px] font-bold flex items-center gap-1 transition-all"
+                            title="Clear all previous chats"
+                          >
+                            <Trash2 className="w-3 h-3 text-red-500" />
+                            <span>Clear All</span>
+                          </button>
+                        )}
+                        {currentUser?.role !== 'STUDENT' && (
+                          <button 
+                            onClick={() => { setStudentSearchQuery(''); setShowNewChatModal(true); }} 
+                            className="px-2 py-1 bg-indigo-600 hover:bg-indigo-700 text-white rounded text-[11px] font-bold flex items-center gap-1 transition-all"
+                          >
+                            <Plus className="w-3.5 h-3.5" />
+                            <span>New Chat</span>
+                          </button>
+                        )}
+                      </div>
                     </div>
 
                     {/* Today's Birthday Celebrations Panel (Admin only) */}
@@ -1389,9 +1457,21 @@ export default function RebuiltMessagesHub() {
                               <h3 className={`text-xs font-bold truncate flex-1 text-slate-800 ${isUnread ? 'text-slate-950 font-black font-extrabold' : ''}`}>
                                 {displayTitle}
                               </h3>
-                              <span className="text-[9px] font-medium text-slate-400 flex-shrink-0 mt-0.5">
-                                {new Date(conv.lastActivity).toLocaleDateString([], { month: 'short', day: 'numeric' })}
-                              </span>
+                              <div className="flex items-center gap-1 flex-shrink-0">
+                                <span className="text-[9px] font-medium text-slate-400">
+                                  {new Date(conv.lastActivity).toLocaleDateString([], { month: 'short', day: 'numeric' })}
+                                </span>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleClearConversation(conv.id);
+                                  }}
+                                  className="p-1 text-slate-400 hover:text-red-600 hover:bg-red-100/60 rounded transition-colors"
+                                  title="Clear/delete this chat"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
                             </div>
                             <div className="flex items-center justify-between gap-2 mt-0.5">
                               <p className={`text-[11px] truncate flex-1 ${isUnread ? 'text-slate-900 font-semibold' : 'text-slate-500'}`}>
@@ -1453,15 +1533,25 @@ export default function RebuiltMessagesHub() {
                             })()}
                           </div>
                         </div>
-                        {currentUser?.role !== 'PARENT' && selectedConversation.status !== 'CLOSED' && (
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                          {currentUser?.role !== 'PARENT' && selectedConversation.status !== 'CLOSED' && (
+                            <button
+                              onClick={() => handleCloseConversation(selectedConversation.id)}
+                              className="px-2.5 py-1 border border-slate-200 rounded text-[10px] font-semibold text-slate-650 hover:bg-slate-50 transition-all"
+                            >
+                              Close Conversation
+                            </button>
+                          )}
                           <button
-                            onClick={() => handleCloseConversation(selectedConversation.id)}
-                            className="px-2.5 py-1 border border-slate-200 rounded text-[10px] font-semibold text-slate-650 hover:bg-slate-50 transition-all flex-shrink-0"
+                            onClick={() => handleClearConversation(selectedConversation.id)}
+                            className="px-2.5 py-1 border border-red-200 bg-red-50/70 hover:bg-red-100 text-red-600 rounded text-[10px] font-semibold transition-all flex items-center gap-1"
+                            title="Clear this previous chat"
                           >
-                            Close Conversation
+                            <Trash2 className="w-3 h-3 text-red-500" />
+                            <span>Clear Chat</span>
                           </button>
-                        )}
-                      </div>
+                        </div>
+                      </div>         
 
                       {/* Messages Thread Container */}
                       <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-50/20">
