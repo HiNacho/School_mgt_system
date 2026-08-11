@@ -7,7 +7,7 @@ import { compileClassResults } from '@/lib/rankingEngine';
 export async function GET(req: NextRequest) {
   try {
     const session = await requireAuth(req);
-    requireRole(session, ['SUPER_ADMIN', 'SCHOOL_ADMIN', 'HEAD_TEACHER', 'CLASS_TEACHER', 'SUBJECT_TEACHER']);
+    requireRole(session, ['SUPER_ADMIN', 'SCHOOL_ADMIN', 'HEAD_TEACHER', 'CLASS_TEACHER', 'SUBJECT_TEACHER', 'TEACHER', 'FORM_TEACHER']);
 
     const { searchParams } = new URL(req.url);
     const schoolId = searchParams.get('schoolId');
@@ -106,6 +106,6 @@ export async function GET(req: NextRequest) {
     });
   } catch (error: any) {
     console.error('Broadsheet GET Error:', error);
-    return NextResponse.json({ error: 'Failed to generate class broadsheet' }, { status: 500 });
+    return NextResponse.json({ error: error.message || 'Failed to generate class broadsheet' }, { status: error.status || 500 });
   }
 }

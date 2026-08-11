@@ -7,7 +7,7 @@ import { calculateScoreDetails } from '@/lib/rankingEngine';
 export async function POST(req: NextRequest) {
   try {
     const session = await requireAuth(req);
-    requireRole(session, ['SUPER_ADMIN', 'SCHOOL_ADMIN', 'HEAD_TEACHER', 'CLASS_TEACHER']);
+    requireRole(session, ['SUPER_ADMIN', 'SCHOOL_ADMIN', 'HEAD_TEACHER', 'CLASS_TEACHER', 'SUBJECT_TEACHER', 'TEACHER', 'FORM_TEACHER']);
 
     const body = await req.json();
     const { schoolId, classId, armId, termId, records } = body;
