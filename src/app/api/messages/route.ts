@@ -158,8 +158,7 @@ export async function POST(req: NextRequest) {
           status: 'ACTIVE',
           role: {
             in: ['SCHOOL_ADMIN', 'HEAD_TEACHER', 'CLASS_TEACHER', 'SUBJECT_TEACHER']
-          },
-          id: { not: senderId }
+          }
         },
         select: { id: true }
       });
@@ -170,8 +169,7 @@ export async function POST(req: NextRequest) {
         where: {
           schoolId,
           status: 'ACTIVE',
-          role: 'STUDENT',
-          id: { not: senderId }
+          role: 'STUDENT'
         },
         select: { id: true }
       });
@@ -182,15 +180,13 @@ export async function POST(req: NextRequest) {
         where: {
           schoolId,
           status: 'ACTIVE',
-          role: 'PARENT',
-          id: { not: senderId }
+          role: 'PARENT'
         },
         select: { id: true }
       });
       targetRecipientUserIds = parents.map(p => p.id);
     } else if (targetAudience === 'UNPAID_PARENTS') {
       // Target only parents of children who have not paid school fees
-      // Supports optional class and arm boundaries!
       const unpaidStudents = await prisma.student.findMany({
         where: {
           schoolId,
@@ -212,7 +208,7 @@ export async function POST(req: NextRequest) {
 
       const parentUserIds = unpaidStudents
         .map(s => s.parent?.user?.id)
-        .filter((id): id is string => !!id && id !== senderId);
+        .filter((id): id is string => !!id);
 
       targetRecipientUserIds = Array.from(new Set(parentUserIds));
     } else if (targetAudience === 'CLASS' && classId) {
@@ -230,10 +226,9 @@ export async function POST(req: NextRequest) {
         }
       });
       
-      // Extract their User account IDs
       targetRecipientUserIds = studentsInClass
         .map(s => s.user?.id)
-        .filter((id): id is string => !!id && id !== senderId);
+        .filter((id): id is string => !!id);
     } else if (targetAudience === 'ARM' && armId) {
       // All students registered inside this class arm division
       const studentsInArm = await prisma.student.findMany({
@@ -251,7 +246,7 @@ export async function POST(req: NextRequest) {
       
       targetRecipientUserIds = studentsInArm
         .map(s => s.user?.id)
-        .filter((id): id is string => !!id && id !== senderId);
+        .filter((id): id is string => !!id);
     } else if (targetAudience === 'CLASS_ARM_PARENTS' && armId) {
       // Parents of all active students in this specific class arm
       const studentsInArm = await prisma.student.findMany({
@@ -273,23 +268,22 @@ export async function POST(req: NextRequest) {
 
       const parentUserIds = studentsInArm
         .map(s => s.parent?.user?.id)
-        .filter((id): id is string => !!id && id !== senderId);
+        .filter((id): id is string => !!id);
 
       targetRecipientUserIds = Array.from(new Set(parentUserIds));
     } else {
-      // Default: ALL active school users except sender
+      // Default: ALL active school users
       const allUsers = await prisma.user.findMany({
         where: {
           schoolId,
-          status: 'ACTIVE',
-          id: { not: senderId }
+          status: 'ACTIVE'
         },
         select: { id: true }
       });
       targetRecipientUserIds = allUsers.map(u => u.id);
     }
 
-    // B. Build the Message and Recipients transactionally
+    // B. Build the Message, Recipients, and Notifications transactionally
     const result = await prisma.$transaction(async (tx) => {
       // 1. Create primary Message record
       const message = await tx.message.create({
@@ -309,7 +303,7 @@ export async function POST(req: NextRequest) {
         }
       });
 
-      // 2. Bulk insert recipient mappings
+      // 2. Bulk insert recipient mappings & in-app Notifications
       if (targetRecipientUserIds.length > 0) {
         const recipientData = targetRecipientUserIds.map(uid => ({
           messageId: message.id,
@@ -319,6 +313,17 @@ export async function POST(req: NextRequest) {
 
         await tx.messageRecipient.createMany({
           data: recipientData
+        });
+
+        // Generate topbar notification records
+        const notificationData = targetRecipientUserIds.map(uid => ({
+          schoolId,
+          userId: uid,
+          message: `📢 Announcement: ${title}`
+        }));
+
+        await tx.notification.createMany({
+          data: notificationData
         });
       }
 

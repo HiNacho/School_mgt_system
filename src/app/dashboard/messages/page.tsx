@@ -1028,9 +1028,7 @@ export default function RebuiltMessagesHub() {
     conv.messages.some(m => !m.isRead && m.senderId !== currentUser?.id)
   ).length;
 
-  const unreadAnnouncementsCount = broadcasts.filter(b => 
-    !b.isRead && (b.senderId ? b.senderId !== currentUser?.id : b.sender?.id ? b.sender.id !== currentUser?.id : true)
-  ).length;
+  const unreadAnnouncementsCount = broadcasts.filter(b => !b.isRead).length;
 
   const unreadMeetingsCount = meetings.filter(m => 
     currentUser?.role === 'PARENT' ? m.status === 'SUGGESTED' : m.status === 'PENDING'
