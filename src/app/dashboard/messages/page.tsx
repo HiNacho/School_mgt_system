@@ -110,14 +110,17 @@ interface MeetingRequest {
 
 interface BroadcastMessage {
   id: string;
+  senderId?: string;
   title: string;
   body: string;
   messageType: string;
   targetAudience: string;
   priority: string;
   isPinned: boolean;
+  isRead?: boolean;
   createdAt: string;
   sender?: {
+    id?: string;
     firstName: string;
     lastName: string;
     role: string;
@@ -603,6 +606,17 @@ export default function RebuiltMessagesHub() {
     setSelectedConversation(conv);
     setActiveChatMessages([]);
     setErrorMsg('');
+
+    // Optimistically mark messages in selected conversation as read in local state
+    setConversations(prev => prev.map(c => {
+      if (c.id === conv.id) {
+        return {
+          ...c,
+          messages: c.messages.map(m => m.senderId !== currentUser?.id ? { ...m, isRead: true } : m)
+        };
+      }
+      return c;
+    }));
     try {
       if (currentUser?.role === 'SUPER_ADMIN') {
         const res = await fetch(`/api/superadmin/messages`, { headers: getAuthHeaders(null) });
@@ -1009,6 +1023,19 @@ export default function RebuiltMessagesHub() {
     );
   });
 
+  // WhatsApp-style tab unread notification badge counters
+  const unreadChatsCount = conversations.filter(conv => 
+    conv.messages.some(m => !m.isRead && m.senderId !== currentUser?.id)
+  ).length;
+
+  const unreadAnnouncementsCount = broadcasts.filter(b => 
+    !b.isRead && (b.senderId ? b.senderId !== currentUser?.id : b.sender?.id ? b.sender.id !== currentUser?.id : true)
+  ).length;
+
+  const unreadMeetingsCount = meetings.filter(m => 
+    currentUser?.role === 'PARENT' ? m.status === 'SUGGESTED' : m.status === 'PENDING'
+  ).length;
+
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800 font-sans antialiased">
       {/* 1. Header Banner */}
@@ -1029,8 +1056,8 @@ export default function RebuiltMessagesHub() {
           </p>
         </div>
 
-        {/* Tab Selection */}
-        <div className="flex bg-slate-100 p-1 rounded-lg self-start md:self-center">
+        {/* Tab Selection with WhatsApp-style Badges */}
+        <div className="flex bg-slate-100 p-1 rounded-lg self-start md:self-center gap-1 flex-wrap">
           <button 
             onClick={() => {
               setActiveTab('chats');
@@ -1050,10 +1077,15 @@ export default function RebuiltMessagesHub() {
                   .catch(console.error);
               }
             }} 
-            className={`px-3 py-1.5 rounded-md text-xs font-semibold flex items-center gap-1.5 transition-all ${activeTab === 'chats' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
+            className={`px-3 py-1.5 rounded-md text-xs font-semibold flex items-center gap-1.5 transition-all relative ${activeTab === 'chats' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
           >
             <MessageSquare className="w-3.5 h-3.5" />
-            Direct Messages
+            <span>Direct Messages</span>
+            {unreadChatsCount > 0 && (
+              <span className="ml-1 px-1.5 py-0.2 bg-emerald-500 text-white text-[10px] font-extrabold rounded-full min-w-[18px] h-[18px] flex items-center justify-center shadow-xs animate-pulse">
+                {unreadChatsCount}
+              </span>
+            )}
           </button>
           <button 
             onClick={() => {
@@ -1067,10 +1099,15 @@ export default function RebuiltMessagesHub() {
                   .catch(console.error);
               }
             }} 
-            className={`px-3 py-1.5 rounded-md text-xs font-semibold flex items-center gap-1.5 transition-all ${activeTab === 'broadcasts' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
+            className={`px-3 py-1.5 rounded-md text-xs font-semibold flex items-center gap-1.5 transition-all relative ${activeTab === 'broadcasts' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
           >
             <Megaphone className="w-3.5 h-3.5" />
-            Announcements
+            <span>Announcements</span>
+            {unreadAnnouncementsCount > 0 && (
+              <span className="ml-1 px-1.5 py-0.2 bg-amber-500 text-white text-[10px] font-extrabold rounded-full min-w-[18px] h-[18px] flex items-center justify-center shadow-xs">
+                {unreadAnnouncementsCount}
+              </span>
+            )}
           </button>
           {currentUser?.role !== 'SUPER_ADMIN' && (
             <>
@@ -1086,10 +1123,15 @@ export default function RebuiltMessagesHub() {
                       .catch(console.error);
                   }
                 }} 
-                className={`px-3 py-1.5 rounded-md text-xs font-semibold flex items-center gap-1.5 transition-all ${activeTab === 'meetings' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
+                className={`px-3 py-1.5 rounded-md text-xs font-semibold flex items-center gap-1.5 transition-all relative ${activeTab === 'meetings' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
               >
                 <Calendar className="w-3.5 h-3.5" />
-                Meetings
+                <span>Meetings</span>
+                {unreadMeetingsCount > 0 && (
+                  <span className="ml-1 px-1.5 py-0.2 bg-indigo-500 text-white text-[10px] font-extrabold rounded-full min-w-[18px] h-[18px] flex items-center justify-center shadow-xs">
+                    {unreadMeetingsCount}
+                  </span>
+                )}
               </button>
               {currentUser?.role === 'SCHOOL_ADMIN' && (
                 <button 
@@ -1097,7 +1139,7 @@ export default function RebuiltMessagesHub() {
                   className={`px-3 py-1.5 rounded-md text-xs font-semibold flex items-center gap-1.5 transition-all ${activeTab === 'settings' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
                 >
                   <Settings className="w-3.5 h-3.5" />
-                  Settings
+                  <span>Settings</span>
                 </button>
               )}
             </>
