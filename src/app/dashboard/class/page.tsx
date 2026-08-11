@@ -190,7 +190,10 @@ export default function ClassTeacherDashboard() {
       json.data.students.forEach((st: any) => {
         initialEdits[st.studentId] = {};
         json.data.subjects.forEach((sub: any) => {
-          const scoreObj = st.subjects?.[sub.id] || {};
+          const scoreObj = Array.isArray(st.subjects)
+            ? st.subjects.find((s: any) => s.subjectId === sub.id) || {}
+            : st.subjects?.[sub.id] || {};
+
           initialEdits[st.studentId][sub.id] = {
             ca1: scoreObj.ca1 ?? '',
             ca2: scoreObj.ca2 ?? '',
@@ -2476,28 +2479,35 @@ export default function ClassTeacherDashboard() {
                         return fullName.includes(query) || admNo.includes(query);
                       })
                       .map((student: any) => {
+                        const posNum = student.classPosition || student.position || 0;
+                        const posFormatted = student.positionFormatted || (posNum === 1 ? '1st' : posNum === 2 ? '2nd' : posNum === 3 ? '3rd' : posNum > 0 ? `${posNum}th` : '—');
+                        const aggVal = student.aggregateScore !== undefined && student.aggregateScore !== null ? student.aggregateScore : student.totalScore;
+                        const aggText = aggVal !== undefined && aggVal !== null && !isNaN(Number(aggVal)) ? Math.round((Number(aggVal) + Number.EPSILON) * 100) / 100 : '—';
+
                         return (
                           <tr key={student.studentId} className="hover:bg-slate-50/80 transition-colors">
                             {/* Position Badge */}
                             <td className="py-2.5 px-3 text-center border-r border-slate-200 sticky left-0 bg-white z-10">
                               <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
-                                student.position === 1 ? 'bg-amber-100 text-amber-800 border border-amber-300' :
-                                student.position === 2 ? 'bg-slate-200 text-slate-700' :
-                                student.position === 3 ? 'bg-orange-100 text-orange-800' : 'bg-slate-100 text-slate-600'
+                                posNum === 1 ? 'bg-amber-100 text-amber-800 border border-amber-300' :
+                                posNum === 2 ? 'bg-slate-200 text-slate-700' :
+                                posNum === 3 ? 'bg-orange-100 text-orange-800' : 'bg-slate-100 text-slate-600'
                               }`}>
-                                {student.positionFormatted || `${student.position}th`}
+                                {posFormatted}
                               </span>
                             </td>
 
                             {/* Student Name */}
                             <td className="py-2.5 px-4 border-r border-slate-200 sticky left-12 bg-white z-10 font-bold text-slate-900">
                               <div>{student.lastName} {student.firstName}</div>
-                              <div className="text-[10px] font-normal text-slate-400">{student.admissionNo || '—'}</div>
+                              <div className="text-[10px] font-normal text-slate-400">{student.admissionNo || student.admissionNumber || '—'}</div>
                             </td>
 
                             {/* Subjects Scores */}
                             {viewBroadsheetData.subjects.map((sub: any) => {
-                              const scoreObj = student.subjects?.[sub.id] || {};
+                              const scoreObj = Array.isArray(student.subjects)
+                                ? student.subjects.find((s: any) => s.subjectId === sub.id) || {}
+                                : student.subjects?.[sub.id] || {};
                               const editEntry = editedBroadsheetScores[student.studentId]?.[sub.id] || {};
 
                               if (isEditingBroadsheet) {
@@ -2588,9 +2598,7 @@ export default function ClassTeacherDashboard() {
 
                             {/* Total Aggregate */}
                             <td className="py-2.5 px-3 border-r border-slate-200 text-center bg-slate-50 font-black text-indigo-700">
-                              {student.totalScore !== undefined && student.totalScore !== null
-                                ? Math.round((Number(student.totalScore) + Number.EPSILON) * 100) / 100
-                                : '—'}
+                              {aggText}
                             </td>
 
                             {/* Average */}
