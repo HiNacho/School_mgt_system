@@ -79,7 +79,12 @@ export default function LoginPage() {
       }, 800);
 
     } catch (err: any) {
-      setError(err.message || 'Server connection timed out');
+      const msg = err.message || '';
+      if (msg.includes('Failed to fetch') || msg.includes('fetch')) {
+        setError('Unable to reach authentication server. Please check your connection and try again.');
+      } else {
+        setError(msg || 'Server connection timed out');
+      }
       setLoading(false);
     }
   };
