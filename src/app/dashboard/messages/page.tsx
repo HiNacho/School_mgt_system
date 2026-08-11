@@ -141,7 +141,24 @@ export default function RebuiltMessagesHub() {
   
   // Structured messaging states
   const [conversations, setConversations] = useState<ChatConversation[]>([]);
-  const [selectedConversation, setSelectedConversation] = useState<ChatConversation | null>(null);
+  const [selectedConversation, setSelectedConversationState] = useState<ChatConversation | null>(null);
+  const [loadingChatThread, setLoadingChatThread] = useState(false);
+  const selectedConvRef = useRef<ChatConversation | null>(null);
+
+  // Sync ref with selectedConversation state to prevent closure race conditions
+  const setSelectedConversation = (conv: ChatConversation | null | ((prev: ChatConversation | null) => ChatConversation | null)) => {
+    if (typeof conv === 'function') {
+      setSelectedConversationState(prev => {
+        const next = conv(prev);
+        selectedConvRef.current = next;
+        return next;
+      });
+    } else {
+      selectedConvRef.current = conv;
+      setSelectedConversationState(conv);
+    }
+  };
+
   const [activeChatMessages, setActiveChatMessages] = useState<ChatMessage[]>([]);
   const [replyText, setReplyText] = useState('');
   const [chatCategoryFilter, setChatCategoryFilter] = useState('ALL');
@@ -172,6 +189,9 @@ export default function RebuiltMessagesHub() {
       });
       const json = await res.json();
       if (res.ok && json.success) {
+        // Guard against stale response if user switched conversation during fetch
+        if (selectedConvRef.current?.id !== convId) return;
+
         const newMessages = json.data.messages || [];
         setActiveChatMessages(prev => {
           if (prev.length !== newMessages.length || (prev.length > 0 && prev[prev.length - 1].id !== newMessages[newMessages.length - 1].id)) {
@@ -194,9 +214,10 @@ export default function RebuiltMessagesHub() {
         const json = await res.json();
         if (res.ok && json.success) {
           setConversations(json.data || []);
-          if (selectedConversation) {
-            const updated = json.data.find((c: any) => c.id === selectedConversation.id);
-            if (updated) {
+          const activeId = selectedConvRef.current?.id;
+          if (activeId) {
+            const updated = (json.data || []).find((c: any) => c.id === activeId);
+            if (updated && selectedConvRef.current?.id === activeId) {
               setSelectedConversation(updated);
               setActiveChatMessages(updated.messages || []);
             }
@@ -604,6 +625,7 @@ export default function RebuiltMessagesHub() {
   // Load chat messages when a conversation is clicked
   const handleSelectConversation = async (conv: ChatConversation) => {
     setSelectedConversation(conv);
+    setLoadingChatThread(true);
     setActiveChatMessages([]);
     setErrorMsg('');
 
@@ -612,19 +634,23 @@ export default function RebuiltMessagesHub() {
       if (c.id === conv.id) {
         return {
           ...c,
-          messages: c.messages.map(m => m.senderId !== currentUser?.id ? { ...m, isRead: true } : m)
+          messages: (c.messages || []).map(m => m.senderId !== currentUser?.id ? { ...m, isRead: true } : m)
         };
       }
       return c;
     }));
+
     try {
       if (currentUser?.role === 'SUPER_ADMIN') {
         const res = await fetch(`/api/superadmin/messages`, { headers: getAuthHeaders(null) });
         const json = await res.json();
         if (res.ok && json.success) {
-          const updated = json.data.find((c: any) => c.id === conv.id);
-          if (updated) {
-            setActiveChatMessages(updated.messages || []);
+          if (selectedConvRef.current?.id === conv.id) {
+            const updated = json.data.find((c: any) => c.id === conv.id);
+            if (updated) {
+              setSelectedConversation(updated);
+              setActiveChatMessages(updated.messages || []);
+            }
           }
         }
       } else {
@@ -632,7 +658,9 @@ export default function RebuiltMessagesHub() {
         const res = await fetch(`/api/communication?schoolId=${school.id}&conversationId=${conv.id}`, { headers: getAuthHeaders(null) });
         const json = await res.json();
         if (res.ok && json.success) {
-          setActiveChatMessages(json.data.messages || []);
+          if (selectedConvRef.current?.id === conv.id) {
+            setActiveChatMessages(json.data.messages || []);
+          }
           // Refresh conversations to update read badges
           const refreshRes = await fetch(`/api/communication?schoolId=${school.id}`, { headers: getAuthHeaders(null) });
           const refreshJson = await refreshRes.json();
@@ -644,7 +672,13 @@ export default function RebuiltMessagesHub() {
         }
       }
     } catch (e: any) {
-      setErrorMsg(e.message || 'Error fetching conversation thread');
+      if (selectedConvRef.current?.id === conv.id) {
+        setErrorMsg(e.message || 'Error fetching conversation thread');
+      }
+    } finally {
+      if (selectedConvRef.current?.id === conv.id) {
+        setLoadingChatThread(false);
+      }
     }
   };
 
@@ -1431,20 +1465,33 @@ export default function RebuiltMessagesHub() {
 
                       {/* Messages Thread Container */}
                       <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-50/20">
-                        {activeChatMessages.map((msg) => {
-                          const isMe = msg.senderId === currentUser?.id;
-                          return (
-                            <div key={msg.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
-                              <div className={`max-w-[70%] rounded-xl p-3 shadow-sm text-xs ${isMe ? 'bg-indigo-600 text-white rounded-br-none' : 'bg-white border border-slate-200 text-slate-800 rounded-bl-none'}`}>
-                                <div className="flex items-center justify-between gap-4 mb-1 text-[9px] opacity-75 font-semibold">
-                                  <span>{msg.sender?.firstName || 'System'} ({(msg.sender?.role || 'SYSTEM').replace('_', ' ').toLowerCase()})</span>
-                                  <span>{new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                        {loadingChatThread ? (
+                          <div className="flex flex-col items-center justify-center h-full py-16 text-slate-400 gap-2">
+                            <RefreshCw className="w-6 h-6 animate-spin text-indigo-600" />
+                            <span className="text-xs font-semibold text-slate-500">Loading conversation thread...</span>
+                          </div>
+                        ) : activeChatMessages.length === 0 ? (
+                          <div className="flex flex-col items-center justify-center h-full py-16 text-slate-400 gap-2">
+                            <MessageSquare className="w-8 h-8 opacity-40 text-slate-400" />
+                            <p className="text-xs font-semibold text-slate-600">No messages in this conversation yet.</p>
+                            <span className="text-[11px] text-slate-400">Type a message below to start chatting!</span>
+                          </div>
+                        ) : (
+                          activeChatMessages.map((msg) => {
+                            const isMe = msg.senderId === currentUser?.id;
+                            return (
+                              <div key={msg.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
+                                <div className={`max-w-[70%] rounded-xl p-3 shadow-sm text-xs ${isMe ? 'bg-indigo-600 text-white rounded-br-none' : 'bg-white border border-slate-200 text-slate-800 rounded-bl-none'}`}>
+                                  <div className="flex items-center justify-between gap-4 mb-1 text-[9px] opacity-75 font-semibold">
+                                    <span>{msg.sender?.firstName || 'System'} ({(msg.sender?.role || 'SYSTEM').replace('_', ' ').toLowerCase()})</span>
+                                    <span>{new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                                  </div>
+                                  <p className="whitespace-pre-wrap leading-relaxed">{msg.body}</p>
                                 </div>
-                                <p className="whitespace-pre-wrap leading-relaxed">{msg.body}</p>
                               </div>
-                            </div>
-                          );
-                        })}
+                            );
+                          })
+                        )}
                         <div ref={messagesEndRef} />
                       </div>
 
