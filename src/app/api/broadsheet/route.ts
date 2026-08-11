@@ -21,8 +21,8 @@ export async function GET(req: NextRequest) {
 
     requireSchoolScope(session, schoolId);
 
-    // Fetch class info, arm info, term info, subjects, active students, and all recorded scores
-    const [targetClass, targetArm, targetTerm, subjects, students, scores, gradingRules] = await Promise.all([
+    // Fetch class info, arm info, term info, subjects, active students, recorded scores, and teacher score submissions
+    const [targetClass, targetArm, targetTerm, subjects, students, scores, scoreSubmissions, gradingRules] = await Promise.all([
       prisma.class.findFirst({ where: { id: classId, schoolId } }),
       prisma.arm.findFirst({ where: { id: armId, schoolId } }),
       prisma.term.findFirst({ where: { id: termId, schoolId } }),
@@ -37,6 +37,9 @@ export async function GET(req: NextRequest) {
       prisma.score.findMany({
         where: { schoolId, termId, student: { classId, armId, status: 'ACTIVE' } }
       }),
+      prisma.scoreSubmission.findMany({
+        where: { schoolId, classId, armId, termId }
+      }),
       prisma.gradingRule.findMany({
         where: { schoolId },
         orderBy: { minScore: 'desc' }
@@ -47,15 +50,46 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Class, Arm, or Term not found' }, { status: 404 });
     }
 
-    // Map raw scores for compileClassResults engine
-    const rawScoresInput = scores.map(s => ({
-      studentId: s.studentId,
-      subjectId: s.subjectId,
-      ca1: s.ca1,
-      ca2: s.ca2,
-      assignment: s.assignment,
-      exam: s.exam
-    }));
+    const scoreMap: Record<string, any> = {};
+
+    // First populate from submitted score payloads (teacher submissions)
+    scoreSubmissions.forEach(sub => {
+      try {
+        const parsed = JSON.parse(sub.payload || '[]');
+        if (Array.isArray(parsed)) {
+          parsed.forEach(item => {
+            if (item.studentId) {
+              const key = `${item.studentId}_${sub.subjectId}`;
+              scoreMap[key] = {
+                studentId: item.studentId,
+                subjectId: sub.subjectId,
+                ca1: item.ca1 !== undefined && item.ca1 !== null && item.ca1 !== '' ? Number(item.ca1) : null,
+                ca2: item.ca2 !== undefined && item.ca2 !== null && item.ca2 !== '' ? Number(item.ca2) : null,
+                assignment: item.assignment !== undefined && item.assignment !== null && item.assignment !== '' ? Number(item.assignment) : null,
+                exam: item.exam !== undefined && item.exam !== null && item.exam !== '' ? Number(item.exam) : null
+              };
+            }
+          });
+        }
+      } catch (err) {
+        console.error('Failed to parse score submission payload in broadsheet:', err);
+      }
+    });
+
+    // Override with official Score table entries (if published/approved)
+    scores.forEach(s => {
+      const key = `${s.studentId}_${s.subjectId}`;
+      scoreMap[key] = {
+        studentId: s.studentId,
+        subjectId: s.subjectId,
+        ca1: s.ca1,
+        ca2: s.ca2,
+        assignment: s.assignment,
+        exam: s.exam
+      };
+    });
+
+    const rawScoresInput = Object.values(scoreMap);
 
     // Compile complete results including positions and subject totals using rankingEngine
     const compiledReports = compileClassResults(students, subjects, rawScoresInput, gradingRules);

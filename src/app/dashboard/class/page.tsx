@@ -2437,22 +2437,36 @@ export default function ClassTeacherDashboard() {
               <div className="inline-block min-w-full align-middle">
                 <table className="min-w-full border-collapse bg-white rounded-xl overflow-hidden border border-slate-200 shadow-sm text-xs">
                   <thead>
+                    {/* Header Row 1: Subject Names */}
                     <tr className="bg-slate-800 text-slate-100 font-bold uppercase tracking-wider text-[10px]">
-                      <th className="py-3 px-3 text-center border-b border-r border-slate-700 w-12 sticky left-0 bg-slate-800 z-20">Pos</th>
-                      <th className="py-3 px-4 text-left border-b border-r border-slate-700 min-w-[180px] sticky left-12 bg-slate-800 z-20">Student Name</th>
+                      <th rowSpan={2} className="py-3 px-3 text-center border-b border-r border-slate-700 w-12 sticky left-0 bg-slate-800 z-20">Pos</th>
+                      <th rowSpan={2} className="py-3 px-4 text-left border-b border-r border-slate-700 min-w-[180px] sticky left-12 bg-slate-800 z-20">Student Name</th>
                       {viewBroadsheetData.subjects.map((sub: any) => (
-                        <th key={sub.id} className="py-3 px-3 text-center border-b border-r border-slate-700 min-w-[110px]">
-                          <div>{sub.code || sub.name}</div>
-                          <div className="text-[8px] text-slate-400 font-normal normal-case">{sub.name}</div>
+                        <th key={sub.id} colSpan={6} className="py-2 px-2 text-center border-b border-r border-slate-700 bg-slate-800">
+                          <div className="font-extrabold text-white text-[11px] truncate max-w-[200px] mx-auto">{sub.name}</div>
+                          <div className="text-[9px] text-indigo-300 font-semibold normal-case">{sub.code || 'SUBJECT'}</div>
                         </th>
                       ))}
-                      <th className="py-3 px-3 text-center border-b border-r border-slate-700 bg-slate-900 min-w-[80px]">Total</th>
-                      <th className="py-3 px-3 text-center border-b border-r border-slate-700 bg-slate-900 min-w-[80px]">Avg %</th>
-                      <th className="py-3 px-3 text-center border-b border-r border-slate-700 bg-slate-900 min-w-[70px]">Rank</th>
-                      <th className="py-3 px-3 text-left border-b border-slate-700 bg-slate-900 min-w-[120px]">Overall Remark</th>
+                      <th rowSpan={2} className="py-3 px-3 text-center border-b border-r border-slate-700 bg-slate-900 min-w-[75px]">Total</th>
+                      <th rowSpan={2} className="py-3 px-3 text-center border-b border-r border-slate-700 bg-slate-900 min-w-[75px]">Avg %</th>
+                      <th rowSpan={2} className="py-3 px-3 text-center border-b border-r border-slate-700 bg-slate-900 min-w-[65px]">Rank</th>
+                      <th rowSpan={2} className="py-3 px-3 text-left border-b border-slate-700 bg-slate-900 min-w-[120px]">Overall Remark</th>
+                    </tr>
+                    {/* Header Row 2: Sub-columns (CA1, CA2, ASG, EXAM, TOT, GRD) */}
+                    <tr className="bg-slate-900 text-slate-300 font-semibold uppercase tracking-wider text-[9px]">
+                      {viewBroadsheetData.subjects.map((sub: any) => (
+                        <React.Fragment key={`sub-hdr-${sub.id}`}>
+                          <th className="py-1.5 px-1.5 text-center border-b border-r border-slate-700 w-11 bg-slate-800/80">CA1</th>
+                          <th className="py-1.5 px-1.5 text-center border-b border-r border-slate-700 w-11 bg-slate-800/80">CA2</th>
+                          <th className="py-1.5 px-1.5 text-center border-b border-r border-slate-700 w-11 bg-slate-800/80">ASG</th>
+                          <th className="py-1.5 px-1.5 text-center border-b border-r border-slate-700 w-12 bg-slate-800/80">EXM</th>
+                          <th className="py-1.5 px-1.5 text-center border-b border-r border-slate-700 w-12 bg-indigo-950 text-indigo-200 font-extrabold">TOT</th>
+                          <th className="py-1.5 px-1.5 text-center border-b border-r border-slate-700 w-10 bg-slate-900 font-bold">GRD</th>
+                        </React.Fragment>
+                      ))}
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-200 text-slate-700 font-medium">
+                  <tbody className="divide-y divide-slate-200 text-slate-700 Manual-font">
                     {viewBroadsheetData.students
                       .filter((st: any) => {
                         if (!broadsheetSearchQuery.trim()) return true;
@@ -2487,69 +2501,88 @@ export default function ClassTeacherDashboard() {
                               const editEntry = editedBroadsheetScores[student.studentId]?.[sub.id] || {};
 
                               if (isEditingBroadsheet) {
+                                const c1 = Number(editEntry.ca1 || 0);
+                                const c2 = Number(editEntry.ca2 || 0);
+                                const asg = Number(editEntry.assignment || 0);
+                                const ex = Number(editEntry.exam || 0);
+                                const tot = c1 + c2 + asg + ex;
+
                                 return (
-                                  <td key={sub.id} className="p-1.5 border-r border-slate-200 text-center bg-indigo-50/30">
-                                    <div className="grid grid-cols-4 gap-0.5 max-w-[130px] mx-auto text-[10px]">
+                                  <React.Fragment key={sub.id}>
+                                    <td className="p-1 border-r border-slate-200 text-center bg-indigo-50/20">
                                       <input
                                         type="number"
-                                        placeholder="CA1"
+                                        placeholder="15"
                                         value={editEntry.ca1 ?? ''}
                                         onChange={(e) => handleBroadsheetScoreChange(student.studentId, sub.id, 'ca1', e.target.value)}
-                                        className="w-full text-center px-0.5 py-1 bg-white border border-slate-200 rounded text-slate-800 font-bold focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                                        title="CA1 (max 15)"
+                                        className="w-10 text-center py-1 bg-white border border-slate-200 rounded text-[11px] font-bold text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500"
                                       />
+                                    </td>
+                                    <td className="p-1 border-r border-slate-200 text-center bg-indigo-50/20">
                                       <input
                                         type="number"
-                                        placeholder="CA2"
+                                        placeholder="15"
                                         value={editEntry.ca2 ?? ''}
                                         onChange={(e) => handleBroadsheetScoreChange(student.studentId, sub.id, 'ca2', e.target.value)}
-                                        className="w-full text-center px-0.5 py-1 bg-white border border-slate-200 rounded text-slate-800 font-bold focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                                        title="CA2 (max 15)"
+                                        className="w-10 text-center py-1 bg-white border border-slate-200 rounded text-[11px] font-bold text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500"
                                       />
+                                    </td>
+                                    <td className="p-1 border-r border-slate-200 text-center bg-indigo-50/20">
                                       <input
                                         type="number"
-                                        placeholder="ASG"
+                                        placeholder="10"
                                         value={editEntry.assignment ?? ''}
                                         onChange={(e) => handleBroadsheetScoreChange(student.studentId, sub.id, 'assignment', e.target.value)}
-                                        className="w-full text-center px-0.5 py-1 bg-white border border-slate-200 rounded text-slate-800 font-bold focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                                        title="Assignment (max 10)"
+                                        className="w-10 text-center py-1 bg-white border border-slate-200 rounded text-[11px] font-bold text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500"
                                       />
+                                    </td>
+                                    <td className="p-1 border-r border-slate-200 text-center bg-indigo-50/20">
                                       <input
                                         type="number"
-                                        placeholder="EXM"
+                                        placeholder="60"
                                         value={editEntry.exam ?? ''}
                                         onChange={(e) => handleBroadsheetScoreChange(student.studentId, sub.id, 'exam', e.target.value)}
-                                        className="w-full text-center px-0.5 py-1 bg-white border border-slate-200 rounded text-slate-800 font-bold focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                                        title="Exam (max 60)"
+                                        className="w-11 text-center py-1 bg-white border border-slate-200 rounded text-[11px] font-bold text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500"
                                       />
-                                    </div>
-                                  </td>
+                                    </td>
+                                    <td className="py-2 px-1.5 border-r border-slate-200 text-center bg-indigo-100/50 font-black text-indigo-900 text-[11px]">
+                                      {tot > 0 ? Math.round((tot + Number.EPSILON) * 100) / 100 : '—'}
+                                    </td>
+                                    <td className="py-2 px-1 border-r border-slate-200 text-center font-bold text-slate-300">
+                                      —
+                                    </td>
+                                  </React.Fragment>
                                 );
                               }
 
-                              const formattedTotal = scoreObj.total !== undefined && scoreObj.total !== null 
-                                ? Math.round((Number(scoreObj.total) + Number.EPSILON) * 100) / 100 
-                                : null;
+                              const ca1Val = scoreObj.ca1 !== undefined && scoreObj.ca1 !== null ? scoreObj.ca1 : '—';
+                              const ca2Val = scoreObj.ca2 !== undefined && scoreObj.ca2 !== null ? scoreObj.ca2 : '—';
+                              const asgVal = scoreObj.assignment !== undefined && scoreObj.assignment !== null ? scoreObj.assignment : '—';
+                              const exVal = scoreObj.exam !== undefined && scoreObj.exam !== null ? scoreObj.exam : '—';
+                              const totVal = scoreObj.total !== undefined && scoreObj.total !== null ? Math.round((Number(scoreObj.total) + Number.EPSILON) * 100) / 100 : '—';
+                              const grdVal = scoreObj.grade || '—';
 
                               return (
-                                <td key={sub.id} className="py-2.5 px-3 border-r border-slate-200 text-center">
-                                  {formattedTotal !== null ? (
-                                    <div className="flex items-center justify-center gap-1.5">
-                                      <span className="font-extrabold text-slate-900">{formattedTotal}</span>
-                                      {scoreObj.grade && (
-                                        <span className={`px-1 py-0.2 rounded text-[9px] font-black ${
-                                          scoreObj.grade === 'A' ? 'bg-emerald-100 text-emerald-800' :
-                                          scoreObj.grade === 'B' ? 'bg-blue-100 text-blue-800' :
-                                          scoreObj.grade === 'C' ? 'bg-amber-100 text-amber-800' : 'bg-red-100 text-red-800'
-                                        }`}>
-                                          {scoreObj.grade}
-                                        </span>
-                                      )}
-                                    </div>
-                                  ) : (
-                                    <span className="text-slate-300">—</span>
-                                  )}
-                                </td>
+                                <React.Fragment key={sub.id}>
+                                  <td className="py-2 px-1 border-r border-slate-200 text-center text-slate-600 text-[11px]">{ca1Val}</td>
+                                  <td className="py-2 px-1 border-r border-slate-200 text-center text-slate-600 text-[11px]">{ca2Val}</td>
+                                  <td className="py-2 px-1 border-r border-slate-200 text-center text-slate-600 text-[11px]">{asgVal}</td>
+                                  <td className="py-2 px-1 border-r border-slate-200 text-center text-slate-600 text-[11px]">{exVal}</td>
+                                  <td className="py-2 px-1.5 border-r border-slate-200 text-center font-black text-slate-900 text-[11px] bg-slate-50/70">{totVal}</td>
+                                  <td className="py-2 px-1 border-r border-slate-200 text-center">
+                                    {grdVal !== '—' ? (
+                                      <span className={`px-1 py-0.2 rounded text-[9px] font-black ${
+                                        grdVal === 'A' ? 'bg-emerald-100 text-emerald-800' :
+                                        grdVal === 'B' ? 'bg-blue-100 text-blue-800' :
+                                        grdVal === 'C' ? 'bg-amber-100 text-amber-800' : 'bg-red-100 text-red-800'
+                                      }`}>
+                                        {grdVal}
+                                      </span>
+                                    ) : (
+                                      <span className="text-slate-300">—</span>
+                                    )}
+                                  </td>
+                                </React.Fragment>
                               );
                             })}
 
