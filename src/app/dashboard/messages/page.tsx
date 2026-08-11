@@ -1149,9 +1149,9 @@ export default function RebuiltMessagesHub() {
           <>
             {/* ==================== TAB 1: DIRECT MESSAGES ==================== */}
             {activeTab === 'chats' && (
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm h-[75vh]">
-                {/* Left Side: Conversations list (col 4) */}
-                <div className="lg:col-span-4 border-r border-slate-200 flex flex-col h-full bg-slate-50/50 min-h-0">
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-0 lg:gap-6 bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm h-[78vh]">
+                {/* Left Side: Conversations list (col 4) - Hidden on mobile when a chat is open */}
+                <div className={`lg:col-span-4 border-r border-slate-200 flex-col h-full bg-slate-50/50 min-h-0 ${selectedConversation ? 'hidden lg:flex' : 'flex'}`}>
                   <div className="p-4 border-b border-slate-200 space-y-3 bg-white">
                     <div className="flex items-center justify-between">
                       <h2 className="text-sm font-bold text-slate-800">Conversations</h2>
@@ -1271,45 +1271,55 @@ export default function RebuiltMessagesHub() {
                   </div>
                 </div>
 
-                {/* Right Side: Message Thread (col 8) */}
-                <div className="lg:col-span-8 flex flex-col h-full bg-white min-h-0">
+                {/* Right Side: Message Thread (col 8) - Full Screen on mobile when a chat is open */}
+                <div className={`lg:col-span-8 flex-col h-full bg-white min-h-0 ${selectedConversation ? 'flex' : 'hidden lg:flex'}`}>
                   {selectedConversation ? (
                     <>
-                      {/* Active conversation Header */}
-                      <div className="p-4 border-b border-slate-200 flex items-center justify-between bg-slate-50/30">
-                        <div>
-                          {(() => {
-                            const otherParticipant = selectedConversation.parent.id === currentUser?.id ? selectedConversation.teacher : selectedConversation.parent;
-                            const otherRole = otherParticipant.role === 'SCHOOL_ADMIN' ? 'admin' :
-                                              otherParticipant.role === 'SUPER_ADMIN' ? 'developer' :
-                                              otherParticipant.role === 'CLASS_TEACHER' ? 'class teacher' :
-                                              otherParticipant.role === 'SUBJECT_TEACHER' ? 'subject teacher' :
-                                              otherParticipant.role === 'HEAD_TEACHER' ? 'head teacher' :
-                                              otherParticipant.role === 'PARENT' ? 'parent' : 'teacher';
+                      {/* Active conversation Header with Mobile Back Button */}
+                      <div className="p-3 sm:p-4 border-b border-slate-200 flex items-center justify-between bg-slate-50/30">
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setSelectedConversation(null)}
+                            className="lg:hidden p-1.5 -ml-1 rounded-lg text-slate-600 hover:bg-slate-200/70 transition-colors flex items-center gap-1 font-bold text-xs"
+                            title="Back to Conversations"
+                          >
+                            <ArrowLeft className="w-4 h-4 text-slate-700" />
+                          </button>
+                          <div>
+                            {(() => {
+                              const otherParticipant = selectedConversation.parent.id === currentUser?.id ? selectedConversation.teacher : selectedConversation.parent;
+                              const otherRole = otherParticipant.role === 'SCHOOL_ADMIN' ? 'admin' :
+                                                otherParticipant.role === 'SUPER_ADMIN' ? 'developer' :
+                                                otherParticipant.role === 'CLASS_TEACHER' ? 'class teacher' :
+                                                otherParticipant.role === 'SUBJECT_TEACHER' ? 'subject teacher' :
+                                                otherParticipant.role === 'HEAD_TEACHER' ? 'head teacher' :
+                                                otherParticipant.role === 'PARENT' ? 'parent' : 'teacher';
 
-                            const currentSchoolLabel = (currentUser?.role === 'SUPER_ADMIN' && (selectedConversation as any).school) ? ` • ${(selectedConversation as any).school.slug.toUpperCase()}` : '';
-                            const displayTitle = `${otherParticipant.firstName} ${otherParticipant.lastName} (${otherRole})${currentSchoolLabel}`;
+                              const currentSchoolLabel = (currentUser?.role === 'SUPER_ADMIN' && (selectedConversation as any).school) ? ` • ${(selectedConversation as any).school.slug.toUpperCase()}` : '';
+                              const displayTitle = `${otherParticipant.firstName} ${otherParticipant.lastName} (${otherRole})${currentSchoolLabel}`;
 
-                            return (
-                              <>
-                                <h2 className="text-sm font-bold text-slate-900">{displayTitle}</h2>
-                                {currentUser?.role === 'SUPER_ADMIN' && (selectedConversation as any).school ? (
-                                  <p className="text-[11px] text-slate-500 mt-1">
-                                    School Tenant: <span className="font-semibold text-slate-700">{(selectedConversation as any).school.name}</span>
-                                  </p>
-                                ) : (
-                                  <p className="text-[11px] text-slate-500 mt-1">
-                                    Focus: <span className="font-semibold text-slate-700">{selectedConversation.student.firstName} {selectedConversation.student.lastName}</span> ({selectedConversation.student.className} {selectedConversation.student.armName})
-                                  </p>
-                                )}
-                              </>
-                            );
-                          })()}
+                              return (
+                                <>
+                                  <h2 className="text-sm font-bold text-slate-900">{displayTitle}</h2>
+                                  {currentUser?.role === 'SUPER_ADMIN' && (selectedConversation as any).school ? (
+                                    <p className="text-[11px] text-slate-500 mt-0.5">
+                                      School Tenant: <span className="font-semibold text-slate-700">{(selectedConversation as any).school.name}</span>
+                                    </p>
+                                  ) : (
+                                    <p className="text-[11px] text-slate-500 mt-0.5">
+                                      Focus: <span className="font-semibold text-slate-700">{selectedConversation.student.firstName} {selectedConversation.student.lastName}</span> ({selectedConversation.student.className} {selectedConversation.student.armName})
+                                    </p>
+                                  )}
+                                </>
+                              );
+                            })()}
+                          </div>
                         </div>
                         {currentUser?.role !== 'PARENT' && selectedConversation.status !== 'CLOSED' && (
                           <button
                             onClick={() => handleCloseConversation(selectedConversation.id)}
-                            className="px-2.5 py-1 border border-slate-200 rounded text-[10px] font-semibold text-slate-650 hover:bg-slate-50 transition-all"
+                            className="px-2.5 py-1 border border-slate-200 rounded text-[10px] font-semibold text-slate-650 hover:bg-slate-50 transition-all flex-shrink-0"
                           >
                             Close Conversation
                           </button>
