@@ -7,7 +7,7 @@ import {
   Search, Filter, ChevronLeft, ChevronRight, X, Eye, FileText,
   TrendingUp, Bell, RefreshCw, Check, UserCheck, BarChart2, Printer,
   ArrowRight, User, ClipboardList, Star, Percent, Activity, ChevronDown,
-  ChevronUp, TriangleAlert, Info, GraduationCap, Loader2, Send, FileSpreadsheet
+  ChevronUp, TriangleAlert, Info, GraduationCap, Loader2, Send, FileSpreadsheet, Edit3
 } from 'lucide-react';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -144,11 +144,139 @@ export default function ClassTeacherDashboard() {
   const [importingBroadsheet, setImportingBroadsheet] = useState(false);
   const broadsheetFileInputRef = React.useRef<HTMLInputElement>(null);
 
+  // In-Dashboard Broadsheet Matrix Viewer & Editor states
+  const [showBroadsheetModal, setShowBroadsheetModal] = useState<boolean>(false);
+  const [viewBroadsheetData, setViewBroadsheetData] = useState<any>(null);
+  const [fetchingBroadsheet, setFetchingBroadsheet] = useState<boolean>(false);
+  const [isEditingBroadsheet, setIsEditingBroadsheet] = useState<boolean>(false);
+  const [savingBroadsheet, setSavingBroadsheet] = useState<boolean>(false);
+  const [broadsheetSearchQuery, setBroadsheetSearchQuery] = useState<string>('');
+  const [editedBroadsheetScores, setEditedBroadsheetScores] = useState<Record<string, Record<string, any>>>({});
+
   const getAuthHeaders = () => {
     const token = typeof window !== 'undefined' ? (localStorage.getItem('report_auth_token') || '') : '';
     const headers: Record<string, string> = { 'Content-Type': 'application/json' };
     if (token) headers['Authorization'] = `Bearer ${token}`;
     return headers;
+  };
+
+  const handleFetchBroadsheetForView = async () => {
+    if (!session?.school?.id || !classInfo?.class?.id || !classInfo?.arm?.id) {
+      alert('Class or Arm information is not loaded.');
+      return;
+    }
+    const term = setupData?.terms?.find((t: any) => t.isCurrent) || setupData?.terms?.[0];
+    if (!term) {
+      alert('No active academic term found.');
+      return;
+    }
+
+    setFetchingBroadsheet(true);
+    try {
+      const res = await fetch(
+        `/api/broadsheet?schoolId=${session.school.id}&classId=${classInfo.class.id}&armId=${classInfo.arm.id}&termId=${term.id}`,
+        { headers: getAuthHeaders() }
+      );
+      const json = await res.json();
+      if (!res.ok || !json.success) {
+        alert(json.error || 'Failed to fetch broadsheet data');
+        return;
+      }
+
+      setViewBroadsheetData(json.data);
+
+      // Populate initial score edit inputs
+      const initialEdits: Record<string, Record<string, any>> = {};
+      json.data.students.forEach((st: any) => {
+        initialEdits[st.studentId] = {};
+        json.data.subjects.forEach((sub: any) => {
+          const scoreObj = st.subjects?.[sub.id] || {};
+          initialEdits[st.studentId][sub.id] = {
+            ca1: scoreObj.ca1 ?? '',
+            ca2: scoreObj.ca2 ?? '',
+            assignment: scoreObj.assignment ?? '',
+            exam: scoreObj.exam ?? ''
+          };
+        });
+      });
+
+      setEditedBroadsheetScores(initialEdits);
+      setShowBroadsheetModal(true);
+    } catch (err: any) {
+      console.error('Broadsheet fetch error:', err);
+      alert('Failed to load broadsheet matrix.');
+    } finally {
+      setFetchingBroadsheet(false);
+    }
+  };
+
+  const handleBroadsheetScoreChange = (studentId: string, subjectId: string, field: string, value: string) => {
+    setEditedBroadsheetScores(prev => ({
+      ...prev,
+      [studentId]: {
+        ...prev[studentId],
+        [subjectId]: {
+          ...prev[studentId]?.[subjectId],
+          [field]: value
+        }
+      }
+    }));
+  };
+
+  const handleSaveBroadsheetEdits = async () => {
+    if (!session?.school?.id || !classInfo?.class?.id || !classInfo?.arm?.id || !viewBroadsheetData) return;
+    const term = setupData?.terms?.find((t: any) => t.isCurrent) || setupData?.terms?.[0];
+    if (!term) return;
+
+    setSavingBroadsheet(true);
+    try {
+      const records = viewBroadsheetData.students.map((st: any) => {
+        const scoresPayload: Record<string, any> = {};
+        viewBroadsheetData.subjects.forEach((sub: any) => {
+          const entry = editedBroadsheetScores[st.studentId]?.[sub.id] || {};
+          scoresPayload[sub.name] = {
+            ca1: entry.ca1 !== '' && entry.ca1 !== null && entry.ca1 !== undefined ? Number(entry.ca1) : null,
+            ca2: entry.ca2 !== '' && entry.ca2 !== null && entry.ca2 !== undefined ? Number(entry.ca2) : null,
+            assignment: entry.assignment !== '' && entry.assignment !== null && entry.assignment !== undefined ? Number(entry.assignment) : null,
+            exam: entry.exam !== '' && entry.exam !== null && entry.exam !== undefined ? Number(entry.exam) : null
+          };
+        });
+
+        return {
+          admissionNumber: st.admissionNo,
+          studentName: `${st.lastName} ${st.firstName}`,
+          scores: scoresPayload
+        };
+      });
+
+      const res = await fetch('/api/broadsheet/import', {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({
+          schoolId: session.school.id,
+          classId: classInfo.class.id,
+          armId: classInfo.arm.id,
+          termId: term.id,
+          records
+        })
+      });
+
+      const json = await res.json();
+      if (!res.ok || !json.success) {
+        alert(json.error || 'Failed to save broadsheet edits.');
+        return;
+      }
+
+      alert('Broadsheet scores updated successfully!');
+      setIsEditingBroadsheet(false);
+      // Re-fetch updated broadsheet data to calculate new ranks and averages
+      await handleFetchBroadsheetForView();
+    } catch (err: any) {
+      console.error('Broadsheet save error:', err);
+      alert('Error saving broadsheet changes.');
+    } finally {
+      setSavingBroadsheet(false);
+    }
   };
 
   const handleExportBroadsheet = async () => {
@@ -991,9 +1119,20 @@ export default function ClassTeacherDashboard() {
 
               <button
                 type="button"
+                onClick={handleFetchBroadsheetForView}
+                disabled={fetchingBroadsheet || !classInfo}
+                className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-[11px] font-bold shadow-sm hover:shadow transition-all disabled:opacity-50 cursor-pointer"
+                title="View and edit interactive class broadsheet matrix"
+              >
+                {fetchingBroadsheet ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Eye className="w-3.5 h-3.5" />}
+                <span>{fetchingBroadsheet ? 'Loading...' : '📊 View Broadsheet'}</span>
+              </button>
+
+              <button
+                type="button"
                 onClick={handleExportBroadsheet}
                 disabled={broadsheetLoading || !classInfo}
-                className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-700 hover:bg-slate-100 text-[11px] font-bold transition-all disabled:opacity-50"
+                className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-700 hover:bg-slate-100 text-[11px] font-bold transition-all disabled:opacity-50 cursor-pointer"
                 title="Download class academic broadsheet Excel file"
               >
                 <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600" />
@@ -2196,6 +2335,273 @@ export default function ClassTeacherDashboard() {
             <div className="p-4 border-t border-slate-100">
               <button onClick={() => setViewHistoryRecord(null)} className="w-full py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold">Close</button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Interactive Class Broadsheet Matrix Modal ───────────────────── */}
+      {showBroadsheetModal && viewBroadsheetData && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md flex items-center justify-center p-2 sm:p-4 z-[200] animate-in fade-in duration-150">
+          <div className="bg-white border border-slate-200 rounded-2xl w-full max-w-7xl max-h-[92vh] flex flex-col shadow-2xl overflow-hidden">
+            
+            {/* Modal Header Bar */}
+            <div className="p-4 sm:p-5 border-b border-slate-100 bg-slate-50/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3 flex-shrink-0">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center shadow-md">
+                  <FileSpreadsheet className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-extrabold text-slate-900 flex items-center gap-2">
+                    <span>Academic Broadsheet — {viewBroadsheetData.class.name} ({viewBroadsheetData.arm.name})</span>
+                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-indigo-100 text-indigo-700 uppercase">
+                      {viewBroadsheetData.term.name}
+                    </span>
+                  </h3>
+                  <p className="text-xs text-slate-500 font-medium mt-0.5">
+                    Enrolled Students: <strong className="text-slate-700">{viewBroadsheetData.students.length}</strong> | 
+                    Total Subjects: <strong className="text-slate-700">{viewBroadsheetData.subjects.length}</strong>
+                  </p>
+                </div>
+              </div>
+
+              {/* Action Toolbar */}
+              <div className="flex items-center gap-2 flex-wrap">
+                {/* Search Input */}
+                <div className="relative">
+                  <Search className="w-3.5 h-3.5 absolute left-2.5 top-2.5 text-slate-400" />
+                  <input
+                    type="text"
+                    value={broadsheetSearchQuery}
+                    onChange={(e) => setBroadsheetSearchQuery(e.target.value)}
+                    placeholder="Search student..."
+                    className="pl-8 pr-3 py-1.5 bg-white border border-slate-200 rounded-xl text-xs text-slate-700 focus:outline-none focus:ring-1 focus:ring-indigo-500 w-36 sm:w-44"
+                  />
+                </div>
+
+                {/* Edit / Save Toggle */}
+                {isEditingBroadsheet ? (
+                  <button
+                    onClick={handleSaveBroadsheetEdits}
+                    disabled={savingBroadsheet}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-sm transition-all disabled:opacity-50 cursor-pointer"
+                  >
+                    {savingBroadsheet ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle className="w-3.5 h-3.5" />}
+                    <span>{savingBroadsheet ? 'Saving...' : '💾 Save Scores'}</span>
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => setIsEditingBroadsheet(true)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-50 border border-indigo-200 text-indigo-700 hover:bg-indigo-100 text-xs font-bold transition-all cursor-pointer"
+                  >
+                    <Edit3 className="w-3.5 h-3.5" />
+                    <span>✏️ Edit Scores</span>
+                  </button>
+                )}
+
+                {/* Print Broadsheet */}
+                <button
+                  onClick={() => window.print()}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-all cursor-pointer"
+                  title="Print Broadsheet"
+                >
+                  <Printer className="w-3.5 h-3.5 text-slate-600" />
+                  <span className="hidden sm:inline">Print</span>
+                </button>
+
+                {/* Export Excel */}
+                <button
+                  onClick={handleExportBroadsheet}
+                  disabled={broadsheetLoading}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 hover:bg-emerald-100 text-xs font-bold transition-all cursor-pointer"
+                  title="Download Broadsheet Excel file"
+                >
+                  <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600" />
+                  <span className="hidden sm:inline">Export Excel</span>
+                </button>
+
+                {/* Close Button */}
+                <button
+                  onClick={() => {
+                    setShowBroadsheetModal(false);
+                    setIsEditingBroadsheet(false);
+                  }}
+                  className="p-1.5 rounded-xl hover:bg-slate-200 text-slate-400 hover:text-slate-700 transition-colors ml-1 cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+
+            {/* Modal Body: Scrollable Broadsheet Matrix Table */}
+            <div className="flex-1 overflow-auto p-4 bg-slate-50/50">
+              <div className="inline-block min-w-full align-middle">
+                <table className="min-w-full border-collapse bg-white rounded-xl overflow-hidden border border-slate-200 shadow-sm text-xs">
+                  <thead>
+                    <tr className="bg-slate-800 text-slate-100 font-bold uppercase tracking-wider text-[10px]">
+                      <th className="py-3 px-3 text-center border-b border-r border-slate-700 w-12 sticky left-0 bg-slate-800 z-20">Pos</th>
+                      <th className="py-3 px-4 text-left border-b border-r border-slate-700 min-w-[180px] sticky left-12 bg-slate-800 z-20">Student Name</th>
+                      {viewBroadsheetData.subjects.map((sub: any) => (
+                        <th key={sub.id} className="py-3 px-3 text-center border-b border-r border-slate-700 min-w-[110px]">
+                          <div>{sub.code || sub.name}</div>
+                          <div className="text-[8px] text-slate-400 font-normal normal-case">{sub.name}</div>
+                        </th>
+                      ))}
+                      <th className="py-3 px-3 text-center border-b border-r border-slate-700 bg-slate-900 min-w-[80px]">Total</th>
+                      <th className="py-3 px-3 text-center border-b border-r border-slate-700 bg-slate-900 min-w-[80px]">Avg %</th>
+                      <th className="py-3 px-3 text-center border-b border-r border-slate-700 bg-slate-900 min-w-[70px]">Rank</th>
+                      <th className="py-3 px-3 text-left border-b border-slate-700 bg-slate-900 min-w-[120px]">Overall Remark</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-200 text-slate-700 font-medium">
+                    {viewBroadsheetData.students
+                      .filter((st: any) => {
+                        if (!broadsheetSearchQuery.trim()) return true;
+                        const query = broadsheetSearchQuery.toLowerCase();
+                        const fullName = `${st.lastName} ${st.firstName}`.toLowerCase();
+                        const admNo = (st.admissionNo || '').toLowerCase();
+                        return fullName.includes(query) || admNo.includes(query);
+                      })
+                      .map((student: any) => {
+                        return (
+                          <tr key={student.studentId} className="hover:bg-slate-50/80 transition-colors">
+                            {/* Position Badge */}
+                            <td className="py-2.5 px-3 text-center border-r border-slate-200 sticky left-0 bg-white z-10">
+                              <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
+                                student.position === 1 ? 'bg-amber-100 text-amber-800 border border-amber-300' :
+                                student.position === 2 ? 'bg-slate-200 text-slate-700' :
+                                student.position === 3 ? 'bg-orange-100 text-orange-800' : 'bg-slate-100 text-slate-600'
+                              }`}>
+                                {student.positionFormatted || `${student.position}th`}
+                              </span>
+                            </td>
+
+                            {/* Student Name */}
+                            <td className="py-2.5 px-4 border-r border-slate-200 sticky left-12 bg-white z-10 font-bold text-slate-900">
+                              <div>{student.lastName} {student.firstName}</div>
+                              <div className="text-[10px] font-normal text-slate-400">{student.admissionNo || '—'}</div>
+                            </td>
+
+                            {/* Subjects Scores */}
+                            {viewBroadsheetData.subjects.map((sub: any) => {
+                              const scoreObj = student.subjects?.[sub.id] || {};
+                              const editEntry = editedBroadsheetScores[student.studentId]?.[sub.id] || {};
+
+                              if (isEditingBroadsheet) {
+                                return (
+                                  <td key={sub.id} className="p-1.5 border-r border-slate-200 text-center bg-indigo-50/30">
+                                    <div className="grid grid-cols-4 gap-0.5 max-w-[130px] mx-auto text-[10px]">
+                                      <input
+                                        type="number"
+                                        placeholder="CA1"
+                                        value={editEntry.ca1 ?? ''}
+                                        onChange={(e) => handleBroadsheetScoreChange(student.studentId, sub.id, 'ca1', e.target.value)}
+                                        className="w-full text-center px-0.5 py-1 bg-white border border-slate-200 rounded text-slate-800 font-bold focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                                        title="CA1 (max 15)"
+                                      />
+                                      <input
+                                        type="number"
+                                        placeholder="CA2"
+                                        value={editEntry.ca2 ?? ''}
+                                        onChange={(e) => handleBroadsheetScoreChange(student.studentId, sub.id, 'ca2', e.target.value)}
+                                        className="w-full text-center px-0.5 py-1 bg-white border border-slate-200 rounded text-slate-800 font-bold focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                                        title="CA2 (max 15)"
+                                      />
+                                      <input
+                                        type="number"
+                                        placeholder="ASG"
+                                        value={editEntry.assignment ?? ''}
+                                        onChange={(e) => handleBroadsheetScoreChange(student.studentId, sub.id, 'assignment', e.target.value)}
+                                        className="w-full text-center px-0.5 py-1 bg-white border border-slate-200 rounded text-slate-800 font-bold focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                                        title="Assignment (max 10)"
+                                      />
+                                      <input
+                                        type="number"
+                                        placeholder="EXM"
+                                        value={editEntry.exam ?? ''}
+                                        onChange={(e) => handleBroadsheetScoreChange(student.studentId, sub.id, 'exam', e.target.value)}
+                                        className="w-full text-center px-0.5 py-1 bg-white border border-slate-200 rounded text-slate-800 font-bold focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                                        title="Exam (max 60)"
+                                      />
+                                    </div>
+                                  </td>
+                                );
+                              }
+
+                              const formattedTotal = scoreObj.total !== undefined && scoreObj.total !== null 
+                                ? Math.round((Number(scoreObj.total) + Number.EPSILON) * 100) / 100 
+                                : null;
+
+                              return (
+                                <td key={sub.id} className="py-2.5 px-3 border-r border-slate-200 text-center">
+                                  {formattedTotal !== null ? (
+                                    <div className="flex items-center justify-center gap-1.5">
+                                      <span className="font-extrabold text-slate-900">{formattedTotal}</span>
+                                      {scoreObj.grade && (
+                                        <span className={`px-1 py-0.2 rounded text-[9px] font-black ${
+                                          scoreObj.grade === 'A' ? 'bg-emerald-100 text-emerald-800' :
+                                          scoreObj.grade === 'B' ? 'bg-blue-100 text-blue-800' :
+                                          scoreObj.grade === 'C' ? 'bg-amber-100 text-amber-800' : 'bg-red-100 text-red-800'
+                                        }`}>
+                                          {scoreObj.grade}
+                                        </span>
+                                      )}
+                                    </div>
+                                  ) : (
+                                    <span className="text-slate-300">—</span>
+                                  )}
+                                </td>
+                              );
+                            })}
+
+                            {/* Total Aggregate */}
+                            <td className="py-2.5 px-3 border-r border-slate-200 text-center bg-slate-50 font-black text-indigo-700">
+                              {student.totalScore !== undefined && student.totalScore !== null
+                                ? Math.round((Number(student.totalScore) + Number.EPSILON) * 100) / 100
+                                : '—'}
+                            </td>
+
+                            {/* Average */}
+                            <td className="py-2.5 px-3 border-r border-slate-200 text-center bg-slate-50 font-bold text-slate-800">
+                              {student.averageScore !== undefined && student.averageScore !== null
+                                ? `${Math.round((Number(student.averageScore) + Number.EPSILON) * 100) / 100}%`
+                                : '—'}
+                            </td>
+
+                            {/* Position */}
+                            <td className="py-2.5 px-3 border-r border-slate-200 text-center bg-slate-50 font-extrabold text-slate-900">
+                              {student.positionFormatted || `${student.position}th`}
+                            </td>
+
+                            {/* Remark */}
+                            <td className="py-2.5 px-3 text-left bg-slate-50 text-[11px] text-slate-600">
+                              {student.overallRemark || '—'}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* Modal Footer Bar */}
+            <div className="p-4 border-t border-slate-100 bg-white flex items-center justify-between text-xs text-slate-500 flex-shrink-0">
+              <div>
+                <span>* Scores are computed out of 100. CA1 (15), CA2 (15), ASG (10), EXAM (60).</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => {
+                    setShowBroadsheetModal(false);
+                    setIsEditingBroadsheet(false);
+                  }}
+                  className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold transition-all cursor-pointer"
+                >
+                  Close Broadsheet
+                </button>
+              </div>
+            </div>
+
           </div>
         </div>
       )}
