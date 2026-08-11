@@ -1090,11 +1090,29 @@ export default function RebuiltMessagesHub() {
           <button 
             onClick={() => {
               setActiveTab('broadcasts');
+              // Optimistically mark all announcements as seen/read so badge disappears immediately
+              setBroadcasts(prev => prev.map(b => ({ ...b, isRead: true })));
+
               if (currentUser?.role !== 'SUPER_ADMIN' && school && currentUser) {
                 fetch(`/api/messages?schoolId=${school.id}&userId=${currentUser.id}&mode=inbox`, { headers: getAuthHeaders(null) })
                   .then(res => res.json())
                   .then(json => {
-                    if (json.success) setBroadcasts(json.data || []);
+                    if (json.success && json.data) {
+                      const list = json.data || [];
+                      setBroadcasts(list.map((b: any) => ({ ...b, isRead: true })));
+                      // Mark read in database
+                      const unreadIds = list.filter((b: any) => !b.isRead).map((b: any) => b.id);
+                      if (unreadIds.length > 0) {
+                        fetch('/api/messages', {
+                          method: 'PATCH',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({
+                            userId: currentUser.id,
+                            messageIds: unreadIds
+                          })
+                        }).catch(console.error);
+                      }
+                    }
                   })
                   .catch(console.error);
               }
