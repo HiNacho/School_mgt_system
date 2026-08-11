@@ -389,4 +389,63 @@ export async function PATCH(req: NextRequest) {
   }
 }
 
+// 4. DELETE: Delete single announcement or clear entire announcement feed for user/school
+export async function DELETE(req: NextRequest) {
+  try {
+    const { searchParams } = new URL(req.url);
+    const messageId = searchParams.get('messageId');
+    const userId = searchParams.get('userId');
+    const schoolId = searchParams.get('schoolId');
+    const clearAll = searchParams.get('clearAll') === 'true';
+
+    if (clearAll) {
+      if (!userId || !schoolId) {
+        return NextResponse.json({ error: 'User ID and School ID are required to clear feed' }, { status: 400 });
+      }
+
+      // Delete recipient records for this user in this school
+      await prisma.messageRecipient.deleteMany({
+        where: {
+          recipientId: userId,
+          message: { schoolId }
+        }
+      });
+
+      // If user is Admin/Sender, also delete Message records created by them or in school
+      await prisma.message.deleteMany({
+        where: {
+          schoolId,
+          senderId: userId
+        }
+      });
+
+      return NextResponse.json({ success: true, message: 'Announcement feed successfully cleared!' });
+    }
+
+    if (!messageId) {
+      return NextResponse.json({ error: 'Message ID or clearAll parameter is required' }, { status: 400 });
+    }
+
+    // Delete single announcement mapping for recipient
+    if (userId) {
+      await prisma.messageRecipient.deleteMany({
+        where: {
+          recipientId: userId,
+          messageId
+        }
+      });
+    }
+
+    // Also attempt deleting primary Message record if user is author/admin
+    await prisma.message.deleteMany({
+      where: { id: messageId }
+    }).catch(() => {});
+
+    return NextResponse.json({ success: true, message: 'Announcement cleared successfully!' });
+  } catch (error: any) {
+    console.error('Messages DELETE Error:', error);
+    return NextResponse.json({ error: `Failed to delete announcement: ${error.message || error}` }, { status: 500 });
+  }
+}
+
 export const dynamic = 'force-dynamic';

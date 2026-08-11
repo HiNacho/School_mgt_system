@@ -6,7 +6,7 @@ import {
   RefreshCw, Calendar, Megaphone, Inbox, Bookmark, Eye,
   AlertTriangle, Clock, ArrowRight, ShieldAlert, Award, FileText,
   ArrowLeft, Check, BookOpen, Sparkles, Filter, Search, Plus, 
-  Settings, CheckSquare, XCircle, UserCheck, Paperclip, ChevronRight, X
+  Settings, CheckSquare, XCircle, UserCheck, Paperclip, ChevronRight, X, Trash2
 } from 'lucide-react';
 
 interface ChatConversation {
@@ -977,6 +977,48 @@ export default function RebuiltMessagesHub() {
     }
   };
 
+  // Clear single announcement from feed
+  const handleClearAnnouncement = async (messageId: string) => {
+    if (!currentUser) return;
+    setErrorMsg('');
+    setSuccessMsg('');
+    try {
+      const res = await fetch(`/api/messages?messageId=${messageId}&userId=${currentUser.id}`, {
+        method: 'DELETE',
+        headers: getAuthHeaders(null)
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || 'Failed to clear announcement');
+      
+      setBroadcasts(prev => prev.filter(b => b.id !== messageId));
+      setSuccessMsg('Announcement cleared from feed');
+    } catch (err: any) {
+      setErrorMsg(err.message || 'Failed to delete announcement');
+    }
+  };
+
+  // Clear entire announcement feed
+  const handleClearAllAnnouncements = async () => {
+    if (!currentUser || !school) return;
+    if (!window.confirm('Are you sure you want to clear all announcements from your feed?')) return;
+    
+    setErrorMsg('');
+    setSuccessMsg('');
+    try {
+      const res = await fetch(`/api/messages?schoolId=${school.id}&userId=${currentUser.id}&clearAll=true`, {
+        method: 'DELETE',
+        headers: getAuthHeaders(null)
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || 'Failed to clear announcement feed');
+      
+      setBroadcasts([]);
+      setSuccessMsg('Announcement feed cleared successfully!');
+    } catch (err: any) {
+      setErrorMsg(err.message || 'Failed to clear announcement feed');
+    }
+  };
+
   // Filter conversations based on category and search query (any order matches)
   const filteredConversations = conversations.filter(c => {
     const matchesCategory = chatCategoryFilter === 'ALL' || c.category === chatCategoryFilter;
@@ -1580,21 +1622,33 @@ export default function RebuiltMessagesHub() {
                   ) : (
                     <>
                       <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-                        <h2 className="text-sm font-bold text-slate-900">Announcements Feed</h2>
-                        <span className="text-[10px] font-bold text-slate-400 bg-slate-100 px-2.5 py-0.5 rounded-full">
-                          {broadcasts.length} Active
-                        </span>
+                        <div className="flex items-center gap-2">
+                          <h2 className="text-sm font-bold text-slate-900">Announcements Feed</h2>
+                          <span className="text-[10px] font-bold text-slate-400 bg-slate-100 px-2.5 py-0.5 rounded-full">
+                            {broadcasts.length} Active
+                          </span>
+                        </div>
+                        {broadcasts.length > 0 && (
+                          <button
+                            onClick={handleClearAllAnnouncements}
+                            className="flex items-center gap-1 text-[11px] font-bold text-red-600 hover:text-red-700 bg-red-50 hover:bg-red-100 px-2.5 py-1 rounded-lg transition-all cursor-pointer"
+                            title="Clear all announcements from feed"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                            <span>Clear Feed</span>
+                          </button>
+                        )}
                       </div>
 
                       <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-1">
                         {broadcasts.length === 0 ? (
                           <div className="p-8 text-center text-slate-400 text-xs">
                             <Megaphone className="w-8 h-8 mx-auto mb-2 text-slate-300" />
-                            No announcements broadcasted yet.
+                            No announcements in feed.
                           </div>
                         ) : (
                       broadcasts.map((broad) => (
-                        <div key={broad.id} className={`p-4 border border-slate-150 rounded-xl hover:bg-slate-50/50 transition-all ${broad.isPinned ? 'border-l-4 border-l-amber-500' : ''}`}>
+                        <div key={broad.id} className={`p-4 border border-slate-150 rounded-xl hover:bg-slate-50/50 transition-all relative ${broad.isPinned ? 'border-l-4 border-l-amber-500' : ''}`}>
                           <div className="flex items-center justify-between gap-4">
                             <h3 className="text-xs font-bold text-slate-900">{broad.title}</h3>
                             <div className="flex items-center gap-1.5 flex-shrink-0">
@@ -1606,6 +1660,13 @@ export default function RebuiltMessagesHub() {
                               <span className={`px-1.5 py-0.5 rounded text-[9px] font-semibold uppercase tracking-wider ${broad.priority === 'URGENT' ? 'bg-red-100 text-red-700' : broad.priority === 'HIGH' ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-600'}`}>
                                 {broad.priority}
                               </span>
+                              <button
+                                onClick={() => handleClearAnnouncement(broad.id)}
+                                className="text-slate-400 hover:text-red-600 p-1 rounded-md hover:bg-red-50 transition-all ml-1 cursor-pointer"
+                                title="Dismiss / Clear announcement"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
                             </div>
                           </div>
                           <p className="text-[11px] text-slate-600 mt-2 whitespace-pre-wrap leading-relaxed">{broad.body}</p>
