@@ -341,8 +341,13 @@ export async function POST(req: NextRequest) {
         throw new Error('Target conversation thread not found');
       }
 
-      // Identify receiver user ID
-      const notifyUserId = session.userId === conversation.parentId ? conversation.teacherId : conversation.parentId;
+      // Identify receiver user ID safely
+      let notifyUserId = conversation.parentId;
+      if (session.userId === conversation.parentId) {
+        notifyUserId = conversation.teacherId;
+      } else if (session.userId === conversation.teacherId) {
+        notifyUserId = conversation.parentId;
+      }
 
       // 2. Append Chat Message
       const newMessage = await tx.chatMessage.create({
@@ -370,12 +375,13 @@ export async function POST(req: NextRequest) {
       });
 
       // 4. Trigger In-App Notification
-      const senderName = `${newMessage.sender.firstName} ${newMessage.sender.lastName}`;
+      const senderName = newMessage.sender ? `${newMessage.sender.firstName} ${newMessage.sender.lastName}` : 'User';
+      const studentLabel = conversation.student ? conversation.student.firstName : 'Student';
       await tx.notification.create({
         data: {
           schoolId,
           userId: notifyUserId,
-          message: `New message from ${senderName} (regarding ${conversation.student.firstName}): "${messageBody.slice(0, 50)}${messageBody.length > 50 ? '...' : ''}"`
+          message: `New message from ${senderName} (regarding ${studentLabel}): "${messageBody.slice(0, 50)}${messageBody.length > 50 ? '...' : ''}"`
         }
       });
 

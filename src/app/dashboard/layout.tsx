@@ -154,17 +154,28 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   useEffect(() => {
     if (!ready || !session) return;
 
-    if (session.school?.id) {
-      fetchUnreadNotifications(session.school.id, session.user.id);
-    }
-
-    const interval = setInterval(() => {
-      if (session.school?.id) {
+    const handleUpdate = () => {
+      if (session.school?.id && session.user?.id) {
         fetchUnreadNotifications(session.school.id, session.user.id);
       }
-    }, 15000); // Poll every 15 seconds
+    };
 
-    return () => clearInterval(interval);
+    if (session.school?.id && session.user?.id) {
+      handleUpdate();
+    }
+
+    const interval = setInterval(handleUpdate, 4000); // Poll every 4 seconds for fast near-real-time updates
+
+    if (typeof window !== 'undefined') {
+      window.addEventListener('app_unread_notifications_updated', handleUpdate);
+    }
+
+    return () => {
+      clearInterval(interval);
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('app_unread_notifications_updated', handleUpdate);
+      }
+    };
   }, [ready, session]);
 
   // Telemetry: Time spent active heartbeat

@@ -467,8 +467,8 @@ export default function StudentFeesPage() {
                   >
                     <div className="flex items-center gap-3">
                       <div className="w-9 h-9 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-500 font-bold text-xs overflow-hidden">
-                        {student.passportPhoto ? (
-                          <img src={student.passportPhoto} alt="Passport" className="w-full h-full object-cover" />
+                        {(student as any).passportPhoto ? (
+                          <img src={(student as any).passportPhoto} alt="Passport" className="w-full h-full object-cover" />
                         ) : (
                           <User className="w-4 h-4" />
                         )}
@@ -516,8 +516,8 @@ export default function StudentFeesPage() {
                 <div className="absolute top-0 right-0 w-32 h-32 rounded-full bg-emerald-50/50 blur-3xl pointer-events-none" />
                 <div className="flex flex-col sm:flex-row gap-5 items-start sm:items-center">
                   <div className="w-20 h-20 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-400 overflow-hidden shadow-sm flex-shrink-0">
-                    {selectedStudent.passportPhoto ? (
-                      <img src={selectedStudent.passportPhoto} alt="Passport" className="w-full h-full object-cover" />
+                    {(selectedStudent as any).passportPhoto ? (
+                      <img src={(selectedStudent as any).passportPhoto} alt="Passport" className="w-full h-full object-cover" />
                     ) : (
                       <User className="w-8 h-8" />
                     )}
@@ -1069,16 +1069,16 @@ export default function StudentFeesPage() {
                   <span className="text-slate-400 uppercase font-medium">Subtotal:</span>
                   <span className="font-bold">₦{activeInvoice.amount.toLocaleString()}</span>
                 </div>
-                {activeInvoice.scholarship > 0 && (
+                {(activeInvoice as any).scholarship > 0 && (
                   <div className="flex justify-between text-purple-600">
                     <span>Scholarship Exemption:</span>
-                    <span>-₦{activeInvoice.scholarship.toLocaleString()}</span>
+                    <span>-₦{(activeInvoice as any).scholarship.toLocaleString()}</span>
                   </div>
                 )}
-                {activeInvoice.discount > 0 && (
+                {(activeInvoice as any).discount > 0 && (
                   <div className="flex justify-between text-blue-600">
                     <span>Discount Reduction:</span>
-                    <span>-₦{activeInvoice.discount.toLocaleString()}</span>
+                    <span>-₦{(activeInvoice as any).discount.toLocaleString()}</span>
                   </div>
                 )}
                 <div className="flex justify-between items-center text-sm font-black border-t border-dashed border-slate-200 pt-2 text-slate-900">

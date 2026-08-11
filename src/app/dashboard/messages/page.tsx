@@ -677,6 +677,9 @@ export default function RebuiltMessagesHub() {
       
       // Update lastActivity locally on conversation list
       setConversations(prev => prev.map(c => c.id === selectedConversation.id ? { ...c, lastActivity: new Date().toISOString() } : c));
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('app_unread_notifications_updated'));
+      }
     } catch (err: any) {
       setErrorMsg(err.message || 'Failed to deliver message');
     } finally {

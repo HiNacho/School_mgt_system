@@ -303,9 +303,11 @@ export async function POST(req: NextRequest) {
         }
       });
 
-      // 2. Bulk insert recipient mappings & in-app Notifications
-      if (targetRecipientUserIds.length > 0) {
-        const recipientData = targetRecipientUserIds.map(uid => ({
+      // 2. Bulk insert recipient mappings & in-app Notifications (excluding sender)
+      const filteredRecipients = targetRecipientUserIds.filter(uid => uid !== senderId);
+
+      if (filteredRecipients.length > 0) {
+        const recipientData = filteredRecipients.map(uid => ({
           messageId: message.id,
           recipientId: uid,
           isRead: false
@@ -316,7 +318,7 @@ export async function POST(req: NextRequest) {
         });
 
         // Generate topbar notification records
-        const notificationData = targetRecipientUserIds.map(uid => ({
+        const notificationData = filteredRecipients.map(uid => ({
           schoolId,
           userId: uid,
           message: `📢 Announcement: ${title}`
@@ -327,7 +329,7 @@ export async function POST(req: NextRequest) {
         });
       }
 
-      return { message, recipientsCount: targetRecipientUserIds.length };
+      return { message, recipientsCount: filteredRecipients.length };
     });
 
     return NextResponse.json({ 

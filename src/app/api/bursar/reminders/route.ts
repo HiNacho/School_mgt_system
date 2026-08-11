@@ -162,9 +162,7 @@ export async function POST(req: NextRequest) {
       data: {
         schoolId,
         userId: session.userId, // notify the bursar/admin
-        title: 'Payment Reminder Sent',
-        message: `Reminder sent to parent of ${student.firstName} ${student.lastName} regarding unpaid Invoice ${invoice.invoiceNumber}.`,
-        type: 'SYSTEM'
+        message: `📢 Payment Reminder Sent: Reminder sent to parent of ${student.firstName} ${student.lastName} regarding unpaid Invoice ${invoice.invoiceNumber}.`
       }
     });
 

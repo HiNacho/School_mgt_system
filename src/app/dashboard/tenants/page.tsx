@@ -81,6 +81,12 @@ export default function SchoolTenantsPage() {
   // Detail Drawer State
   const [viewingTenant, setViewingTenant] = useState<SchoolTenant | null>(null);
 
+  // System Broadcast State
+  const [broadcastTitle, setBroadcastTitle] = useState('');
+  const [broadcastBody, setBroadcastBody] = useState('');
+  const [broadcastTarget, setBroadcastTarget] = useState('ALL');
+  const [sendingBroadcast, setSendingBroadcast] = useState(false);
+
   // Status feedback
   const [successMsg, setSuccessMsg] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
