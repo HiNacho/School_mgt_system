@@ -879,7 +879,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       {/* 3. Main Content Wrapper */}
       <div className="flex-1 flex flex-col overflow-hidden relative">
         {/* Topbar */}
-        <header className="h-16 bg-white border-b border-slate-200/80 px-6 flex items-center justify-between flex-shrink-0 z-[100]">
+        <header className="h-16 bg-white border-b border-slate-200/80 px-4 sm:px-6 flex items-center justify-between flex-shrink-0 z-[100]">
           {/* Left menu toggle */}
           <div className="flex items-center gap-4">
             <button
@@ -913,8 +913,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   {/* Invisible Overlay to close on click outside */}
                   <div className="fixed inset-0 z-[105]" onClick={() => setBellOpen(false)} />
                   
-                  {/* Glassmorphic Dropdown Panel */}
-                  <div className="absolute right-0 mt-2.5 w-96 max-w-[90vw] bg-white border border-slate-200 rounded-2xl shadow-2xl z-[110] overflow-hidden font-sans animate-fadeIn">
+                  {/* Glassmorphic Responsive Dropdown Panel */}
+                  <div className="fixed top-16 left-3 right-3 sm:absolute sm:top-auto sm:left-auto sm:right-0 sm:mt-2.5 w-auto sm:w-96 max-w-[calc(100vw-1.5rem)] sm:max-w-[90vw] bg-white border border-slate-200 rounded-2xl shadow-2xl z-[110] overflow-hidden font-sans animate-fadeIn">
                     {/* Panel Header */}
                     <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
                       <div className="flex items-center gap-2">
