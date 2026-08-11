@@ -413,13 +413,20 @@ export async function PATCH(req: NextRequest) {
       return NextResponse.json({ error: 'Conversation thread not found' }, { status: 404 });
     }
 
-    // Admins and teachers can change status (Resolve/Close)
-    const isAuthorized =
+    // Allow any participant in the conversation thread (teacher/parent/admin) or staff to resolve/close
+    const isParticipant =
+      conversation.teacherId === session.userId ||
+      conversation.parentId === session.userId;
+
+    const isStaffOrAdmin =
       session.role === 'SCHOOL_ADMIN' ||
       session.role === 'SUPER_ADMIN' ||
-      conversation.teacherId === session.userId;
+      session.role === 'HEAD_TEACHER' ||
+      session.role === 'CLASS_TEACHER' ||
+      session.role === 'SUBJECT_TEACHER' ||
+      session.role === 'BURSAR';
 
-    if (!isAuthorized) {
+    if (!isParticipant && !isStaffOrAdmin) {
       return NextResponse.json({ error: 'Unauthorized role permissions' }, { status: 403 });
     }
 
