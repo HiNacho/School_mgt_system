@@ -345,7 +345,7 @@ export default function LandingPage() {
           ? 'bg-white/95 backdrop-blur-md border-b border-[#e9ecef] shadow-[0_2px_20px_rgba(0,0,0,0.02)]' 
           : 'bg-white border-b border-[#e9ecef]'
       }`}>
-        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+        <div className="max-w-7xl mx-auto px-6 py-3 flex items-center justify-between">
           {/* Left: Desktop Navigation Links */}
           <nav className="hidden md:flex items-center gap-8 text-[11px] font-bold text-[#64748b] uppercase tracking-widest">
             <a href="#about" className="hover:text-[#0b5c3a] transition-colors duration-200">About</a>
@@ -355,7 +355,7 @@ export default function LandingPage() {
 
           {/* Center: Logo Brand */}
           <div className="flex items-center gap-2.5 md:absolute md:left-1/2 md:-translate-x-1/2">
-            <img src="/header_teal.png" alt="Operon Logo" className="h-14 sm:h-16 w-auto object-contain py-1" />
+            <img src="/header_teal.png" alt="Operon Logo" className="h-10 sm:h-12 md:h-14 w-auto object-contain" />
           </div>
           
           {/* Right: Auth Controls */}
