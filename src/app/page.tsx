@@ -445,7 +445,7 @@ export default function LandingPage() {
             <span className="font-poppins-bold text-4xl sm:text-5xl tracking-wide text-white">
               Operon
             </span>
-            <div className="w-16 h-1 bg-[#00ff80] rounded-full mt-1"></div>
+            <div className="w-16 h-1 bg-[#14B8A6] rounded-full mt-1"></div>
           </div>
 
           {/* Centered Buttons - Fixed Width sm:w-56 for identical length */}
