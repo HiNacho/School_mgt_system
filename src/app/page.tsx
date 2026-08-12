@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { 
   Shield, Sparkles, BookOpen, Layers, BarChart3, ArrowRight, 
   CheckCircle, Smartphone, HelpCircle, MessageSquare, Phone, 
-  Mail, MapPin, Menu, X, Compass, Target, Award, Users, Heart, Loader2, GraduationCap, Key
+  Mail, MapPin, Menu, X, Compass, Target, Award, Users, Heart, Loader2, GraduationCap, Key, CreditCard
 } from 'lucide-react';
 
 export default function LandingPage() {
@@ -1345,6 +1345,14 @@ export default function LandingPage() {
                     email: 'student@nacho.com',
                     icon: GraduationCap,
                     color: 'text-violet-600 border-violet-150 bg-violet-50/10'
+                  },
+                  {
+                    role: 'BURSAR',
+                    name: 'Bursar & Finance',
+                    desc: 'Manage student fees, issue invoices, process payments, and view financial reports.',
+                    email: 'bursar@nacho.com',
+                    icon: CreditCard,
+                    color: 'text-emerald-600 border-emerald-150 bg-emerald-50/10'
                   }
                 ].map((persona) => {
                   const Icon = persona.icon;

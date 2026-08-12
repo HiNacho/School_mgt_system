@@ -13,6 +13,7 @@ import {
   ResponsiveContainer, Legend, PieChart, Pie, Cell 
 } from 'recharts';
 import SuperAdminDashboard from './SuperAdminDashboard';
+import BursarReportsPage from './bursar/reports/page';
 
 export default function DashboardHome() {
   const [session, setSession] = useState<any>(null);
@@ -69,10 +70,6 @@ export default function DashboardHome() {
     const userSession = localStorage.getItem('report_user_session');
     if (userSession) {
       const parsed = JSON.parse(userSession);
-      if (parsed.user?.role === 'BURSAR') {
-        router.replace('/dashboard/bursar/reports');
-        return;
-      }
       setSession(parsed);
       fetchDashboardDetails(parsed);
     }
@@ -199,6 +196,11 @@ export default function DashboardHome() {
 
         // Map parents count to actual registered school parents
         setParents(new Array(totalParents).fill({}));
+        setLoading(false);
+        return;
+      }
+
+      if (role === 'BURSAR') {
         setLoading(false);
         return;
       }
@@ -705,6 +707,10 @@ export default function DashboardHome() {
 
   if (role === 'SUPER_ADMIN') {
     return <SuperAdminDashboard user={user} school={school} />;
+  }
+
+  if (role === 'BURSAR') {
+    return <BursarReportsPage />;
   }
 
   const activeStudents = students.filter(s => s.status === 'ACTIVE');
