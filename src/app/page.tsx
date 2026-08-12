@@ -440,12 +440,12 @@ export default function LandingPage() {
         
         <div className="max-w-4xl mx-auto px-6 relative z-10 flex flex-col items-center justify-center text-center space-y-8 animate-fade-in">
           {/* Logo & Brand Name */}
-          <div className="flex flex-col items-center gap-4">
-            <img src="/teal_logo_icon.png" alt="Operon Logo" className="w-32 h-32 sm:w-40 sm:h-40 object-contain drop-shadow-lg" />
-            <span className="font-poppins-bold text-4xl sm:text-5xl tracking-wide text-white">
+          <div className="flex flex-col items-center gap-1">
+            <img src="/teal_logo_icon.png" alt="Operon Logo" className="w-28 h-28 sm:w-36 sm:h-36 object-contain drop-shadow-lg" />
+            <span className="font-poppins-bold text-4xl sm:text-5xl tracking-wide text-white -mt-2">
               Operon
             </span>
-            <div className="w-16 h-1 bg-[#14B8A6] rounded-full mt-1"></div>
+            <div className="w-16 h-1 bg-[#14B8A6] rounded-full mt-1.5"></div>
           </div>
 
           {/* Centered Buttons - Fixed Width sm:w-56 for identical length */}
