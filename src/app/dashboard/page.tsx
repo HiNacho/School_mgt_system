@@ -833,7 +833,7 @@ export default function DashboardHome() {
         <div>
           <span className="text-[9px] font-bold tracking-widest text-[#94a3b8] uppercase">{school?.name || 'Operon'} Operating Hub</span>
           <h1 className="text-xl font-normal text-[#1e293b] tracking-tight mt-1">
-            Hello, <span className="text-[#14B8A6] serif-italic font-normal">{user.firstName} {user.lastName}</span>!
+            Hello, <span className="text-[#10b981] serif-italic font-normal">{user.firstName} {user.lastName}</span>!
           </h1>
           <p className="text-xs text-[#64748b] font-semibold mt-0.5">
             Active Tenant Boundary: <strong className="text-[#1e293b] font-bold">{school?.name || 'Operon Global Platform'}</strong> • Authorized Role: <strong className="text-slate-600 capitalize">{role.toLowerCase().replace('_', ' ')}</strong>
