@@ -353,11 +353,7 @@ export default function LandingPage() {
             <a href="#contact" className="hover:text-[#0b5c3a] transition-colors duration-200">Contact Us</a>
           </nav>
 
-          {/* Center: Logo Brand */}
-          <div className="flex items-center gap-2.5 md:absolute md:left-1/2 md:-translate-x-1/2">
-            <img src="/header_teal.png" alt="Operon Logo" className="h-14 sm:h-16 md:h-20 w-auto object-contain" />
-          </div>
-          
+
           {/* Right: Auth Controls */}
           <div className="hidden md:flex items-center gap-4">
             <button
