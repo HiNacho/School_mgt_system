@@ -441,7 +441,7 @@ export default function LandingPage() {
         <div className="max-w-4xl mx-auto px-6 relative z-10 flex flex-col items-center justify-center text-center space-y-8 animate-fade-in">
           {/* Logo & Brand Name */}
           <div className="flex flex-col items-center gap-4">
-            <img src="/logo.png" alt="Operon Logo" className="w-16 h-16 object-contain drop-shadow-md" />
+            <img src="/teal_logo_icon.png" alt="Operon Logo" className="w-16 h-16 object-contain drop-shadow-md" />
             <span className="font-poppins-bold text-4xl sm:text-5xl tracking-wide text-white">
               Operon
             </span>
