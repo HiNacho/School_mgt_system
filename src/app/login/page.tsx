@@ -146,7 +146,7 @@ export default function LoginPage() {
           {/* STANDARD LOGIN FORM ONLY */}
           <div className="space-y-6">
             <div className="space-y-1">
-              <div className="flex items-center gap-2 text-[#10b981]">
+              <div className="flex items-center gap-2 text-[#14B8A6]">
                 <Key className="w-4 h-4" />
                 <span className="text-[10px] font-bold uppercase tracking-widest">Portal Access</span>
               </div>

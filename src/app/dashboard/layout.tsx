@@ -604,9 +604,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
         /* Status Badge/Card overrides (keeps semantics but clean/soft) */
         .bg-green-50, .bg-emerald-50\/20 {
-          background-color: #eafaf1 !important;
-          color: #10b981 !important;
-          border-color: #d1fae5 !important;
+          background-color: #f0fdfa !important;
+          color: #14B8A6 !important;
+          border-color: #ccfbf1 !important;
         }
         .bg-red-50, .bg-red-50\/20 {
           background-color: #fbf1f2 !important;
@@ -619,7 +619,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           border-color: #fef3c7 !important;
         }
         .text-green-800, .text-emerald-800 {
-          color: #10b981 !important;
+          color: #14B8A6 !important;
         }
         .text-red-800 {
           color: #ef4444 !important;

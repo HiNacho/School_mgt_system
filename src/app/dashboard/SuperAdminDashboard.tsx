@@ -668,7 +668,7 @@ export default function SuperAdminDashboard({ user, school }: SuperAdminDashboar
             <div key={service} className="p-3 rounded-xl border border-slate-100 bg-slate-50/50 flex flex-col gap-1.5">
               <span className="text-[10px] text-slate-400 font-bold capitalize">{service.replace(/([A-Z])/g, ' $1')}</span>
               <div className="flex items-center gap-1.5">
-                <span className={`w-2 h-2 rounded-full ${status === 'HEALTHY' ? 'bg-emerald-500 shadow-[0_0_8px_#10b981] animate-pulse' : 'bg-amber-400'}`} />
+                <span className={`w-2 h-2 rounded-full ${status === 'HEALTHY' ? 'bg-emerald-500 shadow-[0_0_8px_#14B8A6] animate-pulse' : 'bg-amber-400'}`} />
                 <span className="text-xs font-black text-slate-700">{status}</span>
               </div>
             </div>
@@ -745,7 +745,7 @@ export default function SuperAdminDashboard({ user, school }: SuperAdminDashboar
               {/* Sparkline */}
               <div className="h-6 w-full mt-2">
                 <svg className="w-full h-full" viewBox="0 0 100 20">
-                  <path d="M 0 18 Q 15 15, 30 10 T 60 8 T 90 4 T 100 1" fill="none" stroke="#10b981" strokeWidth="2" />
+                  <path d="M 0 18 Q 15 15, 30 10 T 60 8 T 90 4 T 100 1" fill="none" stroke="#14B8A6" strokeWidth="2" />
                 </svg>
               </div>
             </div>
