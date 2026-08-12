@@ -355,7 +355,7 @@ export default function LandingPage() {
 
           {/* Center: Logo Brand */}
           <div className="flex items-center gap-2.5 md:absolute md:left-1/2 md:-translate-x-1/2">
-            <img src="/header_teal.png" alt="Operon Logo" className="h-10 sm:h-12 md:h-14 w-auto object-contain" />
+            <img src="/header_teal.png" alt="Operon Logo" className="h-14 sm:h-16 md:h-20 w-auto object-contain" />
           </div>
           
           {/* Right: Auth Controls */}
@@ -363,13 +363,13 @@ export default function LandingPage() {
             <button
               type="button"
               onClick={() => setRegModalOpen(true)}
-              className="px-5 py-2 border border-[#cbd5e1] hover:border-[#00ff80] hover:bg-[#00ff80] text-[#475569] hover:text-slate-900 text-[10px] font-black tracking-widest uppercase transition-all duration-200"
+              className="px-5 py-2.5 border border-[#cbd5e1] hover:border-[#14B8A6] hover:bg-[#14B8A6] text-[#475569] hover:text-white text-[10px] font-black tracking-widest uppercase transition-all duration-200"
             >
               Register Interest
             </button>
             <Link
               href="/login"
-              className="px-5 py-2 bg-[#00ff80] hover:bg-[#00e673] text-slate-900 text-[10px] font-black tracking-widest uppercase transition-all duration-200 shadow-sm"
+              className="px-5 py-2.5 bg-[#14B8A6] hover:bg-[#0d9488] text-white text-[10px] font-black tracking-widest uppercase transition-all duration-200 shadow-sm"
             >
               Sign In
             </Link>
@@ -459,7 +459,7 @@ export default function LandingPage() {
             </button>
             <Link
               href="/login"
-              className="w-full sm:w-56 py-4 bg-[#00ff80] hover:bg-[#00e673] text-slate-900 text-xs font-black tracking-widest uppercase transition-all duration-200 shadow-md text-center flex items-center justify-center"
+              className="w-full sm:w-56 py-4 bg-[#14B8A6] hover:bg-[#0d9488] text-white text-xs font-black tracking-widest uppercase transition-all duration-200 shadow-md text-center flex items-center justify-center"
             >
               Sign In
             </Link>
