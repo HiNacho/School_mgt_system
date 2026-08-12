@@ -18,11 +18,11 @@ export const metadata: Metadata = {
   description: "A beautifully minimalist operating system for academic administration, score sheets, report cards compiler, and billing workflow automation.",
   icons: {
     icon: [
-      { url: '/teal_logo_icon.png?v=2', type: 'image/png' },
-      { url: '/favicon.ico?v=2', sizes: 'any' },
+      { url: '/icon.png?v=3', type: 'image/png' },
+      { url: '/favicon.ico?v=3', sizes: 'any' },
     ],
-    shortcut: '/favicon.ico?v=2',
-    apple: '/teal_logo_icon.png?v=2',
+    shortcut: '/favicon.ico?v=3',
+    apple: '/icon.png?v=3',
   },
 };
 
@@ -37,10 +37,10 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <head>
-        <link rel="icon" href="/teal_logo_icon.png?v=2" type="image/png" />
-        <link rel="icon" href="/favicon.ico?v=2" sizes="any" />
-        <link rel="shortcut icon" href="/favicon.ico?v=2" />
-        <link rel="apple-touch-icon" href="/teal_logo_icon.png?v=2" />
+        <link rel="icon" href="/icon.png?v=3" type="image/png" />
+        <link rel="icon" href="/favicon.ico?v=3" sizes="any" />
+        <link rel="shortcut icon" href="/favicon.ico?v=3" />
+        <link rel="apple-touch-icon" href="/icon.png?v=3" />
         <link rel="manifest" href="/manifest.json" />
         <meta name="theme-color" content="#020617" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
