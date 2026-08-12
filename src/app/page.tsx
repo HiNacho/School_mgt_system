@@ -355,7 +355,7 @@ export default function LandingPage() {
 
           {/* Center: Logo Brand */}
           <div className="flex items-center gap-2.5 md:absolute md:left-1/2 md:-translate-x-1/2">
-            <img src="/logo_full_dark.png" alt="Operon Logo" className="h-8 w-auto object-contain" />
+            <img src="/logo_full.png" alt="Operon Logo" className="h-10 sm:h-11 w-auto object-contain" />
           </div>
           
           {/* Right: Auth Controls */}
@@ -441,7 +441,7 @@ export default function LandingPage() {
         <div className="max-w-4xl mx-auto px-6 relative z-10 flex flex-col items-center justify-center text-center space-y-8 animate-fade-in">
           {/* Logo & Brand Name */}
           <div className="flex flex-col items-center gap-4">
-            <img src="/teal_logo_icon.png" alt="Operon Logo" className="w-16 h-16 object-contain drop-shadow-md" />
+            <img src="/teal_logo_icon.png" alt="Operon Logo" className="w-32 h-32 sm:w-40 sm:h-40 object-contain drop-shadow-lg" />
             <span className="font-poppins-bold text-4xl sm:text-5xl tracking-wide text-white">
               Operon
             </span>
