@@ -238,15 +238,15 @@ export async function POST(req: NextRequest) {
           <style>
             body { font-family: sans-serif; background-color: #f8fafc; color: #334155; padding: 20px; }
             .container { max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 8px; border: 1px solid #e2e8f0; overflow: hidden; }
-            .header { background-color: #10b981; color: #ffffff; padding: 24px; text-align: center; }
+            .header { background-color: #14B8A6; color: #ffffff; padding: 24px; text-align: center; }
             .content { padding: 24px; line-height: 1.5; }
             .credentials { background-color: #f1f5f9; border-radius: 6px; padding: 16px; margin: 20px 0; border: 1px solid #e2e8f0; }
-            .btn { display: inline-block; background-color: #10b981; color: #ffffff !important; text-decoration: none; padding: 10px 20px; border-radius: 4px; font-weight: bold; }
+            .btn { display: inline-block; background-color: #14B8A6; color: #ffffff !important; text-decoration: none; padding: 10px 20px; border-radius: 4px; font-weight: bold; }
           </style>
         </head>
         <body>
           <div class="container">
-            <div class="header" style="${isCustomer ? 'background-color: #3b82f6;' : 'background-color: #10b981;'}">
+            <div class="header" style="${isCustomer ? 'background-color: #3b82f6;' : 'background-color: #14B8A6;'}">
               <h2>Your Live School Portal is Active!</h2>
             </div>
             <div class="content">
@@ -256,7 +256,7 @@ export async function POST(req: NextRequest) {
               <p>This is a clean, secure instance, isolated within our SaaS database. The system grading rules for <strong>${isPrimary ? 'Primary' : 'Secondary'} school level</strong> have been pre-installed. You can now log in, register your class levels, invite teachers, upload student lists, and start compiling report cards.</p>
               
               <div style="text-align: center; margin: 20px 0;">
-                <a href="http://localhost:3000/login" class="btn" style="${isCustomer ? 'background-color: #3b82f6;' : 'background-color: #10b981;'}">Access Live Login Portal</a>
+                <a href="http://localhost:3000/login" class="btn" style="${isCustomer ? 'background-color: #3b82f6;' : 'background-color: #14B8A6;'}">Access Live Login Portal</a>
               </div>
 
               <div class="credentials">

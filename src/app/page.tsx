@@ -470,7 +470,7 @@ export default function LandingPage() {
         
         {/* Centered Heading with dots */}
         <div className="text-center max-w-2xl mx-auto mb-16 space-y-3">
-          <span className="text-[10px] uppercase font-bold tracking-widest text-[#10b981] block">
+          <span className="text-[10px] uppercase font-bold tracking-widest text-[#14B8A6] block">
             Operon values
           </span>
           <h2 className="text-3xl sm:text-4xl font-normal text-[#1e293b]">
@@ -480,7 +480,7 @@ export default function LandingPage() {
             The Goal, Vision and Mission of Operon
           </p>
           <div className="flex justify-center gap-1.5 pt-2">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#10b981]"></span>
+            <span className="w-1.5 h-1.5 rounded-full bg-[#14B8A6]"></span>
             <span className="w-1.5 h-1.5 rounded-full bg-[#3b82f6]"></span>
             <span className="w-1.5 h-1.5 rounded-full bg-[#db2777]"></span>
           </div>
@@ -537,7 +537,7 @@ export default function LandingPage() {
               {/* Node 1: Secure Shield (Green) */}
               <g transform="translate(290, 85)" className="animate-float">
                 <circle cx="16" cy="16" r="16" fill="#ecfdf5" stroke="#a7f3d0" strokeWidth="1" />
-                <path d="M11 11 L16 9 L21 11 V16 C21 20 16 23 16 23 C16 23 11 20 11 16 V11 Z" fill="#10b981" />
+                <path d="M11 11 L16 9 L21 11 V16 C21 20 16 23 16 23 C16 23 11 20 11 16 V11 Z" fill="#14B8A6" />
               </g>
               
               {/* Node 2: Checkmark (Pink) */}
@@ -569,7 +569,7 @@ export default function LandingPage() {
             {/* Pillar 1: Better Administration (representing Mission) */}
             <div className="space-y-3">
               <h3 className="text-sm font-bold text-[#1e293b] uppercase tracking-wider flex items-center gap-2">
-                <Award className="w-5 h-5 text-[#10b981]" />
+                <Award className="w-5 h-5 text-[#14B8A6]" />
                 Better Administration
               </h3>
               <p className="text-[#64748b] text-xs font-semibold leading-relaxed">
@@ -606,7 +606,7 @@ export default function LandingPage() {
       {/* Solutions Grid Section ("Best Seller Features") */}
       <section id="solutions" className="max-w-7xl mx-auto px-6 py-16 lg:py-24 relative z-10 border-t border-[#e9ecef]">
         <div className="text-center max-w-2xl mx-auto mb-20 space-y-4">
-          <h2 className="text-[10px] uppercase font-bold tracking-widest text-[#10b981]">
+          <h2 className="text-[10px] uppercase font-bold tracking-widest text-[#14B8A6]">
             Best Seller Solutions
           </h2>
           <p className="text-3xl font-normal text-[#1e293b] tracking-tight">
@@ -626,7 +626,7 @@ export default function LandingPage() {
                 <svg viewBox="0 0 100 100" className="w-full h-full" fill="none" xmlns="http://www.w3.org/2000/svg">
                   <path d="M15 70 C30 65 45 68 50 72 C55 68 70 65 85 70 V30 C70 25 55 28 50 32 C45 28 30 25 15 30 Z" fill="#eff6ff" stroke="#3b82f6" strokeWidth="2" />
                   <path d="M50 32 V72" stroke="#3b82f6" strokeWidth="2" />
-                  <rect x="25" y="44" width="6" height="18" fill="#10b981" rx="1" />
+                  <rect x="25" y="44" width="6" height="18" fill="#14B8A6" rx="1" />
                   <rect x="34" y="38" width="6" height="24" fill="#3b82f6" rx="1" />
                   <rect x="43" y="32" width="6" height="30" fill="#f59e0b" rx="1" />
                   <circle cx="68" cy="46" r="10" fill="#fef2f2" stroke="#fee2e2" strokeWidth="1" />
@@ -641,7 +641,7 @@ export default function LandingPage() {
             <button
               type="button"
               onClick={() => setRegModalOpen(true)} 
-              className="mt-6 border-b border-[#1e293b] pb-1 text-[10px] font-bold text-[#1e293b] uppercase tracking-wider hover:text-[#10b981] hover:border-[#10b981] transition-colors"
+              className="mt-6 border-b border-[#1e293b] pb-1 text-[10px] font-bold text-[#1e293b] uppercase tracking-wider hover:text-[#14B8A6] hover:border-[#14B8A6] transition-colors"
             >
               Explore Compiler &rarr;
             </button>
@@ -653,11 +653,11 @@ export default function LandingPage() {
               {/* Tenant Isolation SVG */}
               <div className="w-16 h-16 group-hover:scale-105 transition-transform duration-300">
                 <svg viewBox="0 0 100 100" className="w-full h-full" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M50 15 C30 22 25 45 25 58 C25 74 42 84 50 87 C58 84 75 74 75 58 C75 45 70 22 50 15 Z" fill="#ecfdf5" stroke="#10b981" strokeWidth="2" />
+                  <path d="M50 15 C30 22 25 45 25 58 C25 74 42 84 50 87 C58 84 75 74 75 58 C75 45 70 22 50 15 Z" fill="#ecfdf5" stroke="#14B8A6" strokeWidth="2" />
                   <rect x="36" y="48" width="28" height="22" rx="4" fill="#ffffff" stroke="#047857" strokeWidth="2" />
                   <circle cx="50" cy="58" r="3" fill="#047857" />
                   <path d="M42 48 V38 C42 33 46 30 50 30 C54 30 58 33 58 38 V48" stroke="#047857" strokeWidth="2.5" fill="none" />
-                  <path d="M50 54 L56 56 L50 58 L44 56 Z" fill="#10b981" />
+                  <path d="M50 54 L56 56 L50 58 L44 56 Z" fill="#14B8A6" />
                 </svg>
               </div>
               <h3 className="text-sm font-bold text-[#1e293b] uppercase tracking-wider">Tenant Isolation</h3>
@@ -668,7 +668,7 @@ export default function LandingPage() {
             <button
               type="button"
               onClick={() => setRegModalOpen(true)} 
-              className="mt-6 border-b border-[#1e293b] pb-1 text-[10px] font-bold text-[#1e293b] uppercase tracking-wider hover:text-[#10b981] hover:border-[#10b981] transition-colors"
+              className="mt-6 border-b border-[#1e293b] pb-1 text-[10px] font-bold text-[#1e293b] uppercase tracking-wider hover:text-[#14B8A6] hover:border-[#14B8A6] transition-colors"
             >
               Verify Security &rarr;
             </button>
@@ -694,7 +694,7 @@ export default function LandingPage() {
             <button
               type="button"
               onClick={() => setRegModalOpen(true)} 
-              className="mt-6 border-b border-[#1e293b] pb-1 text-[10px] font-bold text-[#1e293b] uppercase tracking-wider hover:text-[#10b981] hover:border-[#10b981] transition-colors"
+              className="mt-6 border-b border-[#1e293b] pb-1 text-[10px] font-bold text-[#1e293b] uppercase tracking-wider hover:text-[#14B8A6] hover:border-[#14B8A6] transition-colors"
             >
               Check Syncing &rarr;
             </button>
@@ -726,7 +726,7 @@ export default function LandingPage() {
             <button
               type="button"
               onClick={() => setRegModalOpen(true)} 
-              className="mt-6 border-b border-[#1e293b] pb-1 text-[10px] font-bold text-[#1e293b] uppercase tracking-wider hover:text-[#10b981] hover:border-[#10b981] transition-colors"
+              className="mt-6 border-b border-[#1e293b] pb-1 text-[10px] font-bold text-[#1e293b] uppercase tracking-wider hover:text-[#14B8A6] hover:border-[#14B8A6] transition-colors"
             >
               Open Portal &rarr;
             </button>
@@ -741,7 +741,7 @@ export default function LandingPage() {
           {/* Left column details */}
           <div className="lg:col-span-5 bg-white border border-[#e9ecef] p-8 flex flex-col justify-between space-y-8">
             <div className="space-y-2">
-              <span className="text-[10px] font-bold uppercase tracking-widest text-[#10b981]">Get In Touch</span>
+              <span className="text-[10px] font-bold uppercase tracking-widest text-[#14B8A6]">Get In Touch</span>
               <h3 className="text-2xl font-normal text-[#1e293b] tracking-tight">Contact Operon Hub</h3>
               <p className="text-xs text-[#64748b] font-semibold leading-relaxed">
                 Have questions about custom grading systems, offline operations, or setup requirements? Send us a message or contact our help desk.
