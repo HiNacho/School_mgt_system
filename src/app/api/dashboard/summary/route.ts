@@ -127,7 +127,7 @@ export async function GET(req: NextRequest) {
       prisma.subjectAssignment.findMany({
         where: {
           schoolId: schoolId!,
-          ...(session.role === 'CLASS_TEACHER' || session.role === 'SUBJECT_TEACHER' ? { teacherId: session.id } : {})
+          ...(session.role === 'CLASS_TEACHER' || session.role === 'SUBJECT_TEACHER' ? { teacherId: session.userId || (session as any).id } : {})
         },
         include: {
           subject: true,
@@ -201,6 +201,7 @@ export async function GET(req: NextRequest) {
 
   } catch (error: any) {
     console.error('Dashboard Summary API Error:', error);
-    return NextResponse.json({ error: error.message || 'Failed to fetch dashboard summary' }, { status: 500 });
+    const status = error.status || 500;
+    return NextResponse.json({ error: error.message || 'Failed to fetch dashboard summary' }, { status });
   }
 }
