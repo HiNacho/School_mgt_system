@@ -414,21 +414,40 @@ export default function ReportCardCompilerPage() {
       const json = await res.json();
       setSetup(json.data);
 
-      const defaultClassId = queryClassId && json.data.classes?.some((c: any) => c.id === queryClassId)
-        ? queryClassId
-        : (json.data.classes?.[0]?.id || '');
+      const isTeacherRole = sess.user?.role === 'CLASS_TEACHER' || sess.user?.role === 'FORM_TEACHER';
+      const teacherAssignedArms = json.data.arms?.filter((a: any) => 
+        a.classTeacherId === sess.user?.id || 
+        a.classTeacher?.id === sess.user?.id || 
+        (a.classTeacher?.email && a.classTeacher?.email === sess.user?.email)
+      ) || [];
+
+      let defaultClassId = '';
+      let defaultArmId = '';
+
+      if (isTeacherRole && teacherAssignedArms.length > 0) {
+        const myArm = queryArmId && teacherAssignedArms.some((a: any) => a.id === queryArmId)
+          ? teacherAssignedArms.find((a: any) => a.id === queryArmId)
+          : teacherAssignedArms[0];
+        defaultClassId = myArm.classId;
+        defaultArmId = myArm.id;
+      } else {
+        defaultClassId = queryClassId && json.data.classes?.some((c: any) => c.id === queryClassId)
+          ? queryClassId
+          : (json.data.classes?.[0]?.id || '');
+
+        const relatedArms = json.data.arms?.filter((a: any) => a.classId === defaultClassId) || [];
+        defaultArmId = queryArmId && relatedArms.some((a: any) => a.id === queryArmId)
+          ? queryArmId
+          : (relatedArms[0]?.id || '');
+      }
+
       setSelectedClass(defaultClassId);
+      setSelectedArm(defaultArmId);
 
       const defaultTermId = queryTermId && json.data.terms?.some((t: any) => t.id === queryTermId)
         ? queryTermId
         : (json.data.terms?.find((t: any) => t.isCurrent)?.id || json.data.terms?.[0]?.id || '');
       setSelectedTerm(defaultTermId);
-
-      const relatedArms = json.data.arms?.filter((a: any) => a.classId === defaultClassId) || [];
-      const defaultArmId = queryArmId && relatedArms.some((a: any) => a.id === queryArmId)
-        ? queryArmId
-        : (relatedArms[0]?.id || '');
-      setSelectedArm(defaultArmId);
 
       setLoading(false);
     } catch (e) {
@@ -1070,7 +1089,14 @@ export default function ReportCardCompilerPage() {
         {/* Filters */}
         <div className="p-6 rounded-3xl bg-white border border-slate-200/80 shadow-sm grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
           <div>
-            <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">Class</label>
+            <div className="flex justify-between items-center mb-1.5">
+              <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400">Class</label>
+              {isClassTeacher && (
+                <span className="text-[9px] font-extrabold text-[#14B8A6] bg-teal-50 px-2 py-0.5 rounded-md border border-teal-100 flex items-center gap-1">
+                  🔒 Assigned Class
+                </span>
+              )}
+            </div>
             <select
               value={selectedClass}
               onChange={(e) => {
@@ -1078,24 +1104,75 @@ export default function ReportCardCompilerPage() {
                 const relatedArms = setup?.arms?.filter((a: any) => a.classId === e.target.value) || [];
                 if (relatedArms.length > 0) setSelectedArm(relatedArms[0].id);
               }}
-              className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-slate-350 font-semibold text-slate-700 hover:border-slate-250 transition-colors"
+              disabled={isClassTeacher && (() => {
+                const teacherAssignedArms = setup?.arms?.filter((a: any) => 
+                  a.classTeacherId === session?.user?.id || 
+                  a.classTeacher?.id === session?.user?.id || 
+                  (a.classTeacher?.email && a.classTeacher?.email === session?.user?.email)
+                ) || [];
+                return teacherAssignedArms.length > 0;
+              })()}
+              className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-slate-350 font-semibold text-slate-700 hover:border-slate-250 transition-colors disabled:bg-slate-50 disabled:text-slate-600 disabled:cursor-not-allowed"
             >
-              {setup?.classes?.map((c: any) => (
-                <option key={c.id} value={c.id}>{c.name}</option>
-              ))}
+              {(() => {
+                let classesToDisplay = setup?.classes || [];
+                if (isClassTeacher && session?.user) {
+                  const teacherAssignedArms = setup?.arms?.filter((a: any) => 
+                    a.classTeacherId === session.user.id || 
+                    a.classTeacher?.id === session.user.id || 
+                    (a.classTeacher?.email && a.classTeacher?.email === session.user.email)
+                  ) || [];
+                  if (teacherAssignedArms.length > 0) {
+                    const assignedClassIds = new Set(teacherAssignedArms.map((a: any) => a.classId));
+                    classesToDisplay = setup?.classes?.filter((c: any) => assignedClassIds.has(c.id)) || [];
+                  }
+                }
+                return classesToDisplay.map((c: any) => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ));
+              })()}
             </select>
           </div>
 
           <div>
-            <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">Arm / Stream</label>
+            <div className="flex justify-between items-center mb-1.5">
+              <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400">Arm / Stream</label>
+              {isClassTeacher && (
+                <span className="text-[9px] font-extrabold text-[#14B8A6] bg-teal-50 px-2 py-0.5 rounded-md border border-teal-100 flex items-center gap-1">
+                  🔒 Assigned Arm
+                </span>
+              )}
+            </div>
             <select
               value={selectedArm}
               onChange={(e) => setSelectedArm(e.target.value)}
-              className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-slate-350 font-semibold text-slate-700 hover:border-slate-250 transition-colors"
+              disabled={isClassTeacher && (() => {
+                const teacherAssignedArms = setup?.arms?.filter((a: any) => 
+                  a.classTeacherId === session?.user?.id || 
+                  a.classTeacher?.id === session?.user?.id || 
+                  (a.classTeacher?.email && a.classTeacher?.email === session?.user?.email)
+                ) || [];
+                return teacherAssignedArms.length > 0;
+              })()}
+              className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-slate-350 font-semibold text-slate-700 hover:border-slate-250 transition-colors disabled:bg-slate-50 disabled:text-slate-600 disabled:cursor-not-allowed"
             >
-              {setup?.arms?.filter((a: any) => a.classId === selectedClass).map((arm: any) => (
-                <option key={arm.id} value={arm.id}>Arm {arm.name}</option>
-              ))}
+              {(() => {
+                const classArms = setup?.arms?.filter((a: any) => a.classId === selectedClass) || [];
+                let armsToDisplay = classArms;
+                if (isClassTeacher && session?.user) {
+                  const teacherAssignedArms = classArms.filter((a: any) => 
+                    a.classTeacherId === session.user.id || 
+                    a.classTeacher?.id === session.user.id || 
+                    (a.classTeacher?.email && a.classTeacher?.email === session.user.email)
+                  );
+                  if (teacherAssignedArms.length > 0) {
+                    armsToDisplay = teacherAssignedArms;
+                  }
+                }
+                return armsToDisplay.map((arm: any) => (
+                  <option key={arm.id} value={arm.id}>Arm {arm.name}</option>
+                ));
+              })()}
             </select>
           </div>
 

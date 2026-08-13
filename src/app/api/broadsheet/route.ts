@@ -50,6 +50,24 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Class, Arm, or Term not found' }, { status: 404 });
     }
 
+    // Role-based access control for Class Teachers
+    if (session.role === 'CLASS_TEACHER' || session.role === 'FORM_TEACHER') {
+      const isAssignedToThisArm = targetArm.classTeacherId === session.id;
+      if (!isAssignedToThisArm) {
+        // Find if teacher has any assigned arm
+        const assignedArm = await prisma.arm.findFirst({
+          where: { schoolId, classTeacherId: session.id },
+          include: { class: true }
+        });
+
+        if (assignedArm && assignedArm.id !== armId) {
+          return NextResponse.json({
+            error: `Access Restricted: You are assigned as Class Teacher for ${assignedArm.class.name} Arm ${assignedArm.name}. You do not have access to view broadsheets of other classes.`
+          }, { status: 403 });
+        }
+      }
+    }
+
     const scoreMap: Record<string, any> = {};
 
     // First populate from submitted score payloads (teacher submissions)
