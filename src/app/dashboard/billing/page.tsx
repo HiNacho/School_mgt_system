@@ -181,14 +181,14 @@ export default function BillingPage() {
         currency: "NGN",
         payment_options: "card, banktransfer, ussd, qr",
         customer: {
-          email: user.email,
+          email: "operonhub@gmail.com",
           phone_number: school.phone || "08000000000",
-          name: user.firstName + " " + user.lastName,
+          name: "Operon Hub",
         },
         customizations: {
-          title: "Operon School Subscription",
-          description: `Termly subscription payment for ${school.name} (${targetInv.studentCount} students)`,
-          logo: "https://images.unsplash.com/photo-1546410531-bb4caa6b424d?w=100&auto=format&fit=crop",
+          title: "Operon Hub",
+          description: `Termly SaaS subscription payment for ${school.name} (${targetInv.studentCount} active students)`,
+          logo: "https://raw.githubusercontent.com/HiNacho/School_mgt_system/main/public/teal_logo_icon.png",
         },
         callback: async function (paymentResponse: any) {
           try {
