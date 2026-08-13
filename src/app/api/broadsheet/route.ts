@@ -52,11 +52,18 @@ export async function GET(req: NextRequest) {
 
     // Role-based access control for Class Teachers
     if (session.role === 'CLASS_TEACHER' || session.role === 'FORM_TEACHER') {
-      const isAssignedToThisArm = targetArm.classTeacherId === session.id;
+      const isAssignedToThisArm = targetArm.classTeacherId === session.id || 
+        (targetArm as any).classTeacher?.email === session.email;
       if (!isAssignedToThisArm) {
         // Find if teacher has any assigned arm
         const assignedArm = await prisma.arm.findFirst({
-          where: { schoolId, classTeacherId: session.id },
+          where: { 
+            schoolId, 
+            OR: [
+              { classTeacherId: session.id },
+              { classTeacher: { email: session.email } }
+            ]
+          },
           include: { class: true }
         });
 

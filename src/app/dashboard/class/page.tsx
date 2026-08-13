@@ -633,11 +633,22 @@ export default function ClassTeacherDashboard() {
       const term = setup?.terms?.find((t: any) => t.isCurrent) || setup?.terms?.[0];
       if (!term) { setLoading(false); return; }
 
-      // Fetch attendance info (auto-detects arm from teacherId)
-      const attRes = await fetch(
-        `/api/attendance?schoolId=${schoolId}&teacherId=${userId}&termId=${term.id}&date=${attendanceDate}`,
-        { cache: 'no-store' }
+      // Find teacher's assigned class arm directly from setup configuration
+      const assignedArm = setup?.arms?.find((a: any) => 
+        a.classTeacherId === userId || 
+        a.classTeacher?.id === userId || 
+        (a.classTeacher?.email && a.classTeacher?.email === sess.user?.email)
       );
+
+      const targetClassId = assignedArm ? assignedArm.classId : '';
+      const targetArmId = assignedArm ? assignedArm.id : '';
+
+      const attUrl = targetClassId && targetArmId
+        ? `/api/attendance?schoolId=${schoolId}&classId=${targetClassId}&armId=${targetArmId}&termId=${term.id}&date=${attendanceDate}`
+        : `/api/attendance?schoolId=${schoolId}&teacherId=${userId}&termId=${term.id}&date=${attendanceDate}`;
+
+      // Fetch attendance info for teacher's assigned class arm
+      const attRes = await fetch(attUrl, { cache: 'no-store' });
 
       if (attRes.ok) {
         const j = await attRes.json();
