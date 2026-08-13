@@ -5,7 +5,7 @@ import * as XLSX from 'xlsx';
 import { 
   FileBarChart, CheckSquare, Sparkles, Printer, RefreshCw, 
   AlertCircle, CheckCircle, Award, Percent, Users, TrendingUp,
-  Search, Eye, HelpCircle, X, Check, XCircle, FileSpreadsheet
+  Search, Eye, HelpCircle, X, Check, XCircle, FileSpreadsheet, Edit3
 } from 'lucide-react';
 
 interface StudentReport {
@@ -97,10 +97,33 @@ export default function ReportCardCompilerPage() {
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [transitioningStatus, setTransitioningStatus] = useState(false);
 
-  // Broadsheet Export & Import states
+  // Broadsheet Export & Import & Matrix Modal states
   const [broadsheetLoading, setBroadsheetLoading] = useState(false);
   const [importingBroadsheet, setImportingBroadsheet] = useState(false);
+  const [showBroadsheetModal, setShowBroadsheetModal] = useState(false);
+  const [broadsheetSearchQuery, setBroadsheetSearchQuery] = useState('');
   const broadsheetFileInputRef = React.useRef<HTMLInputElement>(null);
+
+  const broadsheetSubjects = React.useMemo(() => {
+    if (reports.length === 0) return [];
+    const map = new Map();
+    reports.forEach(r => {
+      r.subjects.forEach(s => {
+        if (!map.has(s.subjectId)) {
+          map.set(s.subjectId, { id: s.subjectId, name: s.subjectName, code: s.subjectCode });
+        }
+      });
+    });
+    return Array.from(map.values());
+  }, [reports]);
+
+  const filteredBroadsheetReports = React.useMemo(() => {
+    if (!broadsheetSearchQuery.trim()) return reports;
+    const q = broadsheetSearchQuery.toLowerCase().trim();
+    return reports.filter(r => 
+      `${r.student.lastName} ${r.student.firstName} ${r.student.admissionNumber}`.toLowerCase().includes(q)
+    );
+  }, [reports, broadsheetSearchQuery]);
 
   const getAuthHeaders = () => {
     const token = typeof window !== 'undefined' ? (localStorage.getItem('report_auth_token') || '') : '';
@@ -934,6 +957,17 @@ export default function ReportCardCompilerPage() {
 
             <button
               type="button"
+              onClick={() => setShowBroadsheetModal(true)}
+              disabled={reports.length === 0}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-900 text-white hover:bg-slate-800 text-xs font-bold transition-all shadow-md disabled:opacity-50"
+              title="Open full interactive broadsheet matrix table"
+            >
+              <Eye className="w-4 h-4 text-emerald-400" />
+              📊 View Full Broadsheet Matrix
+            </button>
+
+            <button
+              type="button"
               onClick={handleExportBroadsheet}
               disabled={broadsheetLoading || !selectedClass || !selectedArm || !selectedTerm}
               className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 text-xs font-bold transition-all shadow-sm disabled:opacity-50"
@@ -1353,6 +1387,231 @@ export default function ReportCardCompilerPage() {
           </div>
         )}
       </div>
+
+      {/* Interactive Academic Broadsheet Matrix Modal (Image 2 design) */}
+      {showBroadsheetModal && (
+        <div className="no-print fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-6 overflow-hidden animate-in fade-in duration-200">
+          <div className="bg-white w-full max-w-[96vw] h-[92vh] rounded-3xl shadow-2xl flex flex-col overflow-hidden border border-slate-200">
+            
+            {/* Modal Header */}
+            <div className="p-4 sm:p-5 border-b border-slate-100 bg-slate-50/60 flex flex-wrap items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-slate-900 text-white flex items-center justify-center shadow-md">
+                  <FileSpreadsheet className="w-5 h-5 text-emerald-400" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h2 className="text-base sm:text-lg font-black text-slate-800 tracking-tight">
+                      Academic Broadsheet — {setup?.classes?.find((c: any) => c.id === selectedClass)?.name || 'Class'} ({setup?.arms?.find((a: any) => a.id === selectedArm)?.name || 'Arm'})
+                    </h2>
+                    <span className="px-2.5 py-0.5 rounded-full bg-indigo-100 text-indigo-700 text-[10px] font-black uppercase tracking-wider">
+                      {setup?.terms?.find((t: any) => t.id === selectedTerm)?.name || 'Current Term'}
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-500 font-medium mt-0.5">
+                    Enrolled Students: <strong className="text-slate-700 font-bold">{reports.length}</strong> | Total Subjects: <strong className="text-slate-700 font-bold">{broadsheetSubjects.length}</strong>
+                  </p>
+                </div>
+              </div>
+
+              {/* Action Controls */}
+              <div className="flex flex-wrap items-center gap-2">
+                <div className="relative">
+                  <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  <input
+                    type="text"
+                    placeholder="Search student..."
+                    value={broadsheetSearchQuery}
+                    onChange={(e) => setBroadsheetSearchQuery(e.target.value)}
+                    className="pl-9 pr-3 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-700 focus:outline-none focus:border-indigo-500 font-medium w-44 sm:w-56 shadow-sm"
+                  />
+                  {broadsheetSearchQuery && (
+                    <button
+                      type="button"
+                      onClick={() => setBroadsheetSearchQuery('')}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs font-bold"
+                    >
+                      ✕
+                    </button>
+                  )}
+                </div>
+
+                <a
+                  href={`/dashboard/scores?classId=${selectedClass}&armId=${selectedArm}&termId=${selectedTerm}`}
+                  className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-indigo-50 border border-indigo-200 text-indigo-700 hover:bg-indigo-100 text-xs font-bold transition-all shadow-sm"
+                >
+                  <Edit3 className="w-3.5 h-3.5" /> Edit Scores
+                </a>
+
+                <button
+                  type="button"
+                  onClick={() => window.print()}
+                  className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 text-xs font-bold transition-all shadow-sm"
+                >
+                  <Printer className="w-3.5 h-3.5 text-slate-500" /> Print
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleExportBroadsheet}
+                  className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 hover:bg-emerald-100 text-xs font-bold transition-all shadow-sm"
+                >
+                  <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600" /> Export Excel
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setShowBroadsheetModal(false)}
+                  className="w-9 h-9 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center text-sm font-bold transition-colors ml-1"
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+
+            {/* Scrollable Broadsheet Table */}
+            <div className="flex-1 overflow-auto p-4 sm:p-6 bg-slate-50/50">
+              <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden min-w-full">
+                <table className="w-full border-collapse text-left text-xs font-sans">
+                  <thead>
+                    {/* Row 1: Subject Header Codes */}
+                    <tr className="bg-slate-100/80 border-b border-slate-200 text-slate-600 text-[11px] font-bold">
+                      <th className="p-3 sticky left-0 bg-slate-100 z-20 border-r border-slate-200 text-center min-w-[200px]" colSpan={2}>
+                        STUDENT DETAILS
+                      </th>
+                      {broadsheetSubjects.map((sub: any) => (
+                        <th key={sub.id} colSpan={6} className="p-2 text-center border-r border-slate-200 uppercase tracking-wider bg-slate-50 text-slate-700">
+                          <div className="font-extrabold text-xs">{sub.code || sub.name.substring(0, 3).toUpperCase()}</div>
+                          <div className="text-[9px] text-slate-400 font-normal truncate max-w-[150px] mx-auto" title={sub.name}>{sub.name}</div>
+                        </th>
+                      ))}
+                      <th colSpan={3} className="p-2 text-center bg-indigo-50/50 text-indigo-900 font-extrabold uppercase tracking-wider">
+                        OVERALL METRICS
+                      </th>
+                    </tr>
+
+                    {/* Row 2: Score Components */}
+                    <tr className="bg-slate-50 border-b border-slate-200 text-[9px] font-bold text-slate-400 tracking-wider uppercase text-center">
+                      <th className="p-2 sticky left-0 bg-slate-50 z-20 border-r border-slate-200 text-slate-500 w-12">POS</th>
+                      <th className="p-2 sticky left-[48px] bg-slate-50 z-20 border-r border-slate-200 text-left text-slate-600 min-w-[160px]">STUDENT NAME</th>
+                      {broadsheetSubjects.map((sub: any) => (
+                        <React.Fragment key={`sub-cols-${sub.id}`}>
+                          <th className="p-1.5 border-r border-slate-150 w-10">CA1</th>
+                          <th className="p-1.5 border-r border-slate-150 w-10">CA2</th>
+                          <th className="p-1.5 border-r border-slate-150 w-10">ASG</th>
+                          <th className="p-1.5 border-r border-slate-150 w-10">EXM</th>
+                          <th className="p-1.5 border-r border-slate-150 w-11 bg-slate-100/60 font-black text-slate-700">TOT</th>
+                          <th className="p-1.5 border-r border-slate-200 w-10 bg-slate-100/40">GRD</th>
+                        </React.Fragment>
+                      ))}
+                      <th className="p-2 border-r border-slate-200 bg-indigo-50/30 text-indigo-700 w-16">AGG</th>
+                      <th className="p-2 border-r border-slate-200 bg-indigo-50/40 text-indigo-800 w-16">AVG (%)</th>
+                      <th className="p-2 bg-indigo-50/50 text-indigo-900 w-16">RANK</th>
+                    </tr>
+                  </thead>
+
+                  <tbody className="divide-y divide-slate-150 bg-white">
+                    {filteredBroadsheetReports.map((row: any) => {
+                      const pos = row.summary.classPosition;
+                      const posPillStyle = 
+                        pos === 1 ? 'bg-amber-100 text-amber-800 border-amber-300 font-black' :
+                        pos === 2 ? 'bg-slate-200 text-slate-700 border-slate-300 font-bold' :
+                        pos === 3 ? 'bg-amber-50 text-amber-900 border-amber-200 font-bold' :
+                        'bg-slate-100 text-slate-600 font-semibold';
+
+                      return (
+                        <tr key={row.student.id} className="hover:bg-slate-50/80 transition-colors">
+                          {/* Position Pill */}
+                          <td className="p-2 sticky left-0 bg-white z-10 border-r border-slate-200 text-center">
+                            <span className={`inline-block px-2 py-0.5 rounded-full text-[10px] border ${posPillStyle}`}>
+                              {row.summary.classPositionFormatted}
+                            </span>
+                          </td>
+
+                          {/* Student Name & Admission Number */}
+                          <td className="p-2.5 sticky left-[48px] bg-white z-10 border-r border-slate-200">
+                            <div className="font-bold text-slate-800 leading-tight">
+                              {row.student.lastName}, {row.student.firstName}
+                            </div>
+                            <div className="text-[10px] font-mono text-slate-400 font-semibold">
+                              {row.student.admissionNumber || '—'}
+                            </div>
+                          </td>
+
+                          {/* Per-Subject Score Components */}
+                          {broadsheetSubjects.map((sub: any) => {
+                            const subjectScore = row.subjects.find((s: any) => s.subjectId === sub.id);
+                            const grade = subjectScore?.grade || '—';
+                            const gradeStyle = 
+                              grade === 'A' ? 'bg-emerald-100 text-emerald-800 font-black' :
+                              grade === 'B' ? 'bg-blue-100 text-blue-800 font-bold' :
+                              grade === 'C' ? 'bg-amber-100 text-amber-800 font-bold' :
+                              grade === 'D' ? 'bg-orange-100 text-orange-800' :
+                              grade === 'F' ? 'bg-rose-100 text-rose-800 font-bold' :
+                              'text-slate-400';
+
+                            return (
+                              <React.Fragment key={`score-${row.student.id}-${sub.id}`}>
+                                <td className="p-1.5 text-center border-r border-slate-150 text-slate-500 font-mono text-[11px]">
+                                  {subjectScore?.ca1 ?? '—'}
+                                </td>
+                                <td className="p-1.5 text-center border-r border-slate-150 text-slate-500 font-mono text-[11px]">
+                                  {subjectScore?.ca2 ?? '—'}
+                                </td>
+                                <td className="p-1.5 text-center border-r border-slate-150 text-slate-500 font-mono text-[11px]">
+                                  {subjectScore?.assignment ?? '—'}
+                                </td>
+                                <td className="p-1.5 text-center border-r border-slate-150 text-slate-500 font-mono text-[11px]">
+                                  {subjectScore?.exam ?? '—'}
+                                </td>
+                                <td className="p-1.5 text-center border-r border-slate-150 font-black text-slate-850 font-mono text-xs bg-slate-50/70">
+                                  {subjectScore?.total ?? '—'}
+                                </td>
+                                <td className="p-1.5 text-center border-r border-slate-200 bg-slate-50/40">
+                                  <span className={`inline-block w-6 py-0.5 rounded text-[10px] text-center uppercase ${gradeStyle}`}>
+                                    {grade}
+                                  </span>
+                                </td>
+                              </React.Fragment>
+                            );
+                          })}
+
+                          {/* Overall Metrics */}
+                          <td className="p-2 text-center border-r border-slate-200 font-mono font-bold text-slate-700 bg-indigo-50/20">
+                            {row.summary.aggregateScore}
+                          </td>
+                          <td className="p-2 text-center border-r border-slate-200 font-mono font-black text-indigo-700 text-xs bg-indigo-50/30">
+                            {row.summary.averageScore}%
+                          </td>
+                          <td className="p-2 text-center font-mono font-bold text-slate-700 bg-indigo-50/40">
+                            {row.summary.classPositionFormatted}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* Modal Bottom Bar */}
+            <div className="p-4 border-t border-slate-200 bg-slate-50 flex flex-wrap items-center justify-between gap-3 text-xs">
+              <span className="text-slate-500 italic font-medium text-[11px]">
+                * Scores are computed out of 100. CA1 (15), CA2 (15), ASG (10), EXAM (60).
+              </span>
+
+              <button
+                type="button"
+                onClick={() => setShowBroadsheetModal(false)}
+                className="px-5 py-2 rounded-xl bg-slate-900 text-white font-bold text-xs hover:bg-slate-800 transition-colors shadow-sm"
+              >
+                Close Broadsheet
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )}
 
       {/* 4. HIGH-FIDELITY PREVIEW MODAL (no-print) */}
       {previewReport && (
