@@ -132,12 +132,44 @@ export async function GET(req: NextRequest) {
     const currentSession = sessions.find(s => s.isCurrent) || sessions[0];
     const currentTerm = currentSession?.terms.find(t => t.isCurrent) || currentSession?.terms[0];
 
-    // Fetch report status in parallel if currentTerm exists
+    // Fetch report status & score counts in parallel if currentTerm exists
     let classReportStatuses: any[] = [];
     if (currentTerm) {
-      classReportStatuses = await prisma.classReportStatus.findMany({
-        where: { schoolId: schoolId!, termId: currentTerm.id }
-      });
+      const [dbStatuses, scoreGroups] = await Promise.all([
+        prisma.classReportStatus.findMany({
+          where: { schoolId: schoolId!, termId: currentTerm.id }
+        }),
+        prisma.score.groupBy({
+          by: ['classId', 'armId'],
+          where: { schoolId: schoolId!, termId: currentTerm.id },
+          _count: { _all: true }
+        })
+      ]);
+
+      for (const cls of classes) {
+        for (const arm of cls.arms) {
+          const matchedStatus = dbStatuses.find(s => s.classId === cls.id && s.armId === arm.id);
+          const matchedScores = scoreGroups.find(sg => sg.classId === cls.id && sg.armId === arm.id);
+          const scoreCount = matchedScores?._count._all || 0;
+
+          let status = matchedStatus?.status || 'DRAFT';
+
+          const teacherName = (arm as any).classTeacher 
+            ? `${(arm as any).classTeacher.firstName} ${(arm as any).classTeacher.lastName}`
+            : 'Unassigned';
+
+          classReportStatuses.push({
+            classId: cls.id,
+            className: cls.name,
+            armId: arm.id,
+            armName: arm.name,
+            classTeacherName: teacherName,
+            status,
+            feedback: matchedStatus?.feedback || null,
+            scoreCount
+          });
+        }
+      }
     }
 
     return NextResponse.json({
