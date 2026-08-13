@@ -359,16 +359,16 @@ export default function LandingPage() {
             <button
               type="button"
               onClick={() => setRegModalOpen(true)}
-              className="px-5 py-2.5 border border-[#cbd5e1] hover:border-[#14B8A6] hover:bg-[#14B8A6] text-[#475569] hover:text-white text-[10px] font-black tracking-widest uppercase transition-all duration-200"
+              className="px-5 py-2.5 border border-[#cbd5e1] hover:border-[#14B8A6] hover:bg-[#14B8A6] text-[#475569] hover:text-white text-[10px] font-black tracking-widest uppercase transition-all duration-200 cursor-pointer"
             >
               Register Interest
             </button>
-            <Link
+            <a
               href="/login"
-              className="px-5 py-2.5 bg-[#14B8A6] hover:bg-[#0d9488] text-white text-[10px] font-black tracking-widest uppercase transition-all duration-200 shadow-sm"
+              className="px-5 py-2.5 bg-[#14B8A6] hover:bg-[#0d9488] text-white text-[10px] font-black tracking-widest uppercase transition-all duration-200 shadow-sm cursor-pointer"
             >
               Sign In
-            </Link>
+            </a>
           </div>
 
           {/* Mobile Menu Button */}
@@ -410,18 +410,18 @@ export default function LandingPage() {
           </nav>
           <div className="h-px bg-slate-100 my-1" />
           <div className="flex flex-col gap-3">
-            <Link
+            <a
               href="/login"
               onClick={() => setMobileMenuOpen(false)}
-              className="w-full py-2.5 text-center border border-[#cbd5e1] text-[#475569] font-bold text-xs uppercase tracking-widest transition-all"
+              className="w-full py-2.5 text-center border border-[#cbd5e1] text-[#475569] font-bold text-xs uppercase tracking-widest transition-all cursor-pointer"
             >
               Sign In
-            </Link>
+            </a>
 
             <button
               type="button"
               onClick={() => { setMobileMenuOpen(false); setRegModalOpen(true); }}
-              className="w-full py-2.5 text-center border border-[#cbd5e1] hover:border-[#00ff80] hover:bg-[#00ff80] text-[#475569] hover:text-slate-900 font-bold text-xs uppercase tracking-widest transition-all"
+              className="w-full py-2.5 text-center border border-[#cbd5e1] hover:border-[#00ff80] hover:bg-[#00ff80] text-[#475569] hover:text-slate-900 font-bold text-xs uppercase tracking-widest transition-all cursor-pointer"
             >
               Register Interest
             </button>
@@ -432,9 +432,9 @@ export default function LandingPage() {
       {/* Full-Bleed Hero Banner taking full screen */}
       <section className="relative w-full h-[calc(100vh-68px)] bg-[url('/hero_school.jpg')] bg-cover bg-center overflow-hidden flex items-center justify-center">
         {/* Dark Gradient Overlay (Balanced opacity for readability and image detail) */}
-        <div className="absolute inset-0 bg-gradient-to-b from-black/75 via-black/60 to-black/85 z-0" />
+        <div className="absolute inset-0 bg-gradient-to-b from-black/75 via-black/60 to-black/85 z-0 pointer-events-none" />
         
-        <div className="max-w-4xl mx-auto px-6 relative z-10 flex flex-col items-center justify-center text-center space-y-8 animate-fade-in">
+        <div className="max-w-4xl mx-auto px-6 relative z-20 flex flex-col items-center justify-center text-center space-y-8 animate-fade-in">
           {/* Logo & Brand Name */}
           <div className="flex flex-col items-center gap-1">
             <img src="/teal_logo_icon.png" alt="Operon Logo" className="w-28 h-28 sm:w-36 sm:h-36 object-contain drop-shadow-lg" />
@@ -445,20 +445,20 @@ export default function LandingPage() {
           </div>
 
           {/* Centered Buttons - Fixed Width sm:w-56 for identical length */}
-          <div className="pt-4 flex flex-col sm:flex-row items-center justify-center gap-4 w-full max-w-sm sm:max-w-lg">
+          <div className="pt-4 flex flex-col sm:flex-row items-center justify-center gap-4 w-full max-w-sm sm:max-w-lg relative z-30">
             <button
               type="button"
               onClick={() => setRegModalOpen(true)}
-              className="w-full sm:w-56 py-4 border border-white hover:bg-white hover:text-slate-900 text-white text-xs font-black tracking-widest uppercase transition-all duration-200 cursor-pointer shadow-sm text-center flex items-center justify-center"
+              className="w-full sm:w-56 py-4 border border-white hover:bg-white hover:text-slate-900 text-white text-xs font-black tracking-widest uppercase transition-all duration-200 cursor-pointer shadow-sm text-center flex items-center justify-center relative z-30"
             >
               Register Interest
             </button>
-            <Link
+            <a
               href="/login"
-              className="w-full sm:w-56 py-4 bg-[#14B8A6] hover:bg-[#0d9488] text-white text-xs font-black tracking-widest uppercase transition-all duration-200 shadow-md text-center flex items-center justify-center"
+              className="w-full sm:w-56 py-4 bg-[#14B8A6] hover:bg-[#0d9488] text-white text-xs font-black tracking-widest uppercase transition-all duration-200 shadow-md text-center flex items-center justify-center cursor-pointer relative z-30"
             >
               Sign In
-            </Link>
+            </a>
           </div>
         </div>
       </section>
