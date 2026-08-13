@@ -7,10 +7,10 @@ export async function GET(req: NextRequest) {
     const session = await requireAuth(req);
     const url = new URL(req.url);
 
-    let schoolId = session.schoolId;
+    let schoolId = session.schoolId || url.searchParams.get('schoolId');
     const targetSchoolId = url.searchParams.get('schoolId');
 
-    if (session.role === 'SUPER_ADMIN' && targetSchoolId) {
+    if ((session.role === 'SUPER_ADMIN' || !session.schoolId) && targetSchoolId) {
       schoolId = targetSchoolId;
     }
 
