@@ -473,24 +473,24 @@ export default function BillingPage() {
                 <div className="flex justify-between items-start">
                   <div>
                     <span className="text-[10px] font-black tracking-widest uppercase text-[#14B8A6]">OPERON SCHOOL PLAN</span>
-                    <h3 className="text-3xl font-black tracking-tight text-white mt-1">₦1,000</h3>
-                    <p className="text-xs font-semibold text-slate-400">per student / term</p>
+                    <h3 className="text-4xl font-black tracking-tight text-white mt-1" style={{ color: '#ffffff' }}>₦1,000</h3>
+                    <p className="text-xs font-semibold text-slate-300" style={{ color: '#cbd5e1' }}>per student / term</p>
                   </div>
                   {getStatusBadge(currentInvoice?.status || subscription?.status || 'UNPAID')}
                 </div>
 
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 pt-4 border-t border-slate-800">
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 pt-4 border-t border-slate-700/80">
                   <div>
-                    <span className="text-[10px] font-bold text-slate-400 uppercase block">Active Students</span>
-                    <span className="text-lg font-black text-white">{billableCount}</span>
+                    <span className="text-[10px] font-bold text-slate-300 uppercase block" style={{ color: '#cbd5e1' }}>Active Students</span>
+                    <span className="text-xl font-black text-white" style={{ color: '#ffffff' }}>{billableCount}</span>
                   </div>
                   <div>
-                    <span className="text-[10px] font-bold text-slate-400 uppercase block">Billing Period</span>
-                    <span className="text-sm font-bold text-white">{currentTermInfo?.term?.name || 'First Term'}</span>
+                    <span className="text-[10px] font-bold text-slate-300 uppercase block" style={{ color: '#cbd5e1' }}>Billing Period</span>
+                    <span className="text-base font-bold text-white" style={{ color: '#ffffff' }}>{currentTermInfo?.term?.name || 'First Term'}</span>
                   </div>
                   <div>
-                    <span className="text-[10px] font-bold text-slate-400 uppercase block">Amount Due</span>
-                    <span className="text-lg font-black text-[#14B8A6]">₦{termBillAmount.toLocaleString()}</span>
+                    <span className="text-[10px] font-bold text-slate-300 uppercase block" style={{ color: '#cbd5e1' }}>Amount Due</span>
+                    <span className="text-xl font-black text-[#14B8A6]" style={{ color: '#14B8A6' }}>₦{termBillAmount.toLocaleString()}</span>
                   </div>
                 </div>
               </div>

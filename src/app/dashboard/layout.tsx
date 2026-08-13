@@ -642,12 +642,29 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           color: #94a3b8 !important;
         }
 
-        /* Global headings to match NachoEd theme */
-        h1, h2, h3, h4, h5, h6, .text-slate-800, .text-slate-900 {
-          color: #1e293b !important;
+        /* Global headings to match NachoEd theme while respecting dark backgrounds */
+        h1:not(.text-white):not([class*="text-white"]), 
+        h2:not(.text-white):not([class*="text-white"]), 
+        h3:not(.text-white):not([class*="text-white"]), 
+        h4:not(.text-white):not([class*="text-white"]), 
+        h5:not(.text-white):not([class*="text-white"]), 
+        h6:not(.text-white):not([class*="text-white"]) {
+          color: #1e293b;
+        }
+        .text-slate-800, .text-slate-900 {
+          color: #1e293b;
         }
         .text-slate-400, .text-slate-500, .text-slate-450 {
-          color: #64748b !important;
+          color: #64748b;
+        }
+        .text-white {
+          color: #ffffff !important;
+        }
+        .text-slate-200 {
+          color: #e2e8f0 !important;
+        }
+        .text-slate-300 {
+          color: #cbd5e1 !important;
         }
 
         /* Modals & Dialog Boxes */
