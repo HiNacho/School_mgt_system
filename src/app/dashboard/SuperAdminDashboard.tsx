@@ -1417,30 +1417,19 @@ export default function SuperAdminDashboard({ user, school }: SuperAdminDashboar
 
             <form onSubmit={handleLogPayment} className="p-6 space-y-4">
               <div className="space-y-1">
-                <label className="block text-[9px] font-extrabold uppercase tracking-wider text-slate-400">Select Plan Tier</label>
-                <select
-                  value={billingPlan}
-                  onChange={(e) => setBillingPlan(e.target.value)}
-                  className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-indigo-500 bg-white"
-                >
-                  <option value="Basic Plan (Up to 100 Students)">Basic Plan (Up to 100 Students)</option>
-                  <option value="Standard Plan (Up to 250 Students)">Standard Plan (Up to 250 Students)</option>
-                  <option value="Premium Plan (Up to 500 Students)">Premium Plan (Up to 500 Students)</option>
-                  <option value="Enterprise Unlimited Plan">Enterprise Unlimited Plan</option>
-                </select>
+                <label className="block text-[9px] font-extrabold uppercase tracking-wider text-slate-400">Subscription Package</label>
+                <div className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs font-bold bg-slate-50 text-slate-800 flex justify-between items-center">
+                  <span>Operon School Management</span>
+                  <span className="text-[#14B8A6]">₦1,000 / student / term</span>
+                </div>
               </div>
 
               <div className="space-y-1">
-                <label className="block text-[9px] font-extrabold uppercase tracking-wider text-slate-400">Subscription Duration</label>
-                <select
-                  value={billingTerms}
-                  onChange={(e) => setBillingTerms(e.target.value)}
-                  className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-indigo-500 bg-white"
-                >
-                  <option value="1">1 Term (90 Days)</option>
-                  <option value="2">2 Terms (180 Days)</option>
-                  <option value="3">Full Academic Year - 3 Terms (270 Days)</option>
-                </select>
+                <label className="block text-[9px] font-extrabold uppercase tracking-wider text-slate-400">Billable Student Calculation</label>
+                <div className="p-3 bg-teal-50/50 border border-teal-100 rounded-xl text-xs font-bold text-slate-700 flex justify-between items-center">
+                  <span>{selectedSchoolForBilling.studentCount || 0} active students × ₦1,000</span>
+                  <span className="text-[#14B8A6] font-black text-sm">₦{((selectedSchoolForBilling.studentCount || 0) * 1000).toLocaleString()}</span>
+                </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">

@@ -2,45 +2,104 @@
 
 import React, { useEffect, useState } from 'react';
 import { 
-  CreditCard, Calendar, Users, CheckCircle, AlertTriangle, 
-  Loader2, ShieldAlert, History, ShieldCheck, HelpCircle, ArrowRight
+  CreditCard, Calendar, Users, CheckCircle2, AlertTriangle, 
+  Loader2, ShieldAlert, History, ShieldCheck, HelpCircle, ArrowRight,
+  FileText, Download, Printer, RefreshCw, ToggleLeft, ToggleRight,
+  Building, Check, Info, Lock, Receipt, FileCheck, Layers
 } from 'lucide-react';
-
-interface Payment {
-  id: string;
-  amount: number;
-  paymentDate: string;
-  paymentMethod: string;
-  status: string;
-}
 
 interface School {
   id: string;
   name: string;
-  subscriptionPlan: string;
-  subscriptionStatus: string;
-  subscriptionStart: string | null;
-  subscriptionEnd: string | null;
-  maxStudents: number;
+  slug: string;
+  email: string | null;
   phone: string | null;
-  _count: {
-    students: number;
-  };
+  address: string | null;
+}
+
+interface Subscription {
+  id: string;
+  planName: string;
+  pricePerStudentTerm: number;
+  status: string;
+  currentBillableCount: number;
+  trialStartDate: string;
+  trialEndDate: string | null;
+  currentPeriodStart: string | null;
+  currentPeriodEnd: string | null;
+  gracePeriodEnd: string | null;
+  autoRenewEnabled: boolean;
+  billingContactName: string | null;
+  billingContactEmail: string | null;
+  billingPhone: string | null;
+  billingAddress: string | null;
+  vatNumber: string | null;
+}
+
+interface SaaSBillingInvoice {
+  id: string;
+  invoiceNumber: string;
+  studentCount: number;
+  pricePerStudent: number;
+  subtotal: number;
+  discount: number;
+  tax: number;
+  totalAmount: number;
+  paidAmount: number;
+  status: string;
+  issueDate: string;
+  dueDate: string;
+  paidAt: string | null;
+  session?: { id: string; name: string };
+  term?: { id: string; name: string };
+}
+
+interface PaymentTransaction {
+  id: string;
+  transactionRef: string;
+  amount: number;
+  currency: string;
+  paymentMethod: string;
+  status: string;
+  paymentDate: string;
+  saasInvoice?: { invoiceNumber: string; studentCount: number };
+}
+
+interface PaymentReceipt {
+  id: string;
+  receiptNumber: string;
+  amount: number;
+  studentCount: number;
+  issuedAt: string;
+  notes: string | null;
+  saasInvoice?: { invoiceNumber: string; session?: { name: string }; term?: { name: string } };
+  transaction?: PaymentTransaction;
 }
 
 export default function BillingPage() {
-  const [payments, setPayments] = useState<Payment[]>([]);
+  const [activeTab, setActiveTab] = useState<'overview' | 'invoices' | 'payments' | 'receipts' | 'subscription' | 'profile'>('overview');
+  
   const [school, setSchool] = useState<School | null>(null);
+  const [subscription, setSubscription] = useState<Subscription | null>(null);
+  const [currentTermInfo, setCurrentTermInfo] = useState<any>(null);
+  const [currentInvoice, setCurrentInvoice] = useState<SaaSBillingInvoice | null>(null);
+  const [invoices, setInvoices] = useState<SaaSBillingInvoice[]>([]);
+  const [payments, setPayments] = useState<PaymentTransaction[]>([]);
+  const [receipts, setReceipts] = useState<PaymentReceipt[]>([]);
+  const [auditLogs, setAuditLogs] = useState<any[]>([]);
+  const [accessStatus, setAccessStatus] = useState<any>(null);
+
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [processingPayment, setProcessingPayment] = useState(false);
+  const [togglingAutoRenew, setTogglingAutoRenew] = useState(false);
+  
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
 
-  // Checkout inputs
-  const [selectedPlan, setSelectedPlan] = useState('Standard Plan (Up to 250 Students)');
-  const [selectedTerms, setSelectedTerms] = useState('1');
-  const [calculatedAmount, setCalculatedAmount] = useState(80000);
+  // Selected items for modal view
+  const [selectedInvoice, setSelectedInvoice] = useState<SaaSBillingInvoice | null>(null);
+  const [selectedReceipt, setSelectedReceipt] = useState<PaymentReceipt | null>(null);
 
   // Load Flutterwave checkout script dynamically
   useEffect(() => {
@@ -49,7 +108,6 @@ export default function BillingPage() {
     script.async = true;
     document.body.appendChild(script);
     return () => {
-      // Safely remove script if it still exists
       if (document.body.contains(script)) {
         document.body.removeChild(script);
       }
@@ -68,8 +126,15 @@ export default function BillingPage() {
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || 'Failed to fetch billing statistics');
 
-      setPayments(json.payments || []);
       setSchool(json.school || null);
+      setSubscription(json.subscription || null);
+      setCurrentTermInfo(json.currentTermInfo || null);
+      setCurrentInvoice(json.currentInvoice || null);
+      setInvoices(json.invoices || []);
+      setPayments(json.payments || []);
+      setReceipts(json.receipts || []);
+      setAuditLogs(json.auditLogs || []);
+      setAccessStatus(json.accessStatus || null);
     } catch (err: any) {
       console.error(err);
       setErrorMsg(err.message || 'Error connecting to billing servers.');
@@ -79,7 +144,6 @@ export default function BillingPage() {
   };
 
   useEffect(() => {
-    // Read session credentials
     const sessionStr = localStorage.getItem('report_user_session');
     if (sessionStr) {
       try {
@@ -90,32 +154,15 @@ export default function BillingPage() {
     fetchBillingDetails();
   }, []);
 
-  // Recalculate price when plan/terms change
-  useEffect(() => {
-    let pricePerTerm = 80000;
-    if (selectedPlan.includes('Basic') || selectedPlan.includes('100')) {
-      pricePerTerm = 40000;
-    } else if (selectedPlan.includes('Standard') || selectedPlan.includes('250')) {
-      pricePerTerm = 80000;
-    } else if (selectedPlan.includes('Premium') || selectedPlan.includes('500')) {
-      pricePerTerm = 150000;
-    } else if (selectedPlan.includes('Enterprise') || selectedPlan.includes('Unlimited')) {
-      pricePerTerm = 300000;
-    }
-
-    const termsCount = parseInt(selectedTerms, 10) || 1;
-    setCalculatedAmount(pricePerTerm * termsCount);
-  }, [selectedPlan, selectedTerms]);
-
-  // Triggers Flutterwave transaction
-  const handleOnlinePayment = async () => {
+  // Triggers Online Flutterwave Checkout for an Invoice
+  const handlePayInvoice = async (targetInv: SaaSBillingInvoice) => {
     if (!school || !user) {
-      alert('School or session context missing. Please log in again.');
+      alert('Session context missing. Please log in again.');
       return;
     }
 
     if (!(window as any).FlutterwaveCheckout) {
-      alert('Flutterwave checkout script is still loading. Please wait a moment and try again.');
+      alert('Flutterwave gateway is initializing. Please wait a moment and try again.');
       return;
     }
 
@@ -124,13 +171,13 @@ export default function BillingPage() {
     setProcessingPayment(true);
 
     const flutterwaveKey = process.env.NEXT_PUBLIC_FLUTTERWAVE_PUBLIC_KEY || "FLWPUBK_TEST-e883df149b06871a2e37ca4b2fb418a0-X";
-    const ref = `txref-${school.id.substring(0, 5)}-${Date.now()}`;
+    const ref = `txref-saas-${targetInv.invoiceNumber}-${Date.now()}`;
 
     try {
       (window as any).FlutterwaveCheckout({
         public_key: flutterwaveKey,
         tx_ref: ref,
-        amount: calculatedAmount,
+        amount: targetInv.totalAmount,
         currency: "NGN",
         payment_options: "card, banktransfer, ussd, qr",
         customer: {
@@ -139,12 +186,11 @@ export default function BillingPage() {
           name: user.firstName + " " + user.lastName,
         },
         customizations: {
-          title: "NachoEd School Subscription",
-          description: `Subscription renewal for ${school.name} (${selectedPlan})`,
+          title: "Operon School Subscription",
+          description: `Termly subscription payment for ${school.name} (${targetInv.studentCount} students)`,
           logo: "https://images.unsplash.com/photo-1546410531-bb4caa6b424d?w=100&auto=format&fit=crop",
         },
         callback: async function (paymentResponse: any) {
-          // Verify with database callback API
           try {
             const txId = paymentResponse.transaction_id || paymentResponse.id;
             if (!txId) {
@@ -159,32 +205,18 @@ export default function BillingPage() {
                 'Authorization': `Bearer ${token}` 
               },
               body: JSON.stringify({
-                amount: calculatedAmount,
-                planSelected: selectedPlan,
-                durationTerms: parseInt(selectedTerms, 10),
-                transactionRef: String(txId),
-                status: paymentResponse.status || 'successful'
+                invoiceId: targetInv.id,
+                transactionRef: String(txId)
               })
             });
 
             const json = await res.json();
-            if (!res.ok) throw new Error(json.error || 'Subscription registration failed');
+            if (!res.ok) throw new Error(json.error || 'Payment verification failed');
 
-            setSuccessMsg(`Online payment verified successfully! Your school is now active on the ${selectedPlan}.`);
-            
-            // Sync session in localStorage
-            if (json.data?.school) {
-              const sessionStr = localStorage.getItem('report_user_session');
-              if (sessionStr) {
-                const parsed = JSON.parse(sessionStr);
-                parsed.school = json.data.school;
-                localStorage.setItem('report_user_session', JSON.stringify(parsed));
-              }
-            }
-
+            setSuccessMsg(`Payment of ₦${targetInv.totalAmount.toLocaleString()} verified successfully! Receipt #${json.data?.receipt?.receiptNumber || ''} generated.`);
             fetchBillingDetails();
           } catch (verifyErr: any) {
-            setErrorMsg(verifyErr.message || 'Payment was completed but failed to update subscription. Please contact support.');
+            setErrorMsg(verifyErr.message || 'Payment completed at gateway but verification failed. Please contact support.');
           } finally {
             setProcessingPayment(false);
           }
@@ -194,23 +226,76 @@ export default function BillingPage() {
         }
       });
     } catch (paymentErr: any) {
-      setErrorMsg('Error initializing online payment popup.');
+      setErrorMsg('Error launching Flutterwave payment popup.');
       setProcessingPayment(false);
     }
   };
 
-  const getStatusBadge = (status: string) => {
-    switch (status?.toLowerCase()) {
-      case 'active':
-        return <span className="bg-emerald-50 text-emerald-600 border border-emerald-100 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase flex items-center gap-1 w-fit shadow-sm"><ShieldCheck className="w-3.5 h-3.5" /> Active</span>;
-      case 'trial':
-        return <span className="bg-blue-50 text-blue-600 border border-blue-100 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase flex items-center gap-1 w-fit shadow-sm"><CheckCircle className="w-3.5 h-3.5" /> Trial</span>;
-      case 'suspended':
-        return <span className="bg-red-50 text-red-500 border border-red-100 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase flex items-center gap-1 w-fit shadow-sm"><ShieldAlert className="w-3.5 h-3.5 animate-pulse" /> Suspended</span>;
-      default:
-        return <span className="bg-slate-50 text-slate-500 border border-slate-100 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase flex items-center gap-1 w-fit shadow-sm">{status}</span>;
+  // Toggle Auto-Renewal
+  const handleToggleAutoRenew = async () => {
+    if (!subscription) return;
+    setTogglingAutoRenew(true);
+    try {
+      const token = localStorage.getItem('report_auth_token') || '';
+      const newStatus = !subscription.autoRenewEnabled;
+      const res = await fetch('/api/billing', {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}` 
+        },
+        body: JSON.stringify({
+          action: 'TOGGLE_AUTO_RENEW',
+          autoRenew: newStatus
+        })
+      });
+
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || 'Failed to update auto-renewal setting');
+
+      setSubscription(json.subscription);
+      setSuccessMsg(`Auto-renewal has been ${newStatus ? 'ENABLED' : 'DISABLED'}.`);
+    } catch (err: any) {
+      setErrorMsg(err.message || 'Failed to update setting');
+    } finally {
+      setTogglingAutoRenew(false);
     }
   };
+
+  const getStatusBadge = (status: string) => {
+    switch (status?.toUpperCase()) {
+      case 'ACTIVE':
+      case 'PAID':
+        return <span className="bg-emerald-50 text-[#14B8A6] border border-emerald-100 px-3 py-1 rounded-full text-[10px] font-black uppercase flex items-center gap-1 w-fit shadow-sm"><ShieldCheck className="w-3.5 h-3.5" /> Paid / Active</span>;
+      case 'TRIAL':
+        return <span className="bg-blue-50 text-blue-600 border border-blue-100 px-3 py-1 rounded-full text-[10px] font-black uppercase flex items-center gap-1 w-fit shadow-sm"><CheckCircle2 className="w-3.5 h-3.5" /> Free Trial</span>;
+      case 'PENDING_VERIFICATION':
+      case 'UNPAID':
+      case 'PAYMENT_DUE':
+        return <span className="bg-amber-50 text-amber-600 border border-amber-100 px-3 py-1 rounded-full text-[10px] font-black uppercase flex items-center gap-1 w-fit shadow-sm"><AlertTriangle className="w-3.5 h-3.5" /> Unpaid / Due</span>;
+      case 'OVERDUE':
+      case 'PAST_DUE':
+      case 'SUSPENDED':
+        return <span className="bg-red-50 text-red-600 border border-red-100 px-3 py-1 rounded-full text-[10px] font-black uppercase flex items-center gap-1 w-fit shadow-sm"><ShieldAlert className="w-3.5 h-3.5 animate-pulse" /> Suspended / Overdue</span>;
+      default:
+        return <span className="bg-slate-50 text-slate-600 border border-slate-200 px-3 py-1 rounded-full text-[10px] font-black uppercase w-fit">{status}</span>;
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6">
+        <div className="flex flex-col items-center gap-3">
+          <Loader2 className="w-8 h-8 text-[#14B8A6] animate-spin" />
+          <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">Loading Operon Billing System...</p>
+        </div>
+      </div>
+    );
+  }
+
+  const billableCount = currentTermInfo?.billableStudents || subscription?.currentBillableCount || 0;
+  const termBillAmount = currentInvoice ? currentInvoice.totalAmount : billableCount * 1000;
+  const isPaid = currentInvoice?.status === 'PAID' || subscription?.status === 'ACTIVE';
 
   return (
     <div className="p-6 space-y-6 max-w-7xl mx-auto text-slate-800 bg-slate-50/50 min-h-screen">
@@ -219,21 +304,28 @@ export default function BillingPage() {
       <div className="bg-white border border-slate-200/80 rounded-3xl p-6 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div className="space-y-1">
           <h2 className="text-xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2">
-            <CreditCard className="w-5.5 h-5.5 text-emerald-600" /> Billing & Subscriptions
+            <CreditCard className="w-5.5 h-5.5 text-[#14B8A6]" /> Operon Billing & Subscription
           </h2>
-          <p className="text-slate-450 text-xs font-semibold">
-            Manage your billing plans, pay your termly subscription invoice, and monitor enrollment limits.
+          <p className="text-slate-500 text-xs font-semibold">
+            Simple ₦1,000 per student per term pricing model. Complete feature access for all schools.
           </p>
         </div>
-        <div className="flex items-center gap-2 text-[10px] font-bold text-slate-400 uppercase bg-slate-50 border border-slate-200 px-3 py-1 rounded-xl shadow-sm">
-          <span>Secure payments via Flutterwave Gateway</span>
+        <div className="flex items-center gap-3">
+          {getStatusBadge(subscription?.status || 'TRIAL')}
+          <button
+            onClick={fetchBillingDetails}
+            className="p-2 border border-slate-200 hover:border-slate-300 rounded-xl bg-slate-50 text-slate-600 transition-colors text-xs flex items-center gap-1 font-bold"
+            title="Refresh Billing Data"
+          >
+            <RefreshCw className="w-3.5 h-3.5" />
+          </button>
         </div>
       </div>
 
-      {/* Success/Error Alerts */}
+      {/* Success / Error Alerts */}
       {successMsg && (
         <div className="bg-emerald-50 text-emerald-700 border border-emerald-200 px-5 py-4 rounded-3xl text-xs font-bold flex items-center gap-2 shadow-sm animate-fade-in">
-          <CheckCircle className="w-4 h-4 text-emerald-600 shrink-0" />
+          <CheckCircle2 className="w-4 h-4 text-[#14B8A6] shrink-0" />
           <span>{successMsg}</span>
         </div>
       )}
@@ -245,217 +337,600 @@ export default function BillingPage() {
         </div>
       )}
 
-      {/* Status Warning Banners */}
-      {school && school.subscriptionStatus === 'suspended' && (
-        <div className="bg-red-50 border border-red-200 rounded-3xl p-5 shadow-sm space-y-2.5 flex items-start gap-4">
-          <ShieldAlert className="w-6 h-6 text-red-500 shrink-0 mt-0.5 animate-pulse" />
-          <div className="space-y-1">
-            <h4 className="text-sm font-extrabold text-red-800">Account Access Suspended</h4>
-            <p className="text-xs text-red-650 font-semibold leading-relaxed">
-              Your subscription and grace period have expired. Modification features (such as adding students, editing grades, or marking attendance) are locked out. Please use the online checkout portal below to reactivate your portal immediately.
-            </p>
+      {/* Suspension Warning Notice */}
+      {accessStatus?.isSuspended && (
+        <div className="bg-red-50 border border-red-200 rounded-3xl p-6 shadow-sm space-y-3">
+          <div className="flex items-start gap-3">
+            <ShieldAlert className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
+            <div className="space-y-1">
+              <h4 className="text-sm font-extrabold text-red-900 uppercase tracking-wider">Operon Portal Access Suspended</h4>
+              <p className="text-xs text-red-700 font-semibold leading-relaxed">
+                {accessStatus.message}
+              </p>
+              <p className="text-[11px] text-red-600 font-medium pt-1">
+                🔒 Note: All student records, grades, teacher data, and school history remain 100% safe. Pay your current invoice below to reactivate full portal features immediately.
+              </p>
+            </div>
           </div>
         </div>
       )}
 
-      {school && school.subscriptionStatus === 'trial' && (
-        <div className="bg-blue-50 border border-blue-200 rounded-3xl p-5 shadow-sm flex items-start gap-4">
-          <CheckCircle className="w-6 h-6 text-blue-500 shrink-0 mt-0.5" />
-          <div className="space-y-1">
-            <h4 className="text-sm font-extrabold text-blue-800">Free Trial Status Active</h4>
-            <p className="text-xs text-blue-650 font-semibold leading-relaxed">
-              Your school is currently registered under the **Termly Free Trial**. You are entitled to free trial access for your first academic term. You can upgrade to a paid billing plan at any time below.
-            </p>
-          </div>
-        </div>
-      )}
+      {/* 6-TAB NAVIGATION BAR */}
+      <div className="flex items-center gap-2 border-b border-slate-200 overflow-x-auto pb-2">
+        <button
+          onClick={() => setActiveTab('overview')}
+          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 whitespace-nowrap ${
+            activeTab === 'overview' 
+              ? 'bg-[#14B8A6] text-white shadow-sm' 
+              : 'text-slate-600 hover:bg-slate-100'
+          }`}
+        >
+          <Layers className="w-4 h-4" /> Overview
+        </button>
+        <button
+          onClick={() => setActiveTab('invoices')}
+          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 whitespace-nowrap ${
+            activeTab === 'invoices' 
+              ? 'bg-[#14B8A6] text-white shadow-sm' 
+              : 'text-slate-600 hover:bg-slate-100'
+          }`}
+        >
+          <FileText className="w-4 h-4" /> Invoices ({invoices.length})
+        </button>
+        <button
+          onClick={() => setActiveTab('payments')}
+          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 whitespace-nowrap ${
+            activeTab === 'payments' 
+              ? 'bg-[#14B8A6] text-white shadow-sm' 
+              : 'text-slate-600 hover:bg-slate-100'
+          }`}
+        >
+          <History className="w-4 h-4" /> Payments ({payments.length})
+        </button>
+        <button
+          onClick={() => setActiveTab('receipts')}
+          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 whitespace-nowrap ${
+            activeTab === 'receipts' 
+              ? 'bg-[#14B8A6] text-white shadow-sm' 
+              : 'text-slate-600 hover:bg-slate-100'
+          }`}
+        >
+          <Receipt className="w-4 h-4" /> Receipts ({receipts.length})
+        </button>
+        <button
+          onClick={() => setActiveTab('subscription')}
+          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 whitespace-nowrap ${
+            activeTab === 'subscription' 
+              ? 'bg-[#14B8A6] text-white shadow-sm' 
+              : 'text-slate-600 hover:bg-slate-100'
+          }`}
+        >
+          <ShieldCheck className="w-4 h-4" /> Subscription & Renewal
+        </button>
+        <button
+          onClick={() => setActiveTab('profile')}
+          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 whitespace-nowrap ${
+            activeTab === 'profile' 
+              ? 'bg-[#14B8A6] text-white shadow-sm' 
+              : 'text-slate-600 hover:bg-slate-100'
+          }`}
+        >
+          <Building className="w-4 h-4" /> Billing Profile
+        </button>
+      </div>
 
-      {loading ? (
-        <div className="h-80 flex items-center justify-center bg-white border border-slate-200/80 rounded-3xl shadow-sm">
-          <div className="text-center space-y-3">
-            <Loader2 className="w-6 h-6 border-2 border-t-emerald-600 border-r-transparent border-b-transparent border-l-transparent rounded-full animate-spin mx-auto text-emerald-600" />
-            <p className="text-slate-450 text-xs font-semibold">Accessing payment records...</p>
-          </div>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+      {/* TAB 1: OVERVIEW */}
+      {activeTab === 'overview' && (
+        <div className="space-y-6">
           
-          {/* Active Subscription Summary & Billing Form */}
-          <div className="lg:col-span-5 space-y-6">
+          {/* Top Quick Stats Row */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             
-            {/* Subscription Summary Card */}
-            {school && (
-              <div className="bg-white border border-slate-200/80 rounded-3xl p-6 shadow-sm space-y-4">
-                <h3 className="text-xs font-black uppercase text-slate-450 tracking-wider flex items-center gap-1.5">
-                  Subscription Summary
-                </h3>
+            <div className="bg-white border border-slate-200/80 rounded-3xl p-5 shadow-sm space-y-1">
+              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Current Plan</span>
+              <p className="text-base font-extrabold text-slate-900">Operon School Plan</p>
+              <p className="text-xs font-bold text-[#14B8A6]">₦1,000 / student / term</p>
+            </div>
 
-                <div className="space-y-3.5 pt-1">
-                  <div className="flex justify-between items-center border-b border-slate-100 pb-2.5">
-                    <span className="text-xs text-slate-400 font-bold">Active Status</span>
-                    {getStatusBadge(school.subscriptionStatus)}
+            <div className="bg-white border border-slate-200/80 rounded-3xl p-5 shadow-sm space-y-1">
+              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Current Session & Term</span>
+              <p className="text-base font-extrabold text-slate-900">
+                {currentTermInfo?.session?.name || '2026/2027'}
+              </p>
+              <p className="text-xs font-bold text-slate-600">
+                {currentTermInfo?.term?.name || 'First Term'}
+              </p>
+            </div>
+
+            <div className="bg-white border border-slate-200/80 rounded-3xl p-5 shadow-sm space-y-1">
+              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Billable Active Students</span>
+              <p className="text-2xl font-black text-slate-900 flex items-center gap-2">
+                <Users className="w-5 h-5 text-[#14B8A6]" /> {billableCount}
+              </p>
+              <p className="text-[10px] font-semibold text-slate-400">Active & Enrolled Students</p>
+            </div>
+
+            <div className="bg-white border border-slate-200/80 rounded-3xl p-5 shadow-sm space-y-1">
+              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Current Term Bill</span>
+              <p className="text-2xl font-black text-[#14B8A6]">
+                ₦{termBillAmount.toLocaleString()}
+              </p>
+              <p className="text-[10px] font-semibold text-slate-400">
+                Due: {currentInvoice?.dueDate ? new Date(currentInvoice.dueDate).toLocaleDateString() : 'End of term'}
+              </p>
+            </div>
+
+          </div>
+
+          {/* Prominent Billing Summary Card & Pay Action */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            
+            {/* Main Billing Card */}
+            <div className="lg:col-span-2 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-950 text-white rounded-3xl p-8 shadow-xl relative overflow-hidden flex flex-col justify-between space-y-8">
+              <div className="absolute top-0 right-0 w-64 h-64 bg-[#14B8A6]/10 rounded-full blur-3xl pointer-events-none" />
+              
+              <div className="space-y-4 relative z-10">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <span className="text-[10px] font-black tracking-widest uppercase text-[#14B8A6]">OPERON SCHOOL PLAN</span>
+                    <h3 className="text-3xl font-black tracking-tight text-white mt-1">₦1,000</h3>
+                    <p className="text-xs font-semibold text-slate-400">per student / term</p>
                   </div>
-                  <div className="flex justify-between items-center border-b border-slate-100 pb-2.5">
-                    <span className="text-xs text-slate-400 font-bold">Current Plan</span>
-                    <span className="text-xs font-extrabold text-slate-800">{school.subscriptionPlan}</span>
+                  {getStatusBadge(currentInvoice?.status || subscription?.status || 'UNPAID')}
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 pt-4 border-t border-slate-800">
+                  <div>
+                    <span className="text-[10px] font-bold text-slate-400 uppercase block">Active Students</span>
+                    <span className="text-lg font-black text-white">{billableCount}</span>
                   </div>
-                  <div className="flex justify-between items-center border-b border-slate-100 pb-2.5">
-                    <span className="text-xs text-slate-400 font-bold">Enrollment Limit</span>
-                    <span className="text-xs font-extrabold text-slate-800 font-mono">
-                      {school._count.students} / {school.maxStudents || 100} Students
-                    </span>
+                  <div>
+                    <span className="text-[10px] font-bold text-slate-400 uppercase block">Billing Period</span>
+                    <span className="text-sm font-bold text-white">{currentTermInfo?.term?.name || 'First Term'}</span>
                   </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-xs text-slate-400 font-bold">Billing End Date</span>
-                    <span className="text-xs font-extrabold text-slate-800 font-mono flex items-center gap-1">
-                      <Calendar className="w-3.5 h-3.5 text-slate-400" />
-                      {school.subscriptionEnd ? new Date(school.subscriptionEnd).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'N/A'}
-                    </span>
+                  <div>
+                    <span className="text-[10px] font-bold text-slate-400 uppercase block">Amount Due</span>
+                    <span className="text-lg font-black text-[#14B8A6]">₦{termBillAmount.toLocaleString()}</span>
                   </div>
                 </div>
               </div>
-            )}
 
-            {/* Online Billing Payment Checkout */}
-            <div className="bg-white border border-slate-200/80 rounded-3xl p-6 shadow-sm space-y-4">
-              <h3 className="text-xs font-black uppercase text-slate-450 tracking-wider">
-                Online Subscription Checkout
-              </h3>
-
-              <div className="space-y-4 pt-1">
-                {/* Select Plan Tier */}
-                <div className="space-y-1">
-                  <label className="block text-[9px] font-extrabold uppercase tracking-wider text-slate-400">Select Plan Tier</label>
-                  <select
-                    value={selectedPlan}
-                    onChange={(e) => setSelectedPlan(e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-indigo-500 bg-white"
+              <div className="pt-4 relative z-10 flex flex-col sm:flex-row items-center gap-4">
+                {currentInvoice && currentInvoice.status !== 'PAID' ? (
+                  <button
+                    onClick={() => handlePayInvoice(currentInvoice)}
+                    disabled={processingPayment}
+                    className="w-full sm:w-auto px-8 py-4 bg-[#14B8A6] hover:bg-[#0d9488] text-white text-xs font-black tracking-widest uppercase rounded-2xl transition-all shadow-lg flex items-center justify-center gap-2 cursor-pointer"
                   >
-                    <option value="Basic Plan (Up to 100 Students)">Basic Plan (Up to 100 Students) - ₦40,000/Term</option>
-                    <option value="Standard Plan (Up to 250 Students)">Standard Plan (Up to 250 Students) - ₦80,000/Term</option>
-                    <option value="Premium Plan (Up to 500 Students)">Premium Plan (Up to 500 Students) - ₦150,000/Term</option>
-                    <option value="Enterprise Unlimited Plan">Enterprise Unlimited Plan - ₦300,000/Term</option>
-                  </select>
-                </div>
-
-                {/* Duration select */}
-                <div className="space-y-1">
-                  <label className="block text-[9px] font-extrabold uppercase tracking-wider text-slate-400">Subscription Duration</label>
-                  <select
-                    value={selectedTerms}
-                    onChange={(e) => setSelectedTerms(e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-indigo-500 bg-white"
-                  >
-                    <option value="1">1 Term (90 Days)</option>
-                    <option value="2">2 Terms (180 Days)</option>
-                    <option value="3">Full Academic Year - 3 Terms (270 Days)</option>
-                  </select>
-                </div>
-
-                {/* Pricing summary */}
-                <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 space-y-2">
-                  <div className="flex justify-between items-center text-xs">
-                    <span className="text-slate-450 font-bold">Terms Count:</span>
-                    <span className="text-slate-700 font-extrabold">{selectedTerms} Term(s)</span>
-                  </div>
-                  <div className="flex justify-between items-center text-xs border-b border-slate-100 pb-2">
-                    <span className="text-slate-450 font-bold">Days Issued:</span>
-                    <span className="text-slate-700 font-extrabold font-mono">{parseInt(selectedTerms, 10) * 90} Days</span>
-                  </div>
-                  <div className="flex justify-between items-baseline pt-1">
-                    <span className="text-xs text-slate-800 font-black uppercase">Total Due (NGN):</span>
-                    <span className="text-xl font-black text-emerald-600 font-mono">
-                      ₦{calculatedAmount.toLocaleString('en-US')}.00
+                    {processingPayment ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" /> Verifying...
+                      </>
+                    ) : (
+                      <>
+                        <CreditCard className="w-4 h-4" /> Pay Now (₦{termBillAmount.toLocaleString()})
+                      </>
+                    )}
+                  </button>
+                ) : (
+                  <div className="flex items-center gap-3">
+                    <span className="px-5 py-3 bg-emerald-500/20 text-[#14B8A6] border border-emerald-500/30 text-xs font-black uppercase rounded-2xl flex items-center gap-2">
+                      <CheckCircle2 className="w-4 h-4" /> Subscription Paid & Active
                     </span>
+                    {receipts.length > 0 && (
+                      <button
+                        onClick={() => setSelectedReceipt(receipts[0])}
+                        className="px-5 py-3 bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold rounded-2xl transition-colors flex items-center gap-2"
+                      >
+                        <Receipt className="w-4 h-4" /> View Payment Receipt
+                      </button>
+                    )}
                   </div>
+                )}
+              </div>
+
+            </div>
+
+            {/* Quick Rules & Information Box */}
+            <div className="bg-white border border-slate-200/80 rounded-3xl p-6 shadow-sm space-y-4">
+              <h4 className="text-xs font-black uppercase tracking-wider text-slate-900 flex items-center gap-2">
+                <Info className="w-4 h-4 text-[#14B8A6]" /> Billing Policy Summary
+              </h4>
+
+              <div className="space-y-3 text-xs text-slate-600 font-medium leading-relaxed">
+                <div className="p-3 bg-slate-50 rounded-2xl border border-slate-100 space-y-1">
+                  <span className="font-bold text-slate-800 block">Single Transparent Price</span>
+                  <p className="text-[11px] text-slate-500">₦1,000 per active student per term. No hidden software fees or tier restrictions.</p>
                 </div>
 
-                {/* Action button */}
+                <div className="p-3 bg-slate-50 rounded-2xl border border-slate-100 space-y-1">
+                  <span className="font-bold text-slate-800 block">Billable Student Count</span>
+                  <p className="text-[11px] text-slate-500">Only Active & Enrolled students count toward billing. Graduated or withdrawn students are non-billable.</p>
+                </div>
+
+                <div className="p-3 bg-slate-50 rounded-2xl border border-slate-100 space-y-1">
+                  <span className="font-bold text-slate-800 block">Immutable Invoices</span>
+                  <p className="text-[11px] text-slate-500">Paid invoices are permanently preserved. Mid-term student additions generate separate term adjustments.</p>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+      )}
+
+      {/* TAB 2: INVOICES */}
+      {activeTab === 'invoices' && (
+        <div className="bg-white border border-slate-200/80 rounded-3xl p-6 shadow-sm space-y-4">
+          <div className="flex justify-between items-center">
+            <h3 className="text-sm font-extrabold text-slate-900 uppercase tracking-wider">
+              Termly SaaS Invoices ({invoices.length})
+            </h3>
+          </div>
+
+          {invoices.length === 0 ? (
+            <div className="text-center py-12 text-slate-400 space-y-2">
+              <FileText className="w-8 h-8 mx-auto text-slate-300" />
+              <p className="text-xs font-bold">No SaaS invoices generated yet.</p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs border-collapse">
+                <thead>
+                  <tr className="border-b border-slate-200 text-slate-400 font-extrabold uppercase text-[10px] tracking-wider bg-slate-50/50">
+                    <th className="py-3 px-4">Invoice Number</th>
+                    <th className="py-3 px-4">Session & Term</th>
+                    <th className="py-3 px-4">Students</th>
+                    <th className="py-3 px-4">Rate</th>
+                    <th className="py-3 px-4">Total Amount</th>
+                    <th className="py-3 px-4">Issue Date</th>
+                    <th className="py-3 px-4">Due Date</th>
+                    <th className="py-3 px-4">Status</th>
+                    <th className="py-3 px-4 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 font-semibold">
+                  {invoices.map((inv) => (
+                    <tr key={inv.id} className="hover:bg-slate-50/80 transition-colors">
+                      <td className="py-3.5 px-4 font-extrabold text-slate-900">{inv.invoiceNumber}</td>
+                      <td className="py-3.5 px-4 text-slate-700">
+                        {inv.session?.name || '2026/2027'} • {inv.term?.name || 'First Term'}
+                      </td>
+                      <td className="py-3.5 px-4 text-slate-800 font-bold">{inv.studentCount} students</td>
+                      <td className="py-3.5 px-4 text-slate-600">₦{inv.pricePerStudent.toLocaleString()}/student</td>
+                      <td className="py-3.5 px-4 font-black text-[#14B8A6]">₦{inv.totalAmount.toLocaleString()}</td>
+                      <td className="py-3.5 px-4 text-slate-500">{new Date(inv.issueDate).toLocaleDateString()}</td>
+                      <td className="py-3.5 px-4 text-slate-500">{new Date(inv.dueDate).toLocaleDateString()}</td>
+                      <td className="py-3.5 px-4">{getStatusBadge(inv.status)}</td>
+                      <td className="py-3.5 px-4 text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          <button
+                            onClick={() => setSelectedInvoice(inv)}
+                            className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-[11px] font-bold transition-colors"
+                          >
+                            View
+                          </button>
+                          {inv.status !== 'PAID' && (
+                            <button
+                              onClick={() => handlePayInvoice(inv)}
+                              disabled={processingPayment}
+                              className="px-3 py-1.5 bg-[#14B8A6] hover:bg-[#0d9488] text-white rounded-xl text-[11px] font-extrabold transition-colors shadow-sm"
+                            >
+                              Pay Now
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* TAB 3: PAYMENTS */}
+      {activeTab === 'payments' && (
+        <div className="bg-white border border-slate-200/80 rounded-3xl p-6 shadow-sm space-y-4">
+          <h3 className="text-sm font-extrabold text-slate-900 uppercase tracking-wider">
+            Payment Transaction History ({payments.length})
+          </h3>
+
+          {payments.length === 0 ? (
+            <div className="text-center py-12 text-slate-400 space-y-2">
+              <History className="w-8 h-8 mx-auto text-slate-300" />
+              <p className="text-xs font-bold">No online payment transactions recorded yet.</p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs border-collapse">
+                <thead>
+                  <tr className="border-b border-slate-200 text-slate-400 font-extrabold uppercase text-[10px] tracking-wider bg-slate-50/50">
+                    <th className="py-3 px-4">Transaction Ref</th>
+                    <th className="py-3 px-4">Invoice #</th>
+                    <th className="py-3 px-4">Amount</th>
+                    <th className="py-3 px-4">Payment Method</th>
+                    <th className="py-3 px-4">Date & Time</th>
+                    <th className="py-3 px-4">Status</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 font-semibold">
+                  {payments.map((tx) => (
+                    <tr key={tx.id} className="hover:bg-slate-50/80 transition-colors">
+                      <td className="py-3.5 px-4 font-mono font-bold text-slate-900">{tx.transactionRef}</td>
+                      <td className="py-3.5 px-4 text-slate-700">{tx.saasInvoice?.invoiceNumber || 'N/A'}</td>
+                      <td className="py-3.5 px-4 font-black text-[#14B8A6]">₦{tx.amount.toLocaleString()}</td>
+                      <td className="py-3.5 px-4 text-slate-600">{tx.paymentMethod}</td>
+                      <td className="py-3.5 px-4 text-slate-500">{new Date(tx.paymentDate).toLocaleString()}</td>
+                      <td className="py-3.5 px-4">{getStatusBadge(tx.status)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* TAB 4: RECEIPTS */}
+      {activeTab === 'receipts' && (
+        <div className="bg-white border border-slate-200/80 rounded-3xl p-6 shadow-sm space-y-4">
+          <h3 className="text-sm font-extrabold text-slate-900 uppercase tracking-wider">
+            Official Subscription Receipts ({receipts.length})
+          </h3>
+
+          {receipts.length === 0 ? (
+            <div className="text-center py-12 text-slate-400 space-y-2">
+              <Receipt className="w-8 h-8 mx-auto text-slate-300" />
+              <p className="text-xs font-bold">No payment receipts available yet.</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {receipts.map((rec) => (
+                <div key={rec.id} className="bg-slate-50 border border-slate-200/80 rounded-2xl p-5 space-y-3 relative flex flex-col justify-between">
+                  <div className="space-y-1.5">
+                    <div className="flex justify-between items-start">
+                      <span className="text-[10px] font-mono font-bold text-[#14B8A6]">{rec.receiptNumber}</span>
+                      <span className="bg-emerald-100 text-[#14B8A6] text-[9px] font-black uppercase px-2 py-0.5 rounded-md">VERIFIED</span>
+                    </div>
+                    <p className="text-lg font-black text-slate-900">₦{rec.amount.toLocaleString()}</p>
+                    <p className="text-xs text-slate-600 font-semibold">
+                      {rec.saasInvoice?.session?.name || '2026/2027'} • {rec.saasInvoice?.term?.name || 'First Term'}
+                    </p>
+                    <p className="text-[11px] text-slate-400">Issued: {new Date(rec.issuedAt).toLocaleDateString()}</p>
+                  </div>
+
+                  <div className="pt-3 border-t border-slate-200 flex justify-between items-center">
+                    <span className="text-[11px] font-bold text-slate-500">{rec.studentCount} Students</span>
+                    <button
+                      onClick={() => setSelectedReceipt(rec)}
+                      className="px-3 py-1.5 bg-[#14B8A6] hover:bg-[#0d9488] text-white text-xs font-bold rounded-xl transition-colors flex items-center gap-1"
+                    >
+                      <Printer className="w-3.5 h-3.5" /> View Receipt
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* TAB 5: SUBSCRIPTION & AUTO-RENEWAL */}
+      {activeTab === 'subscription' && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          
+          <div className="bg-white border border-slate-200/80 rounded-3xl p-6 shadow-sm space-y-4">
+            <h3 className="text-sm font-extrabold text-slate-900 uppercase tracking-wider">
+              Subscription Status & Renewal
+            </h3>
+
+            <div className="space-y-3 text-xs">
+              <div className="flex justify-between py-2 border-b border-slate-100">
+                <span className="text-slate-500 font-medium">Status</span>
+                {getStatusBadge(subscription?.status || 'TRIAL')}
+              </div>
+              <div className="flex justify-between py-2 border-b border-slate-100">
+                <span className="text-slate-500 font-medium">Plan Package</span>
+                <span className="font-bold text-slate-900">Operon School Management</span>
+              </div>
+              <div className="flex justify-between py-2 border-b border-slate-100">
+                <span className="text-slate-500 font-medium">Rate</span>
+                <span className="font-bold text-[#14B8A6]">₦1,000 / student / term</span>
+              </div>
+              <div className="flex justify-between py-2 border-b border-slate-100">
+                <span className="text-slate-500 font-medium">Current Period Start</span>
+                <span className="font-semibold text-slate-800">
+                  {subscription?.currentPeriodStart ? new Date(subscription.currentPeriodStart).toLocaleDateString() : 'N/A'}
+                </span>
+              </div>
+              <div className="flex justify-between py-2 border-b border-slate-100">
+                <span className="text-slate-500 font-medium">Next Renewal Date</span>
+                <span className="font-semibold text-slate-800">
+                  {subscription?.currentPeriodEnd ? new Date(subscription.currentPeriodEnd).toLocaleDateString() : 'End of current term'}
+                </span>
+              </div>
+              <div className="flex justify-between py-2 border-b border-slate-100">
+                <span className="text-slate-500 font-medium">Grace Period Until</span>
+                <span className="font-semibold text-slate-800">
+                  {subscription?.gracePeriodEnd ? new Date(subscription.gracePeriodEnd).toLocaleDateString() : 'N/A'}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white border border-slate-200/80 rounded-3xl p-6 shadow-sm space-y-4">
+            <h3 className="text-sm font-extrabold text-slate-900 uppercase tracking-wider">
+              Auto-Renewal Settings
+            </h3>
+
+            <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200/80 space-y-3">
+              <div className="flex justify-between items-center">
+                <div>
+                  <span className="font-bold text-slate-900 block text-xs">Enable Termly Auto-Renewal</span>
+                  <span className="text-[11px] text-slate-500">Automatically generate and pay next term invoice.</span>
+                </div>
                 <button
-                  type="button"
-                  onClick={handleOnlinePayment}
-                  disabled={processingPayment}
-                  className="w-full flex items-center justify-center gap-1.5 py-3 bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-200 text-white rounded-xl text-xs font-black cursor-pointer shadow-sm transition-colors uppercase tracking-wider"
+                  onClick={handleToggleAutoRenew}
+                  disabled={togglingAutoRenew}
+                  className="text-[#14B8A6] cursor-pointer"
                 >
-                  {processingPayment ? (
-                    <>
-                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                      <span>Verifying Checkout...</span>
-                    </>
+                  {subscription?.autoRenewEnabled ? (
+                    <ToggleRight className="w-8 h-8 text-[#14B8A6]" />
                   ) : (
-                    <>
-                      <CreditCard className="w-4 h-4" />
-                      <span>Pay Online via Flutterwave</span>
-                    </>
+                    <ToggleLeft className="w-8 h-8 text-slate-300" />
                   )}
                 </button>
               </div>
-            </div>
 
-          </div>
-
-          {/* Payment Transactions Ledger Table */}
-          <div className="lg:col-span-7">
-            <div className="bg-white border border-slate-200/80 rounded-3xl p-6 shadow-sm space-y-4">
-              <h3 className="text-xs font-black uppercase text-slate-450 tracking-wider flex items-center gap-1.5">
-                <History className="w-4 h-4 text-emerald-600" /> Transaction Billing History
-              </h3>
-
-              <div className="overflow-x-auto rounded-2xl border border-slate-200/60 shadow-sm mt-2">
-                <table className="w-full border-collapse text-left text-xs font-semibold text-slate-600">
-                  <thead>
-                    <tr className="bg-slate-50 border-b border-slate-200 text-[10px] font-black uppercase tracking-wider text-slate-400">
-                      <th className="p-4">Payment Date</th>
-                      <th className="p-4">Channel / Method</th>
-                      <th className="p-4 text-right">Amount (NGN)</th>
-                      <th className="p-4 text-center">Status</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100 font-semibold text-slate-600">
-                    {payments.length === 0 ? (
-                      <tr>
-                        <td colSpan={4} className="p-8 text-center text-slate-400 italic">
-                          No transaction billing history logged yet.
-                        </td>
-                      </tr>
-                    ) : (
-                      payments.map((p) => (
-                        <tr key={p.id} className="hover:bg-slate-50/20 transition-colors">
-                          <td className="p-4">
-                            <span className="text-slate-800 font-extrabold block">
-                              {new Date(p.paymentDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                            </span>
-                            <span className="text-[10px] font-mono text-slate-400 block pt-0.5">
-                              {new Date(p.paymentDate).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
-                            </span>
-                          </td>
-                          <td className="p-4 text-slate-700">
-                            {p.paymentMethod}
-                          </td>
-                          <td className="p-4 text-right font-mono font-bold text-slate-800">
-                            ₦{p.amount.toLocaleString()}.00
-                          </td>
-                          <td className="p-4 text-center">
-                            <span className={`px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider border ${
-                              p.status === 'paid' 
-                                ? 'bg-green-50 text-green-600 border-green-100'
-                                : 'bg-amber-50 text-amber-600 border-amber-100'
-                            }`}>
-                              {p.status}
-                            </span>
-                          </td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
+              <div className="pt-2 text-[11px] text-slate-500 leading-relaxed border-t border-slate-200 flex items-start gap-2">
+                <Lock className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                <span>
+                  <strong>PCI-DSS Security Notice:</strong> Operon uses secure tokenization via Flutterwave. We never store raw card numbers, CVV, or PINs on our servers.
+                </span>
               </div>
-
             </div>
           </div>
 
         </div>
       )}
+
+      {/* TAB 6: BILLING PROFILE */}
+      {activeTab === 'profile' && (
+        <div className="bg-white border border-slate-200/80 rounded-3xl p-6 shadow-sm space-y-6 max-w-2xl">
+          <h3 className="text-sm font-extrabold text-slate-900 uppercase tracking-wider">
+            School Billing Profile
+          </h3>
+
+          <div className="space-y-4 text-xs font-semibold">
+            <div>
+              <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Registered School Name</label>
+              <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-800">{school?.name || 'N/A'}</div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Billing Contact Email</label>
+                <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-800">{school?.email || 'N/A'}</div>
+              </div>
+              <div>
+                <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Phone Number</label>
+                <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-800">{school?.phone || 'N/A'}</div>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">School Physical Address</label>
+              <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-800">{school?.address || 'N/A'}</div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* INVOICE MODAL VIEWER */}
+      {selectedInvoice && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white border border-slate-200 rounded-3xl p-8 max-w-lg w-full shadow-2xl space-y-6 animate-scaleIn">
+            <div className="flex justify-between items-start border-b border-slate-100 pb-4">
+              <div>
+                <span className="text-[10px] font-bold uppercase tracking-widest text-[#14B8A6]">OPERON SAAS INVOICE</span>
+                <h3 className="text-xl font-black text-slate-900">{selectedInvoice.invoiceNumber}</h3>
+              </div>
+              <button onClick={() => setSelectedInvoice(null)} className="text-slate-400 hover:text-slate-600 font-bold">✕</button>
+            </div>
+
+            <div className="space-y-3 text-xs">
+              <div className="flex justify-between py-1">
+                <span className="text-slate-500">School Identity</span>
+                <span className="font-bold text-slate-900">{school?.name}</span>
+              </div>
+              <div className="flex justify-between py-1">
+                <span className="text-slate-500">Session & Term</span>
+                <span className="font-bold text-slate-800">{selectedInvoice.session?.name || '2026/2027'} • {selectedInvoice.term?.name || 'First Term'}</span>
+              </div>
+              <div className="flex justify-between py-1">
+                <span className="text-slate-500">Billable Students</span>
+                <span className="font-bold text-slate-900">{selectedInvoice.studentCount} students</span>
+              </div>
+              <div className="flex justify-between py-1">
+                <span className="text-slate-500">Rate</span>
+                <span className="font-bold text-[#14B8A6]">₦{selectedInvoice.pricePerStudent.toLocaleString()}/student</span>
+              </div>
+              <div className="flex justify-between py-1 pt-2 border-t border-slate-200 font-extrabold text-sm">
+                <span className="text-slate-900">Total Amount Due</span>
+                <span className="text-[#14B8A6]">₦{selectedInvoice.totalAmount.toLocaleString()}</span>
+              </div>
+            </div>
+
+            <div className="pt-4 border-t border-slate-100 flex justify-end gap-3">
+              <button
+                onClick={() => window.print()}
+                className="px-4 py-2 bg-slate-100 text-slate-700 font-bold rounded-xl text-xs flex items-center gap-1"
+              >
+                <Printer className="w-3.5 h-3.5" /> Print Invoice
+              </button>
+              {selectedInvoice.status !== 'PAID' && (
+                <button
+                  onClick={() => { setSelectedInvoice(null); handlePayInvoice(selectedInvoice); }}
+                  className="px-5 py-2 bg-[#14B8A6] hover:bg-[#0d9488] text-white font-extrabold rounded-xl text-xs flex items-center gap-1 shadow-sm"
+                >
+                  <CreditCard className="w-3.5 h-3.5" /> Pay Now
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* RECEIPT MODAL VIEWER */}
+      {selectedReceipt && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white border border-slate-200 rounded-3xl p-8 max-w-lg w-full shadow-2xl space-y-6 animate-scaleIn">
+            <div className="flex justify-between items-start border-b border-slate-100 pb-4">
+              <div>
+                <span className="text-[10px] font-bold uppercase tracking-widest text-[#14B8A6]">OFFICIAL PAYMENT RECEIPT</span>
+                <h3 className="text-xl font-black text-slate-900">{selectedReceipt.receiptNumber}</h3>
+              </div>
+              <button onClick={() => setSelectedReceipt(null)} className="text-slate-400 hover:text-slate-600 font-bold">✕</button>
+            </div>
+
+            <div className="space-y-3 text-xs">
+              <div className="flex justify-between py-1">
+                <span className="text-slate-500">School Name</span>
+                <span className="font-bold text-slate-900">{school?.name}</span>
+              </div>
+              <div className="flex justify-between py-1">
+                <span className="text-slate-500">Invoice Reference</span>
+                <span className="font-bold text-slate-800">{selectedReceipt.saasInvoice?.invoiceNumber || 'N/A'}</span>
+              </div>
+              <div className="flex justify-between py-1">
+                <span className="text-slate-500">Student Count</span>
+                <span className="font-bold text-slate-900">{selectedReceipt.studentCount} students</span>
+              </div>
+              <div className="flex justify-between py-1">
+                <span className="text-slate-500">Payment Date</span>
+                <span className="font-bold text-slate-800">{new Date(selectedReceipt.issuedAt).toLocaleString()}</span>
+              </div>
+              <div className="flex justify-between py-1 pt-2 border-t border-slate-200 font-extrabold text-sm">
+                <span className="text-slate-900">Amount Paid</span>
+                <span className="text-[#14B8A6]">₦{selectedReceipt.amount.toLocaleString()}</span>
+              </div>
+            </div>
+
+            <div className="pt-4 border-t border-slate-100 flex justify-end gap-3">
+              <button
+                onClick={() => window.print()}
+                className="px-5 py-2.5 bg-[#14B8A6] hover:bg-[#0d9488] text-white font-extrabold rounded-xl text-xs flex items-center gap-1.5 shadow-sm"
+              >
+                <Printer className="w-4 h-4" /> Print / Download Receipt
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }

@@ -1,47 +1,116 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/db';
 import { requireAuth, requireRole } from '@/lib/auth-middleware';
+import { 
+  ensureSchoolSubscription, 
+  ensureCurrentTermInvoice, 
+  evaluateSchoolAccessStatus,
+  verifyFlutterwaveTransaction,
+  generateReceiptNumber,
+  PRICE_PER_STUDENT_TERM,
+  getBillableStudentCount
+} from '@/lib/billing-engine';
 
 export async function GET(req: NextRequest) {
   try {
     const session = await requireAuth(req);
-    requireRole(session, ['SCHOOL_ADMIN']);
+    requireRole(session, ['SCHOOL_ADMIN', 'SUPER_ADMIN']);
 
-    const schoolId = session.schoolId;
+    let schoolId = session.schoolId;
+    const url = new URL(req.url);
+    const targetSchoolId = url.searchParams.get('schoolId');
+
+    if (session.role === 'SUPER_ADMIN' && targetSchoolId) {
+      schoolId = targetSchoolId;
+    }
+
     if (!schoolId) {
       return NextResponse.json({ error: 'School context not found in user session' }, { status: 400 });
     }
 
-    const payments = await prisma.payment.findMany({
-      where: { schoolId },
-      orderBy: { paymentDate: 'desc' }
-    });
-
-    // Also fetch school details
     const school = await prisma.school.findUnique({
       where: { id: schoolId },
       select: {
         id: true,
         name: true,
-        subscriptionPlan: true,
-        subscriptionStatus: true,
-        subscriptionStart: true,
-        subscriptionEnd: true,
-        maxStudents: true,
+        slug: true,
+        email: true,
         phone: true,
-        _count: {
-          select: { students: true }
-        }
+        address: true,
+        createdAt: true
       }
     });
 
-    return NextResponse.json({ success: true, payments, school });
+    if (!school) {
+      return NextResponse.json({ error: 'School entity not found' }, { status: 404 });
+    }
+
+    const subscription = await ensureSchoolSubscription(schoolId);
+    const termInfo = await ensureCurrentTermInvoice(schoolId);
+    const accessStatus = await evaluateSchoolAccessStatus(schoolId);
+
+    const invoices = await prisma.saaSBillingInvoice.findMany({
+      where: { schoolId },
+      include: {
+        session: { select: { id: true, name: true } },
+        term: { select: { id: true, name: true } },
+        transactions: { orderBy: { paymentDate: 'desc' } },
+        receipts: { orderBy: { issuedAt: 'desc' } }
+      },
+      orderBy: { createdAt: 'desc' }
+    });
+
+    const payments = await prisma.paymentTransaction.findMany({
+      where: { schoolId },
+      include: {
+        saasInvoice: { select: { invoiceNumber: true, studentCount: true } },
+        receipt: true
+      },
+      orderBy: { paymentDate: 'desc' }
+    });
+
+    const receipts = await prisma.paymentReceipt.findMany({
+      where: { schoolId },
+      include: {
+        saasInvoice: { select: { invoiceNumber: true, session: true, term: true } },
+        transaction: true
+      },
+      orderBy: { issuedAt: 'desc' }
+    });
+
+    const auditLogs = await prisma.billingAuditLog.findMany({
+      where: { schoolId },
+      orderBy: { createdAt: 'desc' },
+      take: 20
+    });
+
+    return NextResponse.json({
+      success: true,
+      pricingModel: {
+        pricePerStudent: PRICE_PER_STUDENT_TERM,
+        unit: 'per student / term'
+      },
+      school,
+      subscription,
+      currentTermInfo: {
+        session: termInfo.session,
+        term: termInfo.term,
+        billableStudents: termInfo.billableCount
+      },
+      currentInvoice: termInfo.invoice,
+      invoices,
+      payments,
+      receipts,
+      auditLogs,
+      accessStatus
+    });
+
   } catch (error: any) {
     if (error.name === 'AuthError' || error.status) {
       return NextResponse.json({ error: error.message || 'Unauthorized' }, { status: error.status || 401 });
     }
     console.error('Billing GET Error:', error);
-    return NextResponse.json({ error: 'Failed to fetch billing details' }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to fetch SaaS billing details' }, { status: 500 });
   }
 }
 
@@ -56,145 +125,160 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { amount, planSelected, durationTerms, transactionRef, status } = body;
+    const { action, autoRenew, invoiceId, transactionRef } = body;
 
-    if (!amount || !planSelected || !durationTerms || !transactionRef) {
-      return NextResponse.json({ error: 'Missing payment details (amount, planSelected, durationTerms, transactionRef)' }, { status: 400 });
-    }
-
-    // 1. Prevent transaction replay attacks (check unique index)
-    const existingPayment = await prisma.payment.findUnique({
-      where: { transactionRef: String(transactionRef) }
-    });
-    if (existingPayment) {
-      return NextResponse.json({ error: 'This transaction reference has already been processed and verified' }, { status: 400 });
-    }
-
-    // 2. Calculate expected plan price per term
-    let pricePerTerm = 80000;
-    if (planSelected.includes('Basic') || planSelected.includes('100') || planSelected.includes('Tier 1')) {
-      pricePerTerm = 40000;
-    } else if (planSelected.includes('Standard') || planSelected.includes('250') || planSelected.includes('Tier 2')) {
-      pricePerTerm = 80000;
-    } else if (planSelected.includes('Premium') || planSelected.includes('500') || planSelected.includes('Tier 3')) {
-      pricePerTerm = 150000;
-    } else if (planSelected.includes('Unlimited') || planSelected.includes('Enterprise') || planSelected.includes('Tier 4')) {
-      pricePerTerm = 300000;
-    }
-    const termsCount = parseInt(String(durationTerms), 10) || 1;
-    const expectedAmount = pricePerTerm * termsCount;
-
-    // 3. Connect to Flutterwave verification API to verify payment validity
-    const secretKey = process.env.FLUTTERWAVE_SECRET_KEY;
-    if (!secretKey || secretKey.trim() === '') {
-      return NextResponse.json({ error: 'Server payment gateway key is not configured' }, { status: 500 });
-    }
-
-    let flwData: any = null;
-    try {
-      const verifyRes = await fetch(`https://api.flutterwave.com/v3/transactions/${transactionRef}/verify`, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${secretKey}`,
-          'Content-Type': 'application/json'
-        }
+    // Handle Auto-Renewal Toggle Action
+    if (action === 'TOGGLE_AUTO_RENEW') {
+      const updatedSub = await prisma.schoolSubscription.update({
+        where: { schoolId },
+        data: { autoRenewEnabled: Boolean(autoRenew) }
       });
 
-      const verifyJson = await verifyRes.json();
-      if (!verifyRes.ok || verifyJson.status !== 'success') {
-        return NextResponse.json({ error: verifyJson.message || 'Verification rejected by Flutterwave payment gateway' }, { status: 400 });
-      }
-
-      flwData = verifyJson.data;
-    } catch (err) {
-      console.error('Flutterwave fetch verification error:', err);
-      return NextResponse.json({ error: 'Failed to verify transaction with payment gateway' }, { status: 500 });
-    }
-
-    // 4. Validate transaction properties
-    if (flwData.status !== 'successful') {
-      return NextResponse.json({ error: `Payment failed: reported status is ${flwData.status}` }, { status: 400 });
-    }
-
-    if (flwData.currency !== 'NGN') {
-      return NextResponse.json({ error: `Invalid payment currency: expected NGN, got ${flwData.currency}` }, { status: 400 });
-    }
-
-    const numericPaidAmount = parseFloat(flwData.amount);
-    if (isNaN(numericPaidAmount) || numericPaidAmount < expectedAmount) {
-      return NextResponse.json({ 
-        error: `Insufficient payment: expected NGN ${expectedAmount}, received NGN ${flwData.amount}` 
-      }, { status: 400 });
-    }
-
-    const result = await prisma.$transaction(async (tx) => {
-      // Log payment
-      const payment = await tx.payment.create({
+      await prisma.billingAuditLog.create({
         data: {
           schoolId,
-          amount: numericPaidAmount,
-          paymentMethod: 'Flutterwave Gateway',
-          status: 'paid',
-          transactionRef: String(transactionRef),
-          paymentDate: new Date(),
+          userId: session.id,
+          action: autoRenew ? 'AUTO_RENEW_ENABLED' : 'AUTO_RENEW_DISABLED',
+          details: `School Admin ${session.firstName} ${session.lastName} set auto-renewal to ${autoRenew ? 'ENABLED' : 'DISABLED'}`
         }
       });
 
-      // Fetch current subscription status to check for advance stacking
-      const school = await tx.school.findUnique({
-        where: { id: schoolId },
-        select: { subscriptionEnd: true }
+      return NextResponse.json({ success: true, subscription: updatedSub });
+    }
+
+    // Standard Online Payment Verification Action
+    if (!invoiceId || !transactionRef) {
+      return NextResponse.json({ error: 'Missing invoiceId or transactionRef for payment verification' }, { status: 400 });
+    }
+
+    // 1. Multi-Tenant Authorization & Invoice Lookup
+    const invoice = await prisma.saaSBillingInvoice.findFirst({
+      where: { id: invoiceId, schoolId },
+      include: { session: true, term: true }
+    });
+
+    if (!invoice) {
+      return NextResponse.json({ error: 'SaaS Billing Invoice not found or unauthorized' }, { status: 404 });
+    }
+
+    if (invoice.status === 'PAID') {
+      return NextResponse.json({ error: 'This invoice has already been fully paid and verified.' }, { status: 400 });
+    }
+
+    // 2. Anti-Replay Check
+    const existingTx = await prisma.paymentTransaction.findUnique({
+      where: { transactionRef: String(transactionRef) }
+    });
+    if (existingTx && existingTx.status === 'SUCCESSFUL') {
+      return NextResponse.json({ error: 'This transaction reference has already been processed.' }, { status: 400 });
+    }
+
+    // 3. Verify Payment with Flutterwave Server API
+    const flwData = await verifyFlutterwaveTransaction(String(transactionRef), invoice.totalAmount);
+
+    const numericPaidAmount = parseFloat(flwData.amount);
+
+    // 4. Database Transaction Execution
+    const result = await prisma.$transaction(async (tx) => {
+      // Record Payment Transaction
+      const paymentTx = await tx.paymentTransaction.create({
+        data: {
+          schoolId,
+          saasInvoiceId: invoice.id,
+          transactionRef: String(transactionRef),
+          flutterwaveRef: String(flwData.id || flwData.flw_ref || transactionRef),
+          amount: numericPaidAmount,
+          currency: 'NGN',
+          paymentMethod: 'Flutterwave Gateway',
+          status: 'SUCCESSFUL',
+          paymentDate: new Date(),
+          recordedById: session.id,
+          rawGatewayResponse: flwData
+        }
       });
 
-      const start = new Date();
-      const baseTime = school?.subscriptionEnd && new Date(school.subscriptionEnd).getTime() > Date.now()
-        ? new Date(school.subscriptionEnd).getTime()
-        : Date.now();
+      // Generate Receipt
+      const receiptNum = await generateReceiptNumber(schoolId);
+      const receipt = await tx.paymentReceipt.create({
+        data: {
+          schoolId,
+          saasInvoiceId: invoice.id,
+          transactionId: paymentTx.id,
+          receiptNumber: receiptNum,
+          amount: numericPaidAmount,
+          studentCount: invoice.studentCount,
+          issuedAt: new Date(),
+          notes: `Paid online via Flutterwave for ${invoice.invoiceNumber}`
+        }
+      });
 
-      // Calculate end date: 90 days per term paid
-      const end = new Date(baseTime + termsCount * 90 * 24 * 60 * 60 * 1000);
-      const grace = new Date(end.getTime() + 14 * 24 * 60 * 60 * 1000); // 14 days grace period
+      // Mark Invoice as PAID
+      const updatedInvoice = await tx.saaSBillingInvoice.update({
+        where: { id: invoice.id },
+        data: {
+          status: 'PAID',
+          paidAmount: numericPaidAmount,
+          paidAt: new Date()
+        }
+      });
 
-      // Map plan to student limits
-      let maxStudents = 100;
-      if (planSelected.includes('Basic') || planSelected.includes('100') || planSelected.includes('Tier 1')) {
-        maxStudents = 100;
-      } else if (planSelected.includes('Standard') || planSelected.includes('250') || planSelected.includes('Tier 2')) {
-        maxStudents = 250;
-      } else if (planSelected.includes('Premium') || planSelected.includes('500') || planSelected.includes('Tier 3')) {
-        maxStudents = 500;
-      } else if (planSelected.includes('Unlimited') || planSelected.includes('Enterprise') || planSelected.includes('Tier 4')) {
-        maxStudents = 999999;
-      }
+      // Update Subscription Status & Timeline
+      const now = new Date();
+      const periodEnd = new Date(now.getTime() + 100 * 24 * 60 * 60 * 1000); // ~1 term period
+      const graceEnd = new Date(periodEnd.getTime() + 14 * 24 * 60 * 60 * 1000);
 
-      const updatedSchool = await tx.school.update({
+      const updatedSub = await tx.schoolSubscription.update({
+        where: { schoolId },
+        data: {
+          status: 'ACTIVE',
+          currentPeriodStart: now,
+          currentPeriodEnd: periodEnd,
+          gracePeriodEnd: graceEnd,
+          currentBillableCount: invoice.studentCount
+        }
+      });
+
+      // Also update School table for backward compatibility
+      await tx.school.update({
         where: { id: schoolId },
         data: {
           subscriptionStatus: 'active',
-          subscriptionPlan: planSelected,
-          subscriptionEnd: end,
-          gracePeriodEnd: grace,
-          maxStudents: maxStudents
+          subscriptionEnd: periodEnd,
+          gracePeriodEnd: graceEnd
         }
       });
 
-      // Log a usage log trace for security verification
-      await tx.usageLog.create({
+      // Record Audit Log
+      await tx.billingAuditLog.create({
         data: {
           schoolId,
-          activityType: `Online Payment Verified: NGN ${numericPaidAmount} via Flutterwave`,
+          userId: session.id,
+          action: 'PAYMENT_SUCCESSFUL',
+          details: `Verified payment of NGN ${numericPaidAmount.toLocaleString()} for invoice ${invoice.invoiceNumber} (Receipt: ${receiptNum})`
         }
       });
 
-      return { payment, school: updatedSchool };
+      // Create Admin Notification
+      await tx.notification.create({
+        data: {
+          schoolId,
+          userId: session.id,
+          title: 'Subscription Payment Received',
+          message: `Your payment of NGN ${numericPaidAmount.toLocaleString()} for ${invoice.invoiceNumber} was verified. Receipt #${receiptNum} is ready.`,
+          type: 'SYSTEM'
+        }
+      });
+
+      return { paymentTx, receipt, invoice: updatedInvoice, subscription: updatedSub };
     });
 
     return NextResponse.json({ success: true, data: result });
+
   } catch (error: any) {
     if (error.name === 'AuthError' || error.status) {
       return NextResponse.json({ error: error.message || 'Unauthorized' }, { status: error.status || 401 });
     }
     console.error('Billing POST Error:', error);
-    return NextResponse.json({ error: 'Failed to verify and process payment' }, { status: 500 });
+    return NextResponse.json({ error: error.message || 'Failed to verify and process payment' }, { status: 400 });
   }
 }

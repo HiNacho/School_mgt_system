@@ -328,6 +328,191 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: true, message: 'Lead deleted successfully.' });
     }
 
+    // 5. SAAS BILLING ACTIONS (SUPER ADMIN)
+    if (action === 'extendTrial') {
+      const { schoolId, days = 14 } = body;
+      if (!schoolId) return NextResponse.json({ error: 'schoolId is required' }, { status: 400 });
+
+      const sub = await prisma.schoolSubscription.findUnique({ where: { schoolId } });
+      const currentEnd = sub?.trialEndDate ? new Date(sub.trialEndDate) : new Date();
+      const newEnd = new Date(currentEnd.getTime() + (parseInt(String(days), 10) || 14) * 24 * 60 * 60 * 1000);
+
+      const updatedSub = await prisma.schoolSubscription.upsert({
+        where: { schoolId },
+        update: {
+          status: 'TRIAL',
+          trialEndDate: newEnd,
+          gracePeriodEnd: new Date(newEnd.getTime() + 7 * 24 * 60 * 60 * 1000)
+        },
+        create: {
+          schoolId,
+          status: 'TRIAL',
+          trialEndDate: newEnd,
+          gracePeriodEnd: new Date(newEnd.getTime() + 7 * 24 * 60 * 60 * 1000)
+        }
+      });
+
+      await prisma.school.update({
+        where: { id: schoolId },
+        data: { subscriptionStatus: 'trial', subscriptionEnd: newEnd }
+      });
+
+      await prisma.billingAuditLog.create({
+        data: {
+          schoolId,
+          action: 'TRIAL_EXTENDED',
+          details: `Super Admin extended trial by ${days} days until ${newEnd.toLocaleDateString()}`
+        }
+      });
+
+      return NextResponse.json({ success: true, message: `Trial extended by ${days} days`, subscription: updatedSub });
+    }
+
+    if (action === 'grantExtension') {
+      const { schoolId, days = 7 } = body;
+      if (!schoolId) return NextResponse.json({ error: 'schoolId is required' }, { status: 400 });
+
+      const sub = await prisma.schoolSubscription.findUnique({ where: { schoolId } });
+      const currentGrace = sub?.gracePeriodEnd ? new Date(sub.gracePeriodEnd) : new Date();
+      const newGrace = new Date(currentGrace.getTime() + (parseInt(String(days), 10) || 7) * 24 * 60 * 60 * 1000);
+
+      const updatedSub = await prisma.schoolSubscription.update({
+        where: { schoolId },
+        data: {
+          gracePeriodEnd: newGrace,
+          status: sub?.status === 'SUSPENDED' ? 'PAYMENT_DUE' : sub?.status
+        }
+      });
+
+      await prisma.billingAuditLog.create({
+        data: {
+          schoolId,
+          action: 'EXTENSION_GRANTED',
+          details: `Super Admin granted temporary extension of ${days} days (Grace end: ${newGrace.toLocaleDateString()})`
+        }
+      });
+
+      return NextResponse.json({ success: true, message: `Temporary extension of ${days} days granted`, subscription: updatedSub });
+    }
+
+    if (action === 'toggleSuspension') {
+      const { schoolId, nextStatus } = body;
+      if (!schoolId || !nextStatus) return NextResponse.json({ error: 'schoolId and nextStatus are required' }, { status: 400 });
+
+      const statusUpper = String(nextStatus).toUpperCase();
+      const updatedSub = await prisma.schoolSubscription.upsert({
+        where: { schoolId },
+        update: { status: statusUpper },
+        create: { schoolId, status: statusUpper }
+      });
+
+      await prisma.school.update({
+        where: { id: schoolId },
+        data: { subscriptionStatus: statusUpper.toLowerCase() }
+      });
+
+      await prisma.billingAuditLog.create({
+        data: {
+          schoolId,
+          action: statusUpper === 'SUSPENDED' ? 'SUBSCRIPTION_SUSPENDED' : 'SUBSCRIPTION_REACTIVATED',
+          details: `Super Admin set subscription status to ${statusUpper}`
+        }
+      });
+
+      return NextResponse.json({ success: true, message: `Subscription status set to ${statusUpper}`, subscription: updatedSub });
+    }
+
+    if (action === 'logManualPayment') {
+      const { schoolId, invoiceId, amount, paymentMethod = 'Bank Transfer', notes } = body;
+      if (!schoolId || !invoiceId || !amount) {
+        return NextResponse.json({ error: 'schoolId, invoiceId, and amount are required' }, { status: 400 });
+      }
+
+      const inv = await prisma.saaSBillingInvoice.findFirst({
+        where: { id: invoiceId, schoolId }
+      });
+
+      if (!inv) return NextResponse.json({ error: 'Invoice not found' }, { status: 404 });
+
+      const numAmount = parseFloat(String(amount));
+      const refNum = `MAN-${Date.now()}`;
+
+      const result = await prisma.$transaction(async (tx) => {
+        const paymentTx = await tx.paymentTransaction.create({
+          data: {
+            schoolId,
+            saasInvoiceId: inv.id,
+            transactionRef: refNum,
+            amount: numAmount,
+            currency: 'NGN',
+            paymentMethod: paymentMethod || 'Bank Transfer',
+            status: 'SUCCESSFUL',
+            paymentDate: new Date()
+          }
+        });
+
+        const receiptCount = await tx.paymentReceipt.count({ where: { schoolId } });
+        const receiptNum = `REC-OP-${String(receiptCount + 1).padStart(6, '0')}`;
+
+        const receipt = await tx.paymentReceipt.create({
+          data: {
+            schoolId,
+            saasInvoiceId: inv.id,
+            transactionId: paymentTx.id,
+            receiptNumber: receiptNum,
+            amount: numAmount,
+            studentCount: inv.studentCount,
+            notes: notes || 'Manual payment logged by Super Admin'
+          }
+        });
+
+        const updatedInv = await tx.saaSBillingInvoice.update({
+          where: { id: inv.id },
+          data: {
+            status: 'PAID',
+            paidAmount: numAmount,
+            paidAt: new Date()
+          }
+        });
+
+        const now = new Date();
+        const periodEnd = new Date(now.getTime() + 100 * 24 * 60 * 60 * 1000);
+        const updatedSub = await tx.schoolSubscription.upsert({
+          where: { schoolId },
+          update: {
+            status: 'ACTIVE',
+            currentPeriodStart: now,
+            currentPeriodEnd: periodEnd,
+            gracePeriodEnd: new Date(periodEnd.getTime() + 14 * 24 * 60 * 60 * 1000)
+          },
+          create: {
+            schoolId,
+            status: 'ACTIVE',
+            currentPeriodStart: now,
+            currentPeriodEnd: periodEnd,
+            gracePeriodEnd: new Date(periodEnd.getTime() + 14 * 24 * 60 * 60 * 1000)
+          }
+        });
+
+        await tx.school.update({
+          where: { id: schoolId },
+          data: { subscriptionStatus: 'active', subscriptionEnd: periodEnd }
+        });
+
+        await tx.billingAuditLog.create({
+          data: {
+            schoolId,
+            action: 'MANUAL_PAYMENT_LOGGED',
+            details: `Super Admin logged manual payment of NGN ${numAmount.toLocaleString()} for ${inv.invoiceNumber}`
+          }
+        });
+
+        return { paymentTx, receipt, invoice: updatedInv, subscription: updatedSub };
+      });
+
+      return NextResponse.json({ success: true, data: result });
+    }
+
     return NextResponse.json({ error: 'Invalid action requested.' }, { status: 400 });
 
   } catch (error: any) {

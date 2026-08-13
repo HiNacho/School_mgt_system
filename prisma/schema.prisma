@@ -33,6 +33,12 @@ model School {
   invoices            Invoice[]
   studentPayments     StudentPayment[]
   financialAuditLogs  FinancialAuditLog[]
+  subscriptionDetail    SchoolSubscription?
+  saasBillingInvoices   SaaSBillingInvoice[]
+  saasPaymentTransactions PaymentTransaction[]
+  saasPaymentReceipts   PaymentReceipt[]
+  billingAuditLogs      BillingAuditLog[]
+  subscriptionReminders SubscriptionReminder[]
 
 
   users              User[]
@@ -155,6 +161,7 @@ model AcademicSession {
   school     School                    @relation(fields: [schoolId], references: [id], onDelete: Cascade)
   terms      Term[]
   invoices   Invoice[]
+  saasBillingInvoices SaaSBillingInvoice[] @relation("SaaSBillingInvoices")
   promotions StudentPromotionHistory[] @relation("FromSession")
   backups    SessionBackup[]
 }
@@ -182,6 +189,7 @@ model Term {
   behaviorRatings     BehaviorRating[]
   weeklyReports           WeeklyReport[]
   invoices                Invoice[]
+  saasBillingInvoices     SaaSBillingInvoice[] @relation("SaaSBillingInvoices")
 }
 
 model Class {
@@ -1101,4 +1109,124 @@ model PendingApplication {
 
   school School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
 }
+
+// ─── SaaS Billing & Subscription Models ──────────────────────────────────────
+
+model SchoolSubscription {
+  id                    String   @id @default(uuid())
+  schoolId              String   @unique
+  planName              String   @default("Operon School Management")
+  pricePerStudentTerm   Float    @default(1000)
+  status                String   @default("TRIAL") // TRIAL, ACTIVE, PAYMENT_DUE, PAST_DUE, SUSPENDED, CANCELLED
+  currentBillableCount  Int      @default(0)
+  trialStartDate        DateTime @default(now())
+  trialEndDate          DateTime?
+  currentPeriodStart    DateTime?
+  currentPeriodEnd      DateTime?
+  gracePeriodEnd        DateTime?
+  autoRenewEnabled      Boolean  @default(false)
+  billingContactName    String?
+  billingContactEmail   String?
+  billingPhone          String?
+  billingAddress        String?
+  vatNumber             String?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  school                School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+}
+
+model SaaSBillingInvoice {
+  id                String   @id @default(uuid())
+  schoolId          String
+  invoiceNumber     String   @unique // E.g., "OP-2026-2027-T1-000001"
+  sessionId         String?
+  termId            String?
+  studentCount      Int
+  pricePerStudent   Float    @default(1000)
+  subtotal          Float
+  discount          Float    @default(0)
+  tax               Float    @default(0)
+  totalAmount       Float
+  paidAmount        Float    @default(0)
+  status            String   @default("UNPAID") // UNPAID, PENDING_VERIFICATION, PAID, OVERDUE, CANCELLED
+  issueDate         DateTime @default(now())
+  dueDate           DateTime
+  paidAt            DateTime?
+  paymentPolicy     String   @default("STANDARD_TERM_BILL") // STANDARD_TERM_BILL, MID_TERM_ADJUSTMENT, MANUAL_ADJUSTMENT
+  notes             String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  school            School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  session           AcademicSession? @relation("SaaSBillingInvoices", fields: [sessionId], references: [id], onDelete: SetNull)
+  term              Term?            @relation("SaaSBillingInvoices", fields: [termId], references: [id], onDelete: SetNull)
+  transactions      PaymentTransaction[]
+  receipts          PaymentReceipt[]
+  reminders         SubscriptionReminder[]
+}
+
+model PaymentTransaction {
+  id                String   @id @default(uuid())
+  schoolId          String
+  saasInvoiceId     String?
+  transactionRef    String   @unique
+  flutterwaveRef    String?
+  amount            Float
+  currency          String   @default("NGN")
+  paymentMethod     String   @default("FLUTTERWAVE") // FLUTTERWAVE, BANK_TRANSFER, POS, MANUAL_ADMIN
+  status            String   @default("PENDING") // PENDING, SUCCESSFUL, FAILED, REFUNDED, CANCELLED
+  paymentDate       DateTime @default(now())
+  rawGatewayResponse Json?
+  recordedById      String?
+  createdAt         DateTime @default(now())
+
+  school            School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  saasInvoice       SaaSBillingInvoice? @relation(fields: [saasInvoiceId], references: [id], onDelete: SetNull)
+  receipt           PaymentReceipt?
+}
+
+model PaymentReceipt {
+  id                String   @id @default(uuid())
+  schoolId          String
+  saasInvoiceId     String
+  transactionId     String   @unique
+  receiptNumber     String   @unique // E.g., "REC-OP-000001"
+  amount            Float
+  studentCount      Int
+  issuedAt          DateTime @default(now())
+  notes             String?
+  createdAt         DateTime @default(now())
+
+  school            School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  saasInvoice       SaaSBillingInvoice @relation(fields: [saasInvoiceId], references: [id], onDelete: Cascade)
+  transaction       PaymentTransaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+}
+
+model BillingAuditLog {
+  id                String   @id @default(uuid())
+  schoolId          String
+  userId            String?
+  action            String   // INVOICE_CREATED, PAYMENT_VERIFIED, SUBSCRIPTION_SUSPENDED, TRIAL_EXTENDED, etc.
+  details           String
+  ipAddress         String?
+  deviceInfo        String?
+  createdAt         DateTime @default(now())
+
+  school            School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+}
+
+model SubscriptionReminder {
+  id                String   @id @default(uuid())
+  schoolId          String
+  saasInvoiceId     String?
+  reminderType      String   // PRE_DUE_14D, PRE_DUE_7D, PRE_DUE_3D, PRE_DUE_1D, DUE_DATE, OVERDUE
+  channel           String   @default("EMAIL") // EMAIL, IN_APP, SMS, WHATSAPP
+  status            String   @default("SENT") // PENDING, SENT, FAILED
+  sentAt            DateTime @default(now())
+
+  school            School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  saasInvoice       SaaSBillingInvoice? @relation(fields: [saasInvoiceId], references: [id], onDelete: SetNull)
+}
+
 
