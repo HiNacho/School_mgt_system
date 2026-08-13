@@ -370,7 +370,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   } else if (role === 'SCHOOL_ADMIN') {
     menuItems = [
       { name: 'Home', href: '/dashboard', icon: Home },
-      { name: 'Report Cards & Broadsheets', href: '/dashboard/compile', icon: FileSpreadsheet },
+      { name: 'Report Cards', href: '/dashboard/compile', icon: FileSpreadsheet },
       { name: 'Admissions & Apps', href: '/dashboard/applications', icon: FileCheck },
       { name: 'Staff Registry', href: '/dashboard/staff', icon: Shield },
       { name: 'Teachers', href: '/dashboard/teachers', icon: Users },
@@ -392,7 +392,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       menuItems.push(
         { name: 'My Class', href: '/dashboard/class', icon: Users },
         { name: 'Score Entry & Grading', href: '/dashboard/scores', icon: FileCheck },
-        { name: 'Report Cards & Broadsheets', href: '/dashboard/compile', icon: FileSpreadsheet },
+        { name: 'Report Cards', href: '/dashboard/compile', icon: FileSpreadsheet },
         { name: 'Messages', href: '/dashboard/messages', icon: MessageSquare },
       );
     } else if (role === 'SUBJECT_TEACHER') {

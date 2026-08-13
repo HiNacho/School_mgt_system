@@ -938,7 +938,7 @@ export default function ReportCardCompilerPage() {
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
             <h1 className="text-xl font-extrabold text-slate-800 flex items-center gap-2">
-              <FileBarChart className={`w-6 h-6 ${themeAccentColor}`} /> Printable Report Card Hub
+              <FileBarChart className={`w-6 h-6 ${themeAccentColor}`} /> Report Cards
             </h1>
             <p className="text-xs text-slate-500 mt-1">
               Process session standings, review grade ranking leaderboards, and print high-fidelity A4 academic reports.
