@@ -13,7 +13,6 @@ import {
   ResponsiveContainer, Legend, PieChart, Pie, Cell 
 } from 'recharts';
 import SuperAdminDashboard from './SuperAdminDashboard';
-import BursarReportsPage from './bursar/reports/page';
 
 export default function DashboardHome() {
   const [session, setSession] = useState<any>(null);
@@ -669,7 +668,10 @@ export default function DashboardHome() {
   }
 
   if (role === 'BURSAR') {
-    return <BursarReportsPage />;
+    if (typeof window !== 'undefined') {
+      router.replace('/dashboard/bursar/reports');
+    }
+    return null;
   }
 
   const activeStudents = students.filter(s => s.status === 'ACTIVE');
