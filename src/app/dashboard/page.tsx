@@ -567,7 +567,7 @@ export default function DashboardHome() {
     setPayLoadingId(invoice.id);
     const amountToPay = invoice.netAmount - invoice.paidAmount;
 
-    const flutterwaveKey = process.env.NEXT_PUBLIC_FLUTTERWAVE_PUBLIC_KEY || "FLWPUBK_TEST-e883df149b06871a2e37ca4b2fb418a0-X";
+    const flutterwaveKey = process.env.NEXT_PUBLIC_FLUTTERWAVE_PUBLIC_KEY || "FLWPUBK_TEST-68132b88de9134f75688c39d5b9b6b6b-X";
 
     (window as any).FlutterwaveCheckout({
       public_key: flutterwaveKey,

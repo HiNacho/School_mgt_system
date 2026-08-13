@@ -170,7 +170,7 @@ export default function BillingPage() {
     setSuccessMsg('');
     setProcessingPayment(true);
 
-    const flutterwaveKey = process.env.NEXT_PUBLIC_FLUTTERWAVE_PUBLIC_KEY || "FLWPUBK_TEST-e883df149b06871a2e37ca4b2fb418a0-X";
+    const flutterwaveKey = process.env.NEXT_PUBLIC_FLUTTERWAVE_PUBLIC_KEY || "FLWPUBK_TEST-68132b88de9134f75688c39d5b9b6b6b-X";
     const ref = `txref-saas-${targetInv.invoiceNumber}-${Date.now()}`;
 
     try {
