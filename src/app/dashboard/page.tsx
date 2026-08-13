@@ -660,8 +660,9 @@ export default function DashboardHome() {
     );
   }
 
-  const { user, school } = session;
-  const role = user.role;
+  const user = session?.user || {};
+  const school = session?.school || {};
+  const role = user?.role || '';
 
   if (role === 'SUPER_ADMIN') {
     return <SuperAdminDashboard user={user} school={school} />;
@@ -674,7 +675,7 @@ export default function DashboardHome() {
     return null;
   }
 
-  const activeStudents = students.filter(s => s.status === 'ACTIVE');
+  const activeStudents = Array.isArray(students) ? students.filter(s => s && s.status === 'ACTIVE') : [];
 
   // RENDER CORRESPONDING DASHBOARD
   const isAdmin = role === 'SCHOOL_ADMIN' || role === 'SUPER_ADMIN';
@@ -696,12 +697,12 @@ export default function DashboardHome() {
   }
 
   // Filter events and announcements for selected calendar date
-  const selectedDateEvents = events.filter(e => e.date === selectedDateStr);
-  const selectedDateAnnouncements = announcements.filter(a => a.date === selectedDateStr);
+  const selectedDateEvents = Array.isArray(events) ? events.filter(e => e && e.date === selectedDateStr) : [];
+  const selectedDateAnnouncements = Array.isArray(announcements) ? announcements.filter(a => a && a.date === selectedDateStr) : [];
 
   // Dynamic metrics for charts
-  const boysCount = activeStudents.filter(s => s.gender === 'MALE').length;
-  const girlsCount = activeStudents.filter(s => s.gender === 'FEMALE').length;
+  const boysCount = activeStudents.filter(s => s && s.gender === 'MALE').length;
+  const girlsCount = activeStudents.filter(s => s && s.gender === 'FEMALE').length;
   const totalBoysGirls = boysCount + girlsCount;
   const genderDonutData = totalBoysGirls > 0 
     ? [
@@ -713,7 +714,7 @@ export default function DashboardHome() {
       ];
 
   // Grouped Weekly Attendance (Mon-Fri)
-  const attendanceBarData = weeklyAttendance.length > 0 ? weeklyAttendance : [
+  const attendanceBarData = Array.isArray(weeklyAttendance) && weeklyAttendance.length > 0 ? weeklyAttendance : [
     { day: 'Mon', Present: Math.round(activeStudents.length * 0.95), Absent: Math.round(activeStudents.length * 0.05) },
     { day: 'Tue', Present: Math.round(activeStudents.length * 0.96), Absent: Math.round(activeStudents.length * 0.04) },
     { day: 'Wed', Present: Math.round(activeStudents.length * 0.92), Absent: Math.round(activeStudents.length * 0.08) },
@@ -721,10 +722,10 @@ export default function DashboardHome() {
     { day: 'Fri', Present: Math.round(activeStudents.length * 0.88), Absent: Math.round(activeStudents.length * 0.12) },
   ];
 
-  const kpiCountAdmins = staff.filter(s => s.role === 'SCHOOL_ADMIN').length;
-  const kpiCountTeachers = staff.filter(s => ['CLASS_TEACHER', 'SUBJECT_TEACHER', 'HEAD_TEACHER'].includes(s.role)).length;
-  const kpiCountStudents = students.length;
-  const kpiCountParents = parents.length;
+  const kpiCountAdmins = Array.isArray(staff) ? staff.filter(s => s && s.role === 'SCHOOL_ADMIN').length : 0;
+  const kpiCountTeachers = Array.isArray(staff) ? staff.filter(s => s && ['CLASS_TEACHER', 'SUBJECT_TEACHER', 'HEAD_TEACHER'].includes(s.role)).length : 0;
+  const kpiCountStudents = Array.isArray(students) ? students.length : 0;
+  const kpiCountParents = Array.isArray(parents) ? parents.length : 0;
 
   // Ward / Student dynamic attendance calculation
   const currentTermId = setupData?.terms?.find((t: any) => t.isCurrent)?.id || setupData?.terms?.[0]?.id || '';
@@ -797,7 +798,7 @@ export default function DashboardHome() {
             Hello, <span className="text-[#14B8A6] serif-italic font-normal">{user.firstName} {user.lastName}</span>!
           </h1>
           <p className="text-xs text-[#64748b] font-semibold mt-0.5">
-            Active Tenant Boundary: <strong className="text-[#1e293b] font-bold">{school?.name || 'Operon Global Platform'}</strong> • Authorized Role: <strong className="text-slate-600 capitalize">{role.toLowerCase().replace('_', ' ')}</strong>
+            Active Tenant Boundary: <strong className="text-[#1e293b] font-bold">{school?.name || 'Operon Global Platform'}</strong> • Authorized Role: <strong className="text-slate-600 capitalize">{(role || '').toLowerCase().replace(/_/g, ' ')}</strong>
           </p>
         </div>
 
