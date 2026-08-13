@@ -62,7 +62,8 @@ export async function GET(req: NextRequest) {
       staffCount,
       parentCount,
       studentsList,
-      staffList
+      staffList,
+      subjectAssignments
     ] = await Promise.all([
       prisma.school.findUnique({
         where: { id: schoolId! },
@@ -112,6 +113,19 @@ export async function GET(req: NextRequest) {
       prisma.user.findMany({
         where: { schoolId: schoolId!, role: { in: ['SCHOOL_ADMIN', 'CLASS_TEACHER', 'SUBJECT_TEACHER', 'BURSAR'] } },
         select: { id: true, firstName: true, lastName: true, role: true, email: true }
+      }),
+      // Subject Assignments for Teacher Course Allocations
+      prisma.subjectAssignment.findMany({
+        where: {
+          schoolId: schoolId!,
+          ...(session.role === 'CLASS_TEACHER' || session.role === 'SUBJECT_TEACHER' ? { teacherId: session.id } : {})
+        },
+        include: {
+          subject: true,
+          class: true,
+          arm: true,
+          teacher: { select: { id: true, firstName: true, lastName: true } }
+        }
       })
     ]);
 
@@ -145,7 +159,8 @@ export async function GET(req: NextRequest) {
         staffCount,
         parentCount,
         studentCounts,
-        classReportStatuses
+        classReportStatuses,
+        subjectAssignments: subjectAssignments || []
       }
     });
 

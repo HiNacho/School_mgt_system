@@ -391,11 +391,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     if (role === 'CLASS_TEACHER') {
       menuItems.push(
         { name: 'My Class', href: '/dashboard/class', icon: Users },
+        { name: 'Score Entry & Grading', href: '/dashboard/scores', icon: FileCheck },
         { name: 'Report Cards & Broadsheets', href: '/dashboard/compile', icon: FileSpreadsheet },
         { name: 'Messages', href: '/dashboard/messages', icon: MessageSquare },
       );
     } else if (role === 'SUBJECT_TEACHER') {
       menuItems.push(
+        { name: 'Score Entry & Grading', href: '/dashboard/scores', icon: FileCheck },
         { name: 'Messages', href: '/dashboard/messages', icon: MessageSquare },
       );
     } else if (role === 'PARENT') {

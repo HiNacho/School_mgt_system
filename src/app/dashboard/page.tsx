@@ -224,6 +224,7 @@ export default function DashboardHome() {
           setAnnouncements(d.announcements || []);
           setSubjectsData(d.subjects || []);
           setClassStatuses(d.classReportStatuses || []);
+          setMyAssignments(d.subjectAssignments || []);
           currentTermId = d.currentTerm?.id || '';
         }
       }
