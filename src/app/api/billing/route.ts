@@ -14,7 +14,7 @@ import {
 export async function GET(req: NextRequest) {
   try {
     const session = await requireAuth(req);
-    requireRole(session, ['SCHOOL_ADMIN', 'SUPER_ADMIN']);
+    requireRole(session, ['SCHOOL_ADMIN', 'SUPER_ADMIN', 'BURSAR']);
 
     let schoolId = session.schoolId;
     const url = new URL(req.url);
