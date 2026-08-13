@@ -76,7 +76,16 @@ export async function GET(req: NextRequest) {
       }),
       prisma.class.findMany({
         where: { schoolId: schoolId! },
-        include: { arms: true, _count: { select: { students: true } } },
+        include: { 
+          arms: { 
+            include: { 
+              classTeacher: { 
+                select: { id: true, firstName: true, lastName: true } 
+              } 
+            } 
+          }, 
+          _count: { select: { students: true } } 
+        },
         orderBy: { name: 'asc' }
       }),
       prisma.subject.findMany({
@@ -132,43 +141,37 @@ export async function GET(req: NextRequest) {
     const currentSession = sessions.find(s => s.isCurrent) || sessions[0];
     const currentTerm = currentSession?.terms.find(t => t.isCurrent) || currentSession?.terms[0];
 
-    // Fetch report status & score counts in parallel if currentTerm exists
+    // Fetch report status in parallel if currentTerm exists
     let classReportStatuses: any[] = [];
     if (currentTerm) {
-      const [dbStatuses, scoreGroups] = await Promise.all([
-        prisma.classReportStatus.findMany({
+      try {
+        const dbStatuses = await prisma.classReportStatus.findMany({
           where: { schoolId: schoolId!, termId: currentTerm.id }
-        }),
-        prisma.score.groupBy({
-          by: ['classId', 'armId'],
-          where: { schoolId: schoolId!, termId: currentTerm.id },
-          _count: { _all: true }
-        })
-      ]);
+        });
 
-      for (const cls of classes) {
-        for (const arm of cls.arms) {
-          const matchedStatus = dbStatuses.find(s => s.classId === cls.id && s.armId === arm.id);
-          const matchedScores = scoreGroups.find(sg => sg.classId === cls.id && sg.armId === arm.id);
-          const scoreCount = matchedScores?._count._all || 0;
+        for (const cls of (classes || [])) {
+          for (const arm of (cls.arms || [])) {
+            const matchedStatus = dbStatuses.find(s => s.classId === cls.id && s.armId === arm.id);
+            let status = matchedStatus?.status || 'DRAFT';
 
-          let status = matchedStatus?.status || 'DRAFT';
+            const teacherName = (arm as any).classTeacher 
+              ? `${(arm as any).classTeacher.firstName} ${(arm as any).classTeacher.lastName}`
+              : 'Unassigned';
 
-          const teacherName = (arm as any).classTeacher 
-            ? `${(arm as any).classTeacher.firstName} ${(arm as any).classTeacher.lastName}`
-            : 'Unassigned';
-
-          classReportStatuses.push({
-            classId: cls.id,
-            className: cls.name,
-            armId: arm.id,
-            armName: arm.name,
-            classTeacherName: teacherName,
-            status,
-            feedback: matchedStatus?.feedback || null,
-            scoreCount
-          });
+            classReportStatuses.push({
+              classId: cls.id,
+              className: cls.name,
+              armId: arm.id,
+              armName: arm.name,
+              classTeacherName: teacherName,
+              status,
+              feedback: matchedStatus?.feedback || null,
+            });
+          }
         }
+      } catch (err) {
+        console.error('Error fetching classReportStatuses for dashboard:', err);
+        classReportStatuses = [];
       }
     }
 
