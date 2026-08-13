@@ -70,9 +70,11 @@ function initials(first: string, last: string) {
 }
 
 function ordinal(n: number) {
+  if (!n || n <= 0 || isNaN(Number(n))) return '—';
+  const num = Number(n);
   const s = ['th', 'st', 'nd', 'rd'];
-  const v = n % 100;
-  return n + (s[(v - 20) % 10] || s[v] || s[0]);
+  const v = num % 100;
+  return num + (s[(v - 20) % 10] || s[v] || s[0]);
 }
 
 function formatDate(d: string) {

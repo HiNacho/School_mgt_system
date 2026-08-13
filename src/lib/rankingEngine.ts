@@ -207,17 +207,18 @@ export function compileClassResults(
 
 // 3. Format ordinal numbers (e.g. 1st, 2nd, 3rd, 4th, 21st)
 export function getOrdinalSuffix(num: number): string {
-  if (num <= 0) return '-';
-  const j = num % 10;
-  const k = num % 100;
+  if (!num || num <= 0 || isNaN(Number(num))) return '—';
+  const n = Number(num);
+  const j = n % 10;
+  const k = n % 100;
   if (j === 1 && k !== 11) {
-    return num + 'st';
+    return n + 'st';
   }
   if (j === 2 && k !== 12) {
-    return num + 'nd';
+    return n + 'nd';
   }
   if (j === 3 && k !== 13) {
-    return num + 'rd';
+    return n + 'rd';
   }
-  return num + 'th';
+  return n + 'th';
 }
