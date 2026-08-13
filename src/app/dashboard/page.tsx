@@ -40,6 +40,7 @@ export default function DashboardHome() {
   const [reviewLoading, setReviewLoading] = useState(false);
   const [successMsg, setSuccessMsg] = useState('');
   const [mySubmissions, setMySubmissions] = useState<any[]>([]);
+  const [myAssignments, setMyAssignments] = useState<any[]>([]);
   const [showRosterModal, setShowRosterModal] = useState(false);
   const [rosterClassName, setRosterClassName] = useState('');
   const [rosterStudents, setRosterStudents] = useState<any[]>([]);
