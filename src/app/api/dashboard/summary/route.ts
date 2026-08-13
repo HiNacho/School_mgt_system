@@ -1,0 +1,156 @@
+import { NextRequest, NextResponse } from 'next/server';
+import prisma from '@/lib/db';
+import { requireAuth } from '@/lib/auth-middleware';
+
+export async function GET(req: NextRequest) {
+  try {
+    const session = await requireAuth(req);
+    const url = new URL(req.url);
+
+    let schoolId = session.schoolId;
+    const targetSchoolId = url.searchParams.get('schoolId');
+
+    if (session.role === 'SUPER_ADMIN' && targetSchoolId) {
+      schoolId = targetSchoolId;
+    }
+
+    if (!schoolId && session.role !== 'SUPER_ADMIN') {
+      return NextResponse.json({ error: 'School context missing' }, { status: 400 });
+    }
+
+    // Fast Single-Query Summary Execution
+    if (session.role === 'SUPER_ADMIN' && !schoolId) {
+      const [schools, leads] = await Promise.all([
+        prisma.school.findMany({
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+            subscriptionStatus: true,
+            subscriptionPlan: true,
+            _count: {
+              select: {
+                students: true,
+                users: true,
+              }
+            }
+          }
+        }),
+        prisma.lead.findMany({
+          take: 10,
+          orderBy: { createdAt: 'desc' }
+        })
+      ]);
+
+      return NextResponse.json({
+        success: true,
+        role: 'SUPER_ADMIN',
+        schools,
+        leads
+      });
+    }
+
+    // Consolidated database queries for School Admin / Teacher / Parent / Bursar
+    const [
+      school,
+      sessions,
+      classes,
+      subjects,
+      events,
+      announcements,
+      studentCounts,
+      staffCount,
+      parentCount,
+      studentsList,
+      staffList
+    ] = await Promise.all([
+      prisma.school.findUnique({
+        where: { id: schoolId! },
+        select: { id: true, name: true, slug: true, logoUrl: true, gradingType: true }
+      }),
+      prisma.academicSession.findMany({
+        where: { schoolId: schoolId! },
+        include: { terms: { orderBy: { createdAt: 'asc' } } },
+        orderBy: { createdAt: 'desc' }
+      }),
+      prisma.class.findMany({
+        where: { schoolId: schoolId! },
+        include: { arms: true, _count: { select: { students: true } } },
+        orderBy: { name: 'asc' }
+      }),
+      prisma.subject.findMany({
+        where: { schoolId: schoolId! },
+        select: { id: true, name: true, code: true, category: true, color: true }
+      }),
+      prisma.event.findMany({
+        where: { schoolId: schoolId! },
+        take: 10,
+        orderBy: { date: 'asc' }
+      }),
+      prisma.announcement.findMany({
+        where: { schoolId: schoolId! },
+        take: 10,
+        orderBy: { createdAt: 'desc' }
+      }),
+      prisma.student.groupBy({
+        by: ['status', 'gender'],
+        where: { schoolId: schoolId! },
+        _count: { id: true }
+      }),
+      prisma.user.count({
+        where: { schoolId: schoolId!, role: { in: ['SCHOOL_ADMIN', 'CLASS_TEACHER', 'SUBJECT_TEACHER', 'BURSAR'] } }
+      }),
+      prisma.user.count({
+        where: { schoolId: schoolId!, role: 'PARENT' }
+      }),
+      // Light student summary for stats
+      prisma.student.findMany({
+        where: { schoolId: schoolId! },
+        select: { id: true, firstName: true, lastName: true, admissionNumber: true, status: true, gender: true, classId: true, armId: true }
+      }),
+      // Light staff summary
+      prisma.user.findMany({
+        where: { schoolId: schoolId!, role: { in: ['SCHOOL_ADMIN', 'CLASS_TEACHER', 'SUBJECT_TEACHER', 'BURSAR'] } },
+        select: { id: true, firstName: true, lastName: true, role: true, email: true }
+      })
+    ]);
+
+    const currentSession = sessions.find(s => s.isCurrent) || sessions[0];
+    const currentTerm = currentSession?.terms.find(t => t.isCurrent) || currentSession?.terms[0];
+
+    // Fetch report status in parallel if currentTerm exists
+    let classReportStatuses: any[] = [];
+    if (currentTerm) {
+      classReportStatuses = await prisma.classReportStatus.findMany({
+        where: { schoolId: schoolId!, termId: currentTerm.id }
+      });
+    }
+
+    return NextResponse.json({
+      success: true,
+      data: {
+        school,
+        setup: {
+          sessions,
+          classes,
+          terms: currentSession?.terms || []
+        },
+        currentSession,
+        currentTerm,
+        subjects,
+        events,
+        announcements,
+        students: studentsList,
+        staff: staffList,
+        staffCount,
+        parentCount,
+        studentCounts,
+        classReportStatuses
+      }
+    });
+
+  } catch (error: any) {
+    console.error('Dashboard Summary API Error:', error);
+    return NextResponse.json({ error: error.message || 'Failed to fetch dashboard summary' }, { status: 500 });
+  }
+}

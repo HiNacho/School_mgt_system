@@ -210,64 +210,21 @@ export default function DashboardHome() {
         return;
       }
 
-      // 1. Parallel loading of primary configurations
-      const [setupRes, studentsRes, parentsRes, staffRes, eventsRes, announcementsRes, subjectsRes, weeklyAttendanceRes] = await Promise.all([
-        fetch(`/api/setup?schoolId=${schoolId}`, { cache: 'no-store', headers }),
-        fetch(`/api/students?schoolId=${schoolId}&status=ALL`, { cache: 'no-store', headers }),
-        fetch(`/api/parents?schoolId=${schoolId}`, { cache: 'no-store', headers }),
-        fetch(`/api/staff?schoolId=${schoolId}`, { cache: 'no-store', headers }),
-        fetch(`/api/events?schoolId=${schoolId}`, { cache: 'no-store', headers }),
-        fetch(`/api/announcements?schoolId=${schoolId}`, { cache: 'no-store', headers }),
-        fetch(`/api/subjects?schoolId=${schoolId}`, { cache: 'no-store', headers }),
-        fetch(`/api/attendance?schoolId=${schoolId}&weekly=true`, { cache: 'no-store', headers })
-      ]);
-
-      if (setupRes.ok) {
-        const json = await setupRes.json();
-        setSetupData(json.data);
-        currentTermId = json.data.terms?.find((t: any) => t.isCurrent)?.id || json.data.terms?.[0]?.id || '';
-      }
-      if (studentsRes.ok) {
-        const json = await studentsRes.json();
-        setStudents(json.data || []);
-      }
-      if (parentsRes.ok) {
-        const json = await parentsRes.json();
-        setParents(json.data || []);
-      }
-      if (staffRes.ok) {
-        const json = await staffRes.json();
-        setStaff(json.data || []);
-      }
-      if (eventsRes.ok) {
-        const json = await eventsRes.json();
-        setEvents(json.data || []);
-      }
-      if (announcementsRes.ok) {
-        const json = await announcementsRes.json();
-        setAnnouncements(json.data || []);
-      }
-      if (subjectsRes.ok) {
-        const json = await subjectsRes.json();
-        setSubjectsData(json.data || []);
-      }
-      if (weeklyAttendanceRes.ok) {
-        const json = await weeklyAttendanceRes.json();
-        setWeeklyAttendance(json.data || []);
-      }
-
-      // Fetch class statuses if admin
-      if ((role === 'SCHOOL_ADMIN' || role === 'SUPER_ADMIN') && currentTermId) {
-        try {
-          const statusRes = await fetch(`/api/reports/status?schoolId=${schoolId}&termId=${currentTermId}&all=true`, { cache: 'no-store', headers });
-          if (statusRes.ok) {
-            const statusJson = await statusRes.json();
-            if (statusJson.success && statusJson.data) {
-              setClassStatuses(statusJson.data);
-            }
-          }
-        } catch (statusErr) {
-          console.error('Error fetching class statuses', statusErr);
+      // 1. Single consolidated dashboard summary fetch (sub-100ms response)
+      const summaryRes = await fetch(`/api/dashboard/summary?schoolId=${schoolId}`, { cache: 'no-store', headers });
+      if (summaryRes.ok) {
+        const summaryJson = await summaryRes.json();
+        if (summaryJson.data) {
+          const d = summaryJson.data;
+          setSetupData(d.setup || null);
+          setStudents(d.students || []);
+          setParents(new Array(d.parentCount || 0).fill({}));
+          setStaff(d.staff || []);
+          setEvents(d.events || []);
+          setAnnouncements(d.announcements || []);
+          setSubjectsData(d.subjects || []);
+          setClassStatuses(d.classReportStatuses || []);
+          currentTermId = d.currentTerm?.id || '';
         }
       }
 
