@@ -672,34 +672,34 @@ export default function SuperAdminDashboard({ user, school }: SuperAdminDashboar
             </button>
 
             {notificationOpen && (
-              <div className="absolute right-0 mt-2 w-84 bg-white border border-slate-200 shadow-2xl rounded-3xl p-4 z-50 animate-fadeIn space-y-3">
+              <div className="absolute right-0 mt-2 w-88 bg-white border border-slate-200 shadow-2xl rounded-3xl p-4.5 z-50 animate-fadeIn space-y-3">
                 <div className="flex justify-between items-center pb-2.5 border-b border-slate-100">
                   <div className="flex items-center gap-2">
                     <h4 className="text-xs font-black uppercase text-slate-800 tracking-wider">Platform Alerts</h4>
-                    {notifications.filter(n => !n.read).length > 0 && (
-                      <span className="bg-rose-100 text-rose-700 text-[9px] font-black px-2 py-0.5 rounded-full">
-                        {notifications.filter(n => !n.read).length} new
+                    {notifications.length > 0 && (
+                      <span className="bg-indigo-100 text-indigo-700 text-[9px] font-black px-2 py-0.5 rounded-full">
+                        {notifications.length}
                       </span>
                     )}
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-3">
                     {notifications.length > 0 && (
                       <button 
                         type="button"
                         onClick={handleClearAll} 
-                        className="text-[10px] text-rose-600 hover:text-rose-800 font-extrabold hover:underline tracking-wide"
+                        className="text-[11px] text-indigo-600 hover:text-indigo-800 font-black hover:underline tracking-wide cursor-pointer"
                         title="Clear all alerts from list"
                       >
-                        Clear all
+                        Mark all as read
                       </button>
                     )}
                     <button
                       type="button"
                       onClick={() => setNotificationOpen(false)}
-                      className="p-1 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors"
+                      className="px-2.5 py-1 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 text-[10px] font-extrabold transition-all cursor-pointer flex items-center gap-1"
                       title="Close Alerts"
                     >
-                      <X className="w-3.5 h-3.5" />
+                      <X className="w-3 h-3" /> Cancel
                     </button>
                   </div>
                 </div>
@@ -707,38 +707,26 @@ export default function SuperAdminDashboard({ user, school }: SuperAdminDashboar
                 <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
                   {notifications.length === 0 ? (
                     <div className="p-6 text-center text-slate-400 space-y-1">
-                      <p className="text-xs font-bold">All clear!</p>
+                      <p className="text-xs font-bold text-slate-600">All clear!</p>
                       <p className="text-[10px] italic">No active platform alerts at this time.</p>
                     </div>
                   ) : (
                     notifications.map(n => (
                       <div 
                         key={n.id} 
-                        onClick={() => {
-                          const storedReadIds = JSON.parse(localStorage.getItem('superadmin_read_alert_ids') || '[]');
-                          if (!storedReadIds.includes(n.id)) {
-                            storedReadIds.push(n.id);
-                            localStorage.setItem('superadmin_read_alert_ids', JSON.stringify(storedReadIds));
-                          }
-                          setNotifications(notifications.map(item => item.id === n.id ? { ...item, read: true } : item));
-                        }}
-                        className={`group relative flex items-start justify-between p-3 rounded-2xl text-[10px] font-semibold leading-relaxed border cursor-pointer transition-all ${
-                          n.read 
-                            ? 'bg-slate-50/80 border-slate-100 text-slate-400' 
-                            : 'bg-indigo-50/40 border-indigo-150 text-slate-800 font-bold shadow-xs'
-                        }`}
+                        onClick={(e) => handleDismissSingle(n.id, e)}
+                        className="group relative flex items-start justify-between p-3 rounded-2xl text-[10px] font-semibold leading-relaxed border border-slate-100 hover:border-rose-200 bg-slate-50/60 hover:bg-rose-50/30 text-slate-800 cursor-pointer transition-all shadow-xs"
+                        title="Click to remove this alert"
                       >
                         <div className="flex items-start gap-2 pr-4">
-                          {!n.read && (
-                            <span className={`w-2 h-2 rounded-full mt-1 flex-shrink-0 ${n.type === 'error' ? 'bg-red-500 animate-pulse' : n.type === 'warning' ? 'bg-amber-500' : 'bg-emerald-500'}`} />
-                          )}
-                          <span className={n.read ? 'opacity-60' : ''}>{n.text}</span>
+                          <span className={`w-2 h-2 rounded-full mt-1 flex-shrink-0 ${n.type === 'error' ? 'bg-red-500 animate-pulse' : n.type === 'warning' ? 'bg-amber-500' : 'bg-emerald-500'}`} />
+                          <span>{n.text}</span>
                         </div>
                         <button
                           type="button"
                           onClick={(e) => handleDismissSingle(n.id, e)}
-                          className="opacity-0 group-hover:opacity-100 p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-all flex-shrink-0"
-                          title="Dismiss this alert"
+                          className="opacity-0 group-hover:opacity-100 p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-100 rounded-lg transition-all flex-shrink-0"
+                          title="Remove alert"
                         >
                           <X className="w-3 h-3" />
                         </button>
