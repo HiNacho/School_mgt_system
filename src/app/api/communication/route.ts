@@ -250,9 +250,14 @@ export async function POST(req: NextRequest) {
             where: { schoolId }
           });
           if (!dummy) {
-            throw new Error('No students exist in this school. Please register at least one student first.');
+            const globalDummy = await tx.student.findFirst();
+            if (!globalDummy) {
+              throw new Error('No students exist in system database. Please register at least one student first.');
+            }
+            finalStudentId = globalDummy.id;
+          } else {
+            finalStudentId = dummy.id;
           }
-          finalStudentId = dummy.id;
         }
 
         if (!recipientId) {

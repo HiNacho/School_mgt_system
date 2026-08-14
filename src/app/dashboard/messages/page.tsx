@@ -756,8 +756,17 @@ export default function RebuiltMessagesHub() {
   const handleCreateNewChat = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    const finalStudentId = newChatType === 'parent' ? newChatStudentId : '';
-    const finalRecipientId = newChatType === 'parent' ? newChatTeacherId : newChatStaffRecipientId;
+    let finalRecipientId = '';
+    let finalStudentId = '';
+
+    if (currentUser?.role === 'SUPER_ADMIN') {
+      finalRecipientId = newChatStaffRecipientId || schoolStaff[0]?.id;
+    } else if (newChatType === 'parent') {
+      finalStudentId = newChatStudentId;
+      finalRecipientId = newChatTeacherId;
+    } else {
+      finalRecipientId = newChatStaffRecipientId;
+    }
 
     let targetSchoolId = school?.id;
     if (currentUser?.role === 'SUPER_ADMIN') {
@@ -765,7 +774,12 @@ export default function RebuiltMessagesHub() {
       targetSchoolId = selectedAdmin?.schoolId || tenants[0]?.id;
     }
 
-    if (!finalRecipientId || !newChatBody.trim() || !targetSchoolId) return;
+    if (!finalRecipientId || !newChatBody.trim() || !targetSchoolId) {
+      if (!finalRecipientId) setErrorMsg('Please select a recipient.');
+      else if (!newChatBody.trim()) setErrorMsg('Please enter a message body.');
+      else if (!targetSchoolId) setErrorMsg('Target school context not resolved.');
+      return;
+    }
 
     setSending(true);
     setErrorMsg('');
