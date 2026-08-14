@@ -68,38 +68,123 @@ export async function GET(req: NextRequest) {
       take: 50
     });
 
-    // 6. Calculate Billing aggregates
-    const payments = await prisma.payment.findMany({
+    // 6. Calculate Billing aggregates from both paymentTransaction (SaaS Online) and legacy payment tables
+    const paymentTransactions = await prisma.paymentTransaction.findMany({
+      include: {
+        school: { select: { name: true } },
+        saasInvoice: { select: { invoiceNumber: true, studentCount: true } }
+      },
+      orderBy: { paymentDate: 'desc' }
+    });
+
+    const legacyPayments = await prisma.payment.findMany({
       include: {
         school: { select: { name: true } }
       },
       orderBy: { paymentDate: 'desc' }
     });
 
-    const totalPaidRevenue = payments
-      .filter(p => p.status === 'paid')
+    const formattedTxPayments = paymentTransactions.map(tx => ({
+      id: tx.id,
+      schoolId: tx.schoolId,
+      schoolName: tx.school?.name || 'Unknown Tenant',
+      amount: tx.amount,
+      paymentDate: tx.paymentDate,
+      paymentMethod: tx.paymentMethod,
+      status: tx.status === 'SUCCESSFUL' ? 'paid' : tx.status.toLowerCase(),
+      transactionRef: tx.transactionRef,
+      invoiceNumber: tx.saasInvoice?.invoiceNumber
+    }));
+
+    const formattedLegacyPayments = legacyPayments.map(p => ({
+      id: p.id,
+      schoolId: p.schoolId,
+      schoolName: p.school?.name || 'Unknown Tenant',
+      amount: p.amount,
+      paymentDate: p.paymentDate,
+      paymentMethod: p.paymentMethod,
+      status: p.status,
+      transactionRef: p.transactionRef || 'N/A'
+    }));
+
+    const allPayments = [...formattedTxPayments, ...formattedLegacyPayments].sort(
+      (a, b) => new Date(b.paymentDate).getTime() - new Date(a.paymentDate).getTime()
+    );
+
+    const totalPaidRevenue = allPayments
+      .filter(p => p.status === 'paid' || p.status === 'SUCCESSFUL' || p.status === 'successful')
       .reduce((sum, p) => sum + p.amount, 0);
 
-    // Monthly recurring revenue (MRR) - estimate based on active subscription plans
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+
+    const revenueToday = allPayments
+      .filter(p => (p.status === 'paid' || p.status === 'SUCCESSFUL' || p.status === 'successful') && new Date(p.paymentDate) >= todayStart)
+      .reduce((sum, p) => sum + p.amount, 0);
+
+    // Monthly recurring revenue (MRR) based on active subscription plans
     let calculatedMRR = 0;
     schools.forEach(s => {
       if (s.subscriptionStatus === 'active') {
         if (s.subscriptionPlan.toLowerCase().includes('premium')) {
-          calculatedMRR += 150; // Premium plan hypothetical MRR
+          calculatedMRR += 150000;
         } else if (s.subscriptionPlan.toLowerCase().includes('standard')) {
-          calculatedMRR += 80;  // Standard plan hypothetical MRR
+          calculatedMRR += 80000;
         } else {
-          calculatedMRR += 40;  // Basic plan hypothetical MRR
+          calculatedMRR += 40000;
         }
       }
+    });
+
+    // Generate Dynamic Platform Notifications for Super Admin
+    const platformAlerts: any[] = [];
+    paymentTransactions.slice(0, 5).forEach((p, idx) => {
+      platformAlerts.push({
+        id: `pay-${p.id}`,
+        text: `💰 Payment Verified: NGN ${p.amount.toLocaleString()} received from "${p.school?.name}" via ${p.paymentMethod}.`,
+        read: idx > 1,
+        type: 'success',
+        createdAt: p.paymentDate
+      });
+    });
+
+    schools.forEach((s, idx) => {
+      if (s.subscriptionEnd) {
+        const daysLeft = Math.ceil((new Date(s.subscriptionEnd).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+        if (daysLeft > 0 && daysLeft <= 7) {
+          platformAlerts.push({
+            id: `sub-exp-${s.id}`,
+            text: `⚠️ "${s.name}" subscription is expiring in ${daysLeft} days.`,
+            read: false,
+            type: 'warning',
+            createdAt: s.subscriptionEnd
+          });
+        }
+      }
+    });
+
+    leads.filter(l => l.leadStatus === 'DEMO_SENT' || l.leadStatus === 'TESTING').slice(0, 3).forEach((l) => {
+      platformAlerts.push({
+        id: `lead-${l.id}`,
+        text: `ℹ️ New demo onboarding lead active for "${l.schoolName}".`,
+        read: true,
+        type: 'info',
+        createdAt: l.createdAt
+      });
     });
 
     // Compute School health score registry
     const computedSchools = schools.map(s => {
       const activeLog = s.usageLogs[0];
-      const paymentsSum = s.payments
+      const schoolTxSum = paymentTransactions
+        .filter(p => p.schoolId === s.id && (p.status === 'SUCCESSFUL' || p.status === 'successful'))
+        .reduce((sum, p) => sum + p.amount, 0);
+
+      const legacySum = s.payments
         .filter(p => p.status === 'paid')
         .reduce((sum, p) => sum + p.amount, 0);
+
+      const paymentsSum = schoolTxSum + legacySum;
 
       // Objective Health Score computation weights
       let score = 30; // base value
@@ -144,7 +229,7 @@ export async function GET(req: NextRequest) {
         totalRevenue: paymentsSum,
         healthScore,
         recommendation,
-        autoRenew: true, // Mock default config
+        autoRenew: true,
         dbSizeKB: Math.floor(15 + studCount * 0.4 + recordCount * 0.1),
         storageUsedMB: Math.floor(5 + studCount * 0.2)
       };
@@ -155,6 +240,7 @@ export async function GET(req: NextRequest) {
       success: true,
       stats: {
         totalRevenue: totalPaidRevenue,
+        revenueToday,
         mrr: calculatedMRR,
         arr: calculatedMRR * 12,
         schoolCount: schools.length,
@@ -174,7 +260,8 @@ export async function GET(req: NextRequest) {
       leads,
       usageLogs,
       auditLogs,
-      payments
+      payments: allPayments,
+      notifications: platformAlerts
     });
   } catch (error: any) {
     console.error('Superadmin Stats GET Error:', error);

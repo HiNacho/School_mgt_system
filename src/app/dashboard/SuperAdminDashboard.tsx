@@ -189,7 +189,7 @@ export default function SuperAdminDashboard({ user, school }: SuperAdminDashboar
     const nowMs = Date.now();
     return payments
       .filter(p => {
-        const isPaid = p.status === 'paid';
+        const isPaid = p.status === 'paid' || p.status === 'SUCCESSFUL' || p.status === 'successful';
         const isRecent = nowMs - new Date(p.paymentDate).getTime() <= oneDayMs;
         return isPaid && isRecent;
       })
@@ -223,6 +223,10 @@ export default function SuperAdminDashboard({ user, school }: SuperAdminDashboar
       setUsageLogs(json.usageLogs || []);
       setAuditLogs(json.auditLogs || []);
       setPayments(json.payments || []);
+
+      if (json.notifications && json.notifications.length > 0) {
+        setNotifications(json.notifications);
+      }
     } catch (err: any) {
       console.error(err);
     } finally {
