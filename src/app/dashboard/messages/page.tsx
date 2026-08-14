@@ -362,6 +362,27 @@ export default function RebuiltMessagesHub() {
     }
   }, []);
 
+  // Fetch School Admins automatically whenever Super Admin opens New Chat Modal
+  useEffect(() => {
+    if (showNewChatModal && currentUser?.role === 'SUPER_ADMIN') {
+      const fetchAdmins = async () => {
+        try {
+          const res = await fetch('/api/staff?schoolId=ALL', { headers: getAuthHeaders(null) });
+          const json = await res.json();
+          if (res.ok && json.success) {
+            setSchoolStaff(json.data || []);
+            if (json.data?.length > 0 && !newChatStaffRecipientId) {
+              setNewChatStaffRecipientId(json.data[0].id);
+            }
+          }
+        } catch (err) {
+          console.error('Failed to load school admins:', err);
+        }
+      };
+      fetchAdmins();
+    }
+  }, [showNewChatModal, currentUser]);
+
   // 2. Fetch all hub data based on role context
   const loadDashboardResources = async (schoolId: string | null, user: any) => {
     setLoading(true);
