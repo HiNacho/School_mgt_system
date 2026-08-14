@@ -213,6 +213,23 @@ export default function SuperAdminDashboard({ user, school }: SuperAdminDashboar
     setNotifications(prev => prev.map(n => ({ ...n, read: true })));
   };
 
+  const handleClearAll = () => {
+    const currentDismissed = JSON.parse(localStorage.getItem('superadmin_dismissed_alert_ids') || '[]');
+    const newDismissed = Array.from(new Set([...currentDismissed, ...notifications.map(n => n.id)]));
+    localStorage.setItem('superadmin_dismissed_alert_ids', JSON.stringify(newDismissed));
+    setNotifications([]);
+  };
+
+  const handleDismissSingle = (id: string | number, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const currentDismissed = JSON.parse(localStorage.getItem('superadmin_dismissed_alert_ids') || '[]');
+    if (!currentDismissed.includes(id)) {
+      currentDismissed.push(id);
+      localStorage.setItem('superadmin_dismissed_alert_ids', JSON.stringify(currentDismissed));
+    }
+    setNotifications(prev => prev.filter(n => n.id !== id));
+  };
+
   const loadPlatformData = async () => {
     setLoading(true);
     try {
@@ -232,11 +249,15 @@ export default function SuperAdminDashboard({ user, school }: SuperAdminDashboar
 
       if (json.notifications && json.notifications.length > 0) {
         const storedReadIds = JSON.parse(localStorage.getItem('superadmin_read_alert_ids') || '[]');
-        const updatedNotifs = json.notifications.map((n: any) => ({
-          ...n,
-          read: storedReadIds.includes(n.id) || Boolean(n.read)
-        }));
-        setNotifications(updatedNotifs);
+        const storedDismissedIds = JSON.parse(localStorage.getItem('superadmin_dismissed_alert_ids') || '[]');
+
+        const activeNotifs = json.notifications
+          .filter((n: any) => !storedDismissedIds.includes(n.id))
+          .map((n: any) => ({
+            ...n,
+            read: storedReadIds.includes(n.id) || Boolean(n.read)
+          }));
+        setNotifications(activeNotifs);
       }
     } catch (err: any) {
       console.error(err);
@@ -651,20 +672,44 @@ export default function SuperAdminDashboard({ user, school }: SuperAdminDashboar
             </button>
 
             {notificationOpen && (
-              <div className="absolute right-0 mt-2 w-80 bg-white border border-slate-200 shadow-xl rounded-2xl p-4 z-50 animate-fadeIn space-y-3">
-                <div className="flex justify-between items-center pb-2 border-b border-slate-100">
-                  <h4 className="text-xs font-bold text-slate-700">Platform Alerts</h4>
-                  <button 
-                    type="button"
-                    onClick={handleMarkAllRead} 
-                    className="text-[10px] text-indigo-600 hover:text-indigo-800 font-extrabold hover:underline"
-                  >
-                    Mark all read
-                  </button>
+              <div className="absolute right-0 mt-2 w-84 bg-white border border-slate-200 shadow-2xl rounded-3xl p-4 z-50 animate-fadeIn space-y-3">
+                <div className="flex justify-between items-center pb-2.5 border-b border-slate-100">
+                  <div className="flex items-center gap-2">
+                    <h4 className="text-xs font-black uppercase text-slate-800 tracking-wider">Platform Alerts</h4>
+                    {notifications.filter(n => !n.read).length > 0 && (
+                      <span className="bg-rose-100 text-rose-700 text-[9px] font-black px-2 py-0.5 rounded-full">
+                        {notifications.filter(n => !n.read).length} new
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {notifications.length > 0 && (
+                      <button 
+                        type="button"
+                        onClick={handleClearAll} 
+                        className="text-[10px] text-rose-600 hover:text-rose-800 font-extrabold hover:underline tracking-wide"
+                        title="Clear all alerts from list"
+                      >
+                        Clear all
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => setNotificationOpen(false)}
+                      className="p-1 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors"
+                      title="Close Alerts"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
                 </div>
-                <div className="space-y-2 max-h-60 overflow-y-auto">
+
+                <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
                   {notifications.length === 0 ? (
-                    <p className="text-[11px] text-slate-400 italic text-center py-3">No active platform alerts.</p>
+                    <div className="p-6 text-center text-slate-400 space-y-1">
+                      <p className="text-xs font-bold">All clear!</p>
+                      <p className="text-[10px] italic">No active platform alerts at this time.</p>
+                    </div>
                   ) : (
                     notifications.map(n => (
                       <div 
@@ -677,18 +722,26 @@ export default function SuperAdminDashboard({ user, school }: SuperAdminDashboar
                           }
                           setNotifications(notifications.map(item => item.id === n.id ? { ...item, read: true } : item));
                         }}
-                        className={`p-2.5 rounded-xl text-[10px] font-semibold leading-relaxed border cursor-pointer transition-all ${
+                        className={`group relative flex items-start justify-between p-3 rounded-2xl text-[10px] font-semibold leading-relaxed border cursor-pointer transition-all ${
                           n.read 
-                            ? 'bg-slate-50/70 border-slate-100 text-slate-400' 
-                            : 'bg-indigo-50/30 border-indigo-150 text-slate-800 font-bold shadow-xs'
+                            ? 'bg-slate-50/80 border-slate-100 text-slate-400' 
+                            : 'bg-indigo-50/40 border-indigo-150 text-slate-800 font-bold shadow-xs'
                         }`}
                       >
-                        <div className="flex items-start gap-2">
+                        <div className="flex items-start gap-2 pr-4">
                           {!n.read && (
-                            <span className={`w-2 h-2 rounded-full mt-1 flex-shrink-0 ${n.type === 'error' ? 'bg-red-500' : n.type === 'warning' ? 'bg-amber-500' : 'bg-emerald-500'}`} />
+                            <span className={`w-2 h-2 rounded-full mt-1 flex-shrink-0 ${n.type === 'error' ? 'bg-red-500 animate-pulse' : n.type === 'warning' ? 'bg-amber-500' : 'bg-emerald-500'}`} />
                           )}
                           <span className={n.read ? 'opacity-60' : ''}>{n.text}</span>
                         </div>
+                        <button
+                          type="button"
+                          onClick={(e) => handleDismissSingle(n.id, e)}
+                          className="opacity-0 group-hover:opacity-100 p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-all flex-shrink-0"
+                          title="Dismiss this alert"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
                       </div>
                     ))
                   )}
