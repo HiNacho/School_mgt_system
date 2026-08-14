@@ -134,12 +134,14 @@ export async function POST(req: NextRequest) {
         data: { autoRenewEnabled: Boolean(autoRenew) }
       });
 
+      const currentUserId = session.userId || (session as any).id || null;
+
       await prisma.billingAuditLog.create({
         data: {
           schoolId,
-          userId: session.id,
+          userId: currentUserId,
           action: autoRenew ? 'AUTO_RENEW_ENABLED' : 'AUTO_RENEW_DISABLED',
-          details: `School Admin ${session.firstName} ${session.lastName} set auto-renewal to ${autoRenew ? 'ENABLED' : 'DISABLED'}`
+          details: `School Admin ${session.firstName || ''} ${session.lastName || ''} set auto-renewal to ${autoRenew ? 'ENABLED' : 'DISABLED'}`
         }
       });
 
@@ -180,6 +182,8 @@ export async function POST(req: NextRequest) {
 
     // 4. Database Transaction Execution
     const result = await prisma.$transaction(async (tx) => {
+      const currentUserId = session.userId || (session as any).id || null;
+
       // Record Payment Transaction
       const paymentTx = await tx.paymentTransaction.create({
         data: {
@@ -192,7 +196,7 @@ export async function POST(req: NextRequest) {
           paymentMethod: 'Flutterwave Gateway',
           status: 'SUCCESSFUL',
           paymentDate: new Date(),
-          recordedById: session.id,
+          recordedById: currentUserId,
           rawGatewayResponse: flwData
         }
       });
@@ -252,22 +256,23 @@ export async function POST(req: NextRequest) {
       await tx.billingAuditLog.create({
         data: {
           schoolId,
-          userId: session.id,
+          userId: currentUserId,
           action: 'PAYMENT_SUCCESSFUL',
           details: `Verified payment of NGN ${numericPaidAmount.toLocaleString()} for invoice ${invoice.invoiceNumber} (Receipt: ${receiptNum})`
         }
       });
 
-      // Create Admin Notification
-      await tx.notification.create({
-        data: {
-          schoolId,
-          userId: session.id,
-          title: 'Subscription Payment Received',
-          message: `Your payment of NGN ${numericPaidAmount.toLocaleString()} for ${invoice.invoiceNumber} was verified. Receipt #${receiptNum} is ready.`,
-          type: 'SYSTEM'
-        }
-      });
+      // Create Admin Notification if userId is valid
+      const recipientUserId = session.userId || (session as any).id;
+      if (recipientUserId) {
+        await tx.notification.create({
+          data: {
+            schoolId,
+            userId: recipientUserId,
+            message: `Payment Verified: NGN ${numericPaidAmount.toLocaleString()} for ${invoice.invoiceNumber}. Receipt #${receiptNum} is ready.`
+          }
+        });
+      }
 
       return { paymentTx, receipt, invoice: updatedInvoice, subscription: updatedSub };
     });
