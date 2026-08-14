@@ -207,10 +207,22 @@ export default function SuperAdminDashboard({ user, school }: SuperAdminDashboar
     return () => clearInterval(interval);
   }, []);
 
+  const [healthStatus, setHealthStatus] = useState<Record<string, string>>({
+    apiServer: 'HEALTHY',
+    database: 'HEALTHY',
+    auth: 'HEALTHY',
+    storage: 'HEALTHY',
+    email: 'HEALTHY',
+    flutterwave: 'HEALTHY',
+    backgroundJobs: 'HEALTHY',
+    backups: 'HEALTHY'
+  });
+  const [telemetryMeta, setTelemetryMeta] = useState({ uptime: '99.98%', responseTimeMs: 145 });
+
   const handleMarkAllRead = () => {
     const allIds = notifications.map(n => n.id);
     localStorage.setItem('superadmin_read_alert_ids', JSON.stringify(allIds));
-    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+    setNotifications([]);
   };
 
   const handleClearAll = () => {
@@ -246,6 +258,15 @@ export default function SuperAdminDashboard({ user, school }: SuperAdminDashboar
       setUsageLogs(json.usageLogs || []);
       setAuditLogs(json.auditLogs || []);
       setPayments(json.payments || []);
+
+      if (json.health) {
+        const { responseTimeMs, uptime, ...services } = json.health;
+        setHealthStatus(services);
+        setTelemetryMeta({
+          uptime: uptime || '99.98%',
+          responseTimeMs: typeof responseTimeMs === 'number' ? responseTimeMs : 145
+        });
+      }
 
       if (json.notifications && json.notifications.length > 0) {
         const storedReadIds = JSON.parse(localStorage.getItem('superadmin_read_alert_ids') || '[]');
@@ -308,17 +329,7 @@ export default function SuperAdminDashboard({ user, school }: SuperAdminDashboar
     });
   }, [leads, searchQuery]);
 
-  // Service Health indicators
-  const healthStatus = {
-    apiServer: 'HEALTHY',
-    database: 'HEALTHY',
-    auth: 'HEALTHY',
-    storage: 'HEALTHY',
-    email: 'HEALTHY',
-    flutterwave: 'HEALTHY',
-    backgroundJobs: 'WARNING', // simulated
-    backups: 'HEALTHY'
-  };
+
 
   // Register school action
   const handleRegisterSchool = async (e: React.FormEvent) => {
@@ -744,15 +755,29 @@ export default function SuperAdminDashboard({ user, school }: SuperAdminDashboar
       <div className="bg-white rounded-3xl border border-slate-200/80 shadow-sm p-5 space-y-4">
         <div className="flex justify-between items-center">
           <span className="text-[9px] font-extrabold tracking-wider text-slate-400 uppercase">SaaS System Health Telemetry</span>
-          <span className="text-[10px] text-slate-500 font-bold">Uptime: 99.98% • Response: 145ms</span>
+          <span className="text-[10px] text-slate-500 font-bold">
+            Uptime: <span className="text-emerald-600 font-black">{telemetryMeta.uptime}</span> • Response: <span className="text-indigo-600 font-black">{telemetryMeta.responseTimeMs}ms</span>
+          </span>
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3">
           {Object.entries(healthStatus).map(([service, status]) => (
             <div key={service} className="p-3 rounded-xl border border-slate-100 bg-slate-50/50 flex flex-col gap-1.5">
               <span className="text-[10px] text-slate-400 font-bold capitalize">{service.replace(/([A-Z])/g, ' $1')}</span>
               <div className="flex items-center gap-1.5">
-                <span className={`w-2 h-2 rounded-full ${status === 'HEALTHY' ? 'bg-emerald-500 shadow-[0_0_8px_#14B8A6] animate-pulse' : 'bg-amber-400'}`} />
-                <span className="text-xs font-black text-slate-700">{status}</span>
+                <span className={`w-2 h-2 rounded-full ${
+                  status === 'HEALTHY' 
+                    ? 'bg-emerald-500 shadow-[0_0_8px_#10B981] animate-pulse' 
+                    : status === 'WARNING' 
+                    ? 'bg-amber-400 animate-ping' 
+                    : 'bg-rose-500 animate-bounce'
+                }`} />
+                <span className={`text-xs font-black ${
+                  status === 'HEALTHY' 
+                    ? 'text-slate-700' 
+                    : status === 'WARNING' 
+                    ? 'text-amber-600' 
+                    : 'text-rose-600'
+                }`}>{status}</span>
               </div>
             </div>
           ))}
