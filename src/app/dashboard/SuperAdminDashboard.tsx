@@ -207,6 +207,12 @@ export default function SuperAdminDashboard({ user, school }: SuperAdminDashboar
     return () => clearInterval(interval);
   }, []);
 
+  const handleMarkAllRead = () => {
+    const allIds = notifications.map(n => n.id);
+    localStorage.setItem('superadmin_read_alert_ids', JSON.stringify(allIds));
+    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+  };
+
   const loadPlatformData = async () => {
     setLoading(true);
     try {
@@ -225,7 +231,12 @@ export default function SuperAdminDashboard({ user, school }: SuperAdminDashboar
       setPayments(json.payments || []);
 
       if (json.notifications && json.notifications.length > 0) {
-        setNotifications(json.notifications);
+        const storedReadIds = JSON.parse(localStorage.getItem('superadmin_read_alert_ids') || '[]');
+        const updatedNotifs = json.notifications.map((n: any) => ({
+          ...n,
+          read: storedReadIds.includes(n.id) || Boolean(n.read)
+        }));
+        setNotifications(updatedNotifs);
       }
     } catch (err: any) {
       console.error(err);
@@ -643,17 +654,44 @@ export default function SuperAdminDashboard({ user, school }: SuperAdminDashboar
               <div className="absolute right-0 mt-2 w-80 bg-white border border-slate-200 shadow-xl rounded-2xl p-4 z-50 animate-fadeIn space-y-3">
                 <div className="flex justify-between items-center pb-2 border-b border-slate-100">
                   <h4 className="text-xs font-bold text-slate-700">Platform Alerts</h4>
-                  <button onClick={() => setNotifications(notifications.map(n => ({...n, read: true})))} className="text-[10px] text-indigo-600 hover:underline font-bold">Mark all read</button>
+                  <button 
+                    type="button"
+                    onClick={handleMarkAllRead} 
+                    className="text-[10px] text-indigo-600 hover:text-indigo-800 font-extrabold hover:underline"
+                  >
+                    Mark all read
+                  </button>
                 </div>
                 <div className="space-y-2 max-h-60 overflow-y-auto">
-                  {notifications.map(n => (
-                    <div key={n.id} className={`p-2 rounded-xl text-[10px] font-semibold leading-relaxed border ${n.read ? 'bg-slate-50/50 border-slate-100 text-slate-500' : 'bg-indigo-50/20 border-indigo-100 text-slate-700'}`}>
-                      <div className="flex items-start gap-1.5">
-                        <span className={`w-1.5 h-1.5 rounded-full mt-1.5 flex-shrink-0 ${n.type === 'error' ? 'bg-red-500' : n.type === 'warning' ? 'bg-amber-500' : 'bg-blue-500'}`} />
-                        <span>{n.text}</span>
+                  {notifications.length === 0 ? (
+                    <p className="text-[11px] text-slate-400 italic text-center py-3">No active platform alerts.</p>
+                  ) : (
+                    notifications.map(n => (
+                      <div 
+                        key={n.id} 
+                        onClick={() => {
+                          const storedReadIds = JSON.parse(localStorage.getItem('superadmin_read_alert_ids') || '[]');
+                          if (!storedReadIds.includes(n.id)) {
+                            storedReadIds.push(n.id);
+                            localStorage.setItem('superadmin_read_alert_ids', JSON.stringify(storedReadIds));
+                          }
+                          setNotifications(notifications.map(item => item.id === n.id ? { ...item, read: true } : item));
+                        }}
+                        className={`p-2.5 rounded-xl text-[10px] font-semibold leading-relaxed border cursor-pointer transition-all ${
+                          n.read 
+                            ? 'bg-slate-50/70 border-slate-100 text-slate-400' 
+                            : 'bg-indigo-50/30 border-indigo-150 text-slate-800 font-bold shadow-xs'
+                        }`}
+                      >
+                        <div className="flex items-start gap-2">
+                          {!n.read && (
+                            <span className={`w-2 h-2 rounded-full mt-1 flex-shrink-0 ${n.type === 'error' ? 'bg-red-500' : n.type === 'warning' ? 'bg-amber-500' : 'bg-emerald-500'}`} />
+                          )}
+                          <span className={n.read ? 'opacity-60' : ''}>{n.text}</span>
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    ))
+                  )}
                 </div>
               </div>
             )}
