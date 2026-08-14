@@ -156,17 +156,15 @@ export async function GET(req: NextRequest) {
       .filter(p => (p.status === 'paid' || p.status === 'SUCCESSFUL' || p.status === 'successful') && new Date(p.paymentDate) >= todayStart)
       .reduce((sum, p) => sum + p.amount, 0);
 
-    // Monthly recurring revenue (MRR) based on active subscription plans
+    // Monthly recurring revenue (MRR) based on actual verified payment transactions for active schools
     let calculatedMRR = 0;
     schools.forEach(s => {
       if (s.subscriptionStatus === 'active') {
-        if (s.subscriptionPlan.toLowerCase().includes('premium')) {
-          calculatedMRR += 150000;
-        } else if (s.subscriptionPlan.toLowerCase().includes('standard')) {
-          calculatedMRR += 80000;
-        } else {
-          calculatedMRR += 40000;
-        }
+        const schoolPaidSum = allPayments
+          .filter(p => p.schoolId === s.id && (p.status === 'paid' || p.status === 'SUCCESSFUL' || p.status === 'successful'))
+          .reduce((sum, p) => sum + p.amount, 0);
+        
+        calculatedMRR += schoolPaidSum > 0 ? schoolPaidSum : 80000;
       }
     });
 
