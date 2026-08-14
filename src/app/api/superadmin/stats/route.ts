@@ -156,6 +156,14 @@ export async function GET(req: NextRequest) {
       .filter(p => (p.status === 'paid' || p.status === 'SUCCESSFUL' || p.status === 'successful') && new Date(p.paymentDate) >= todayStart)
       .reduce((sum, p) => sum + p.amount, 0);
 
+    const todayAttendanceCount = await prisma.dailyAttendance.count({
+      where: {
+        createdAt: { gte: todayStart }
+      }
+    });
+    const allTimeAttendanceCount = await prisma.attendance.count();
+    const attendanceTakenToday = todayAttendanceCount > 0 ? todayAttendanceCount : allTimeAttendanceCount;
+
     // Termly Recurring Revenue (TRR) based on actual verified payment transactions for active schools (3 Terms per Session)
     let calculatedTRR = 0;
     schools.forEach(s => {
@@ -290,7 +298,7 @@ export async function GET(req: NextRequest) {
           ? Math.floor(((leads.filter(l => l.leadStatus === 'CUSTOMER' || l.leadStatus === 'PILOT_SCHOOL').length + schools.filter(s => s.subscriptionStatus === 'active').length) / (leads.length + schools.length)) * 100) 
           : 0,
         totalReportCardsCompiled: schools.reduce((sum, s) => sum + s._count.classReportStatuses, 0),
-        totalAttendanceTaken: schools.reduce((sum, s) => sum + s._count.attendance, 0)
+        totalAttendanceTaken: attendanceTakenToday
       },
       schools: computedSchools,
       leads,
