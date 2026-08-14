@@ -170,7 +170,10 @@ export default function BillingPage() {
     setSuccessMsg('');
     setProcessingPayment(true);
 
-    const flutterwaveKey = process.env.NEXT_PUBLIC_FLUTTERWAVE_PUBLIC_KEY || "FLWPUBK-6f0ad03816bbfa0b21aff7207d613947-X";
+    const rawEnvKey = process.env.NEXT_PUBLIC_FLUTTERWAVE_PUBLIC_KEY || "";
+    const flutterwaveKey = (rawEnvKey && !rawEnvKey.includes("TEST"))
+      ? rawEnvKey 
+      : "FLWPUBK-6f0ad03816bbfa0b21aff7207d613947-X";
     const ref = `txref-saas-${targetInv.invoiceNumber}-${Date.now()}`;
 
     console.log('[Flutterwave] Active Public Key in use:', flutterwaveKey);
