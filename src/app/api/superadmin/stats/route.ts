@@ -286,7 +286,9 @@ export async function GET(req: NextRequest) {
         totalStaff: schools.reduce((sum, s) => sum + s._count.users, 0),
         totalParents: schools.reduce((sum, s) => sum + s._count.parents, 0),
         demoRequests: leads.filter(l => l.leadStatus === 'DEMO_SENT' || l.leadStatus === 'TESTING').length,
-        conversionRate: leads.length ? Math.floor((leads.filter(l => l.leadStatus === 'CUSTOMER').length / leads.length) * 100) : 0,
+        conversionRate: (leads.length + schools.length) > 0 
+          ? Math.floor(((leads.filter(l => l.leadStatus === 'CUSTOMER' || l.leadStatus === 'PILOT_SCHOOL').length + schools.filter(s => s.subscriptionStatus === 'active').length) / (leads.length + schools.length)) * 100) 
+          : 0,
         totalReportCardsCompiled: schools.reduce((sum, s) => sum + s._count.classReportStatuses, 0),
         totalAttendanceTaken: schools.reduce((sum, s) => sum + s._count.attendance, 0)
       },
