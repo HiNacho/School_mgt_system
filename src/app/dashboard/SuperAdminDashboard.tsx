@@ -843,12 +843,12 @@ export default function SuperAdminDashboard({ user, school }: SuperAdminDashboar
 
             <div className="bg-white rounded-3xl border border-slate-200/80 p-5 shadow-sm space-y-2">
               <div className="flex justify-between items-start text-slate-400">
-                <span className="text-[10px] font-bold uppercase tracking-wider">Monthly Revenue</span>
+                <span className="text-[10px] font-bold uppercase tracking-wider">Termly Revenue (TRR)</span>
                 <DollarSign className="w-4 h-4 text-emerald-500" />
               </div>
               <div className="flex items-baseline gap-2">
-                <span className="text-2xl font-black text-slate-800">₦{(stats?.mrr || 0).toLocaleString()}</span>
-                <span className="text-xs font-bold text-emerald-500 flex items-center gap-0.5"><ArrowUpRight className="w-3 h-3" />+8%</span>
+                <span className="text-2xl font-black text-slate-800">₦{(stats?.trr || stats?.mrr || 0).toLocaleString()}</span>
+                <span className="text-xs font-bold text-emerald-500 flex items-center gap-0.5"><ArrowUpRight className="w-3 h-3" />Per Term</span>
               </div>
               {/* Sparkline */}
               <div className="h-6 w-full mt-2">
@@ -860,12 +860,12 @@ export default function SuperAdminDashboard({ user, school }: SuperAdminDashboar
 
             <div className="bg-white rounded-3xl border border-slate-200/80 p-5 shadow-sm space-y-2">
               <div className="flex justify-between items-start text-slate-400">
-                <span className="text-[10px] font-bold uppercase tracking-wider">Annual Revenue (ARR)</span>
+                <span className="text-[10px] font-bold uppercase tracking-wider">Session Revenue (3 Terms)</span>
                 <DollarSign className="w-4 h-4 text-emerald-600" />
               </div>
               <div className="flex items-baseline gap-2">
                 <span className="text-2xl font-black text-slate-800">₦{(stats?.arr || 0).toLocaleString()}</span>
-                <span className="text-xs font-bold text-slate-400">Target reached</span>
+                <span className="text-xs font-bold text-slate-400">Annual (3 Terms)</span>
               </div>
               {/* Sparkline */}
               <div className="h-6 w-full mt-2">

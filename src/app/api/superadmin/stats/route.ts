@@ -156,15 +156,15 @@ export async function GET(req: NextRequest) {
       .filter(p => (p.status === 'paid' || p.status === 'SUCCESSFUL' || p.status === 'successful') && new Date(p.paymentDate) >= todayStart)
       .reduce((sum, p) => sum + p.amount, 0);
 
-    // Monthly recurring revenue (MRR) based on actual verified payment transactions for active schools
-    let calculatedMRR = 0;
+    // Termly Recurring Revenue (TRR) based on actual verified payment transactions for active schools (3 Terms per Session)
+    let calculatedTRR = 0;
     schools.forEach(s => {
       if (s.subscriptionStatus === 'active') {
         const schoolPaidSum = allPayments
           .filter(p => p.schoolId === s.id && (p.status === 'paid' || p.status === 'SUCCESSFUL' || p.status === 'successful'))
           .reduce((sum, p) => sum + p.amount, 0);
         
-        calculatedMRR += schoolPaidSum > 0 ? schoolPaidSum : 80000;
+        calculatedTRR += schoolPaidSum > 0 ? schoolPaidSum : 80000;
       }
     });
 
@@ -274,8 +274,9 @@ export async function GET(req: NextRequest) {
       stats: {
         totalRevenue: totalPaidRevenue,
         revenueToday,
-        mrr: calculatedMRR,
-        arr: calculatedMRR * 12,
+        trr: calculatedTRR,
+        mrr: calculatedTRR,
+        arr: calculatedTRR * 3, // 3 Terms per Academic Session
         schoolCount: schools.length,
         activeSchools: schools.filter(s => s.subscriptionStatus === 'active').length,
         trialSchools: schools.filter(s => s.subscriptionStatus === 'trial').length,
