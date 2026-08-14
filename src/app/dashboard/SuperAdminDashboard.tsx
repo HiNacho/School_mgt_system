@@ -218,6 +218,7 @@ export default function SuperAdminDashboard({ user, school }: SuperAdminDashboar
     backups: 'HEALTHY'
   });
   const [telemetryMeta, setTelemetryMeta] = useState({ uptime: '99.98%', responseTimeMs: 145 });
+  const [aiInsights, setAiInsights] = useState<any[]>([]);
 
   const handleMarkAllRead = () => {
     const allIds = notifications.map(n => n.id);
@@ -258,6 +259,10 @@ export default function SuperAdminDashboard({ user, school }: SuperAdminDashboar
       setUsageLogs(json.usageLogs || []);
       setAuditLogs(json.auditLogs || []);
       setPayments(json.payments || []);
+
+      if (json.aiInsights && json.aiInsights.length > 0) {
+        setAiInsights(json.aiInsights);
+      }
 
       if (json.health) {
         const { responseTimeMs, uptime, ...services } = json.health;
@@ -1022,50 +1027,40 @@ export default function SuperAdminDashboard({ user, school }: SuperAdminDashboar
               <h3 className="text-xs font-black text-slate-700 uppercase tracking-wider">AI Business Insights & Actions</h3>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-sm space-y-2">
-                <span className="text-[9px] font-extrabold tracking-wider text-amber-500 uppercase flex items-center gap-1">
-                  <AlertTriangle className="w-3.5 h-3.5" /> High Churn Risk
-                </span>
-                <p className="text-[11px] font-semibold text-slate-650 leading-relaxed">
-                  Lagos Excel Academy has not logged in for 12 consecutive days.
-                </p>
-                <button
-                  onClick={() => alert('Sending system reactivation email to Lagos Excel...')}
-                  className="text-[10px] font-black text-indigo-650 hover:underline mt-1 block"
-                >
-                  Reach Out Admin →
-                </button>
-              </div>
-
-              <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-sm space-y-2">
-                <span className="text-[9px] font-extrabold tracking-wider text-emerald-500 uppercase flex items-center gap-1">
-                  <CheckCircle className="w-3.5 h-3.5" /> Pilot Conversion
-                </span>
-                <p className="text-[11px] font-semibold text-slate-650 leading-relaxed">
-                  Bright Future Academy demo has uploaded 120 results. Highly engaged.
-                </p>
-                <button
-                  onClick={() => alert('Drafting conversion email proposals for Bright Future...')}
-                  className="text-[10px] font-black text-indigo-650 hover:underline mt-1 block"
-                >
-                  Propose Upgrade Plan →
-                </button>
-              </div>
-
-              <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-sm space-y-2">
-                <span className="text-[9px] font-extrabold tracking-wider text-blue-500 uppercase flex items-center gap-1">
-                  <Activity className="w-3.5 h-3.5" /> Feature Upselling
-                </span>
-                <p className="text-[11px] font-semibold text-slate-650 leading-relaxed">
-                  Report card compiles increased by 28% platform-wide this academic week.
-                </p>
-                <button
-                  onClick={() => alert('Broadcasting platform report templates tips...')}
-                  className="text-[10px] font-black text-indigo-650 hover:underline mt-1 block"
-                >
-                  Send Platform Broadcast →
-                </button>
-              </div>
+              {aiInsights.length === 0 ? (
+                <p className="text-xs text-slate-400 italic">Analyzing platform telemetry...</p>
+              ) : (
+                aiInsights.map((insight, idx) => (
+                  <div key={idx} className="p-4 rounded-2xl bg-white border border-slate-200 shadow-sm space-y-2 flex flex-col justify-between">
+                    <div className="space-y-1.5">
+                      <span className={`text-[9px] font-extrabold tracking-wider uppercase flex items-center gap-1 ${
+                        insight.type === 'churn' ? 'text-amber-500' : insight.type === 'conversion' ? 'text-emerald-500' : 'text-indigo-600'
+                      }`}>
+                        {insight.type === 'churn' ? <AlertTriangle className="w-3.5 h-3.5" /> : insight.type === 'conversion' ? <CheckCircle className="w-3.5 h-3.5" /> : <Activity className="w-3.5 h-3.5" />}
+                        {insight.title}
+                      </span>
+                      <p className="text-[11px] font-semibold text-slate-650 leading-relaxed">
+                        {insight.text}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (insight.type === 'churn') {
+                          setActiveTab('schools');
+                        } else if (insight.type === 'conversion') {
+                          setActiveTab('leads');
+                        } else {
+                          setActiveTab('audit');
+                        }
+                      }}
+                      className="text-[10px] font-black text-indigo-600 hover:text-indigo-800 hover:underline mt-2 block text-left cursor-pointer"
+                    >
+                      {insight.actionText}
+                    </button>
+                  </div>
+                ))
+              )}
             </div>
           </div>
         </div>

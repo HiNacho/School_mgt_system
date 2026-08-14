@@ -275,10 +275,56 @@ export async function GET(req: NextRequest) {
       };
     });
 
+    // Generate Real Dynamic AI Business Insights & Actions
+    const lowestHealthSchool = computedSchools
+      .filter(s => s.subscriptionStatus !== 'expired')
+      .sort((a, b) => a.healthScore - b.healthScore)[0] || computedSchools[0];
+
+    const churnInsight = lowestHealthSchool ? {
+      type: 'churn',
+      title: 'High Churn Risk',
+      text: `"${lowestHealthSchool.name}" health score is ${lowestHealthSchool.healthScore}/100 with last recorded activity on ${new Date(lowestHealthSchool.lastActivity).toLocaleDateString()}.`,
+      actionText: `Reach Out ${lowestHealthSchool.name} →`,
+      schoolName: lowestHealthSchool.name,
+      schoolSlug: lowestHealthSchool.slug
+    } : {
+      type: 'churn',
+      title: 'Low Churn Risk',
+      text: 'All tenant schools have clean health telemetry and active engagement.',
+      actionText: 'View Registry →'
+    };
+
+    const topLead = leads.find(l => l.leadStatus === 'DEMO_SENT' || l.leadStatus === 'TESTING' || l.leadStatus === 'NEW') || leads[0];
+    const conversionInsight = topLead ? {
+      type: 'conversion',
+      title: 'Pilot Conversion',
+      text: `"${topLead.schoolName}" demo lead is active with ${topLead.studentCount || 'multiple'} student capacity. High conversion potential.`,
+      actionText: `Propose Upgrade Plan →`,
+      leadEmail: topLead.email,
+      leadName: topLead.contactName || topLead.schoolName
+    } : {
+      type: 'conversion',
+      title: 'Lead Pipeline',
+      text: 'No demo onboarding leads currently in trial. Register new prospective leads.',
+      actionText: 'Register New Lead →'
+    };
+
+    const totalCompiled = schools.reduce((sum, s) => sum + s._count.classReportStatuses, 0);
+    const activeTenantCount = schools.filter(s => s.subscriptionStatus === 'active').length;
+    const growthInsight = {
+      type: 'growth',
+      title: 'Feature & Usage Growth',
+      text: `${totalCompiled} report card compile runs and ${allTimeAttendanceCount} registers logged across ${activeTenantCount} active schools this session.`,
+      actionText: 'Send Platform Broadcast →'
+    };
+
+    const aiInsights = [churnInsight, conversionInsight, growthInsight];
+
     // Combine responses
     return NextResponse.json({
       success: true,
       health: healthTelemetry,
+      aiInsights,
       stats: {
         totalRevenue: totalPaidRevenue,
         revenueToday,
