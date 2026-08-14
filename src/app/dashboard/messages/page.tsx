@@ -384,6 +384,16 @@ export default function RebuiltMessagesHub() {
         if (schoolsRes.ok && schoolsJson.success) {
           setTenants(schoolsJson.data || []);
         }
+
+        // Fetch all School Admins across tenants for Super Admin messaging
+        const staffRes = await fetch('/api/staff?schoolId=ALL', { headers });
+        const staffJson = await staffRes.json();
+        if (staffRes.ok && staffJson.success) {
+          setSchoolStaff(staffJson.data || []);
+          if (staffJson.data?.length > 0) {
+            setNewChatStaffRecipientId(staffJson.data[0].id);
+          }
+        }
       } else {
         if (!schoolId) return;
         // Fetch Chats & Settings
@@ -728,7 +738,13 @@ export default function RebuiltMessagesHub() {
     const finalStudentId = newChatType === 'parent' ? newChatStudentId : '';
     const finalRecipientId = newChatType === 'parent' ? newChatTeacherId : newChatStaffRecipientId;
 
-    if (!finalRecipientId || !newChatBody.trim() || !school) return;
+    let targetSchoolId = school?.id;
+    if (currentUser?.role === 'SUPER_ADMIN') {
+      const selectedAdmin = schoolStaff.find(s => s.id === finalRecipientId);
+      targetSchoolId = selectedAdmin?.schoolId || tenants[0]?.id;
+    }
+
+    if (!finalRecipientId || !newChatBody.trim() || !targetSchoolId) return;
 
     setSending(true);
     setErrorMsg('');
@@ -738,7 +754,7 @@ export default function RebuiltMessagesHub() {
         method: 'POST',
         headers: getAuthHeaders(),
         body: JSON.stringify({
-          schoolId: school.id,
+          schoolId: targetSchoolId,
           studentId: finalStudentId,
           recipientId: finalRecipientId,
           category: 'GENERAL',
@@ -755,14 +771,14 @@ export default function RebuiltMessagesHub() {
       setShowNewChatModal(false);
 
       // Refresh chats list and select the new one
-      const refreshRes = await fetch(`/api/communication?schoolId=${school.id}`, {
+      const refreshUrl = currentUser?.role === 'SUPER_ADMIN' ? '/api/superadmin/messages' : `/api/communication?schoolId=${targetSchoolId}`;
+      const refreshRes = await fetch(refreshUrl, {
         headers: getAuthHeaders(null)
       });
       const refreshJson = await refreshRes.json();
       if (refreshRes.ok && refreshJson.success) {
-        const chats: ChatConversation[] = refreshJson.data.conversations || [];
+        const chats: ChatConversation[] = currentUser?.role === 'SUPER_ADMIN' ? (refreshJson.data || []) : (refreshJson.data.conversations || []);
         setConversations(chats);
-        // Find and select the new conversation
         const matched = chats.find(c => c.id === json.data.conversationId);
         if (matched) {
           handleSelectConversation(matched);
@@ -2044,7 +2060,13 @@ export default function RebuiltMessagesHub() {
             </div>
 
             <form onSubmit={handleCreateNewChat} className="space-y-4">
-              {currentUser?.role !== 'PARENT' && (
+              {currentUser?.role === 'SUPER_ADMIN' ? (
+                <div className="bg-indigo-50/70 border border-indigo-150 p-2.5 rounded-xl text-center">
+                  <span className="text-[10px] font-black uppercase tracking-wider text-indigo-700">
+                    Communicating with School Admins
+                  </span>
+                </div>
+              ) : currentUser?.role !== 'PARENT' && (
                 <div className="flex bg-slate-100 p-1 rounded-lg border border-slate-200">
                   <button
                     type="button"
@@ -2069,7 +2091,37 @@ export default function RebuiltMessagesHub() {
                 </div>
               )}
 
-              {newChatType === 'parent' ? (
+              {currentUser?.role === 'SUPER_ADMIN' ? (
+                <div>
+                  <label className="block text-[10px] font-black uppercase tracking-wider text-slate-400 mb-1">
+                    Select School Admin Recipient
+                  </label>
+                  <input
+                    type="text"
+                    value={staffSearchQuery}
+                    onChange={(e) => setStaffSearchQuery(e.target.value)}
+                    placeholder="Type to search school name or admin email..."
+                    className="w-full px-3 py-1.5 border border-slate-200 rounded-lg text-xs bg-slate-50 mb-2 focus:outline-none focus:ring-1 focus:ring-indigo-500 font-sans font-medium"
+                  />
+                  <select
+                    value={newChatStaffRecipientId}
+                    onChange={(e) => setNewChatStaffRecipientId(e.target.value)}
+                    className="w-full px-3 py-2 border border-slate-250 rounded-lg text-xs bg-slate-50 font-medium"
+                  >
+                    {schoolStaff.filter(s => {
+                      const searchStr = `${s.schoolName || ''} ${s.firstName || ''} ${s.lastName || ''} ${s.email || ''}`.toLowerCase();
+                      return searchStr.includes(staffSearchQuery.toLowerCase());
+                    }).map(s => (
+                      <option key={s.id} value={s.id}>
+                        {s.schoolName} — {s.firstName} {s.lastName} ({s.email})
+                      </option>
+                    ))}
+                  </select>
+                  {schoolStaff.length === 0 && (
+                    <p className="text-[10px] text-rose-500 font-semibold mt-1">No active school admin accounts found.</p>
+                  )}
+                </div>
+              ) : newChatType === 'parent' ? (
                 <>
                   <div>
                     <label className="block text-[10px] font-black uppercase tracking-wider text-slate-400 mb-1">Select Child (Ward)</label>

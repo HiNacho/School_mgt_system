@@ -18,6 +18,33 @@ export async function GET(req: NextRequest) {
     const schoolId = searchParams.get('schoolId');
     const staffId = searchParams.get('staffId');
 
+    if (schoolId === 'ALL' && session.role === 'SUPER_ADMIN') {
+      const schoolAdmins = await prisma.user.findMany({
+        where: {
+          role: 'SCHOOL_ADMIN',
+          status: 'ACTIVE'
+        },
+        include: {
+          school: {
+            select: { id: true, name: true, slug: true }
+          }
+        },
+        orderBy: { createdAt: 'desc' }
+      });
+
+      const formatted = schoolAdmins.map(admin => ({
+        id: admin.id,
+        firstName: admin.firstName,
+        lastName: admin.lastName,
+        email: admin.email,
+        role: 'SCHOOL_ADMIN',
+        schoolId: admin.schoolId,
+        schoolName: admin.school?.name || 'School'
+      }));
+
+      return NextResponse.json({ success: true, data: formatted });
+    }
+
     if (!schoolId) {
       return NextResponse.json({ error: 'School ID is required' }, { status: 400 });
     }
