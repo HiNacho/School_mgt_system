@@ -728,7 +728,11 @@ The Operon Support Team
             <DollarSign className="w-4 h-4 text-sky-600" />
           </div>
           <div className="flex items-baseline gap-1.5">
-            <span className="text-xl font-extrabold text-slate-855 text-slate-800">₦{(totalRevenueVal / 1000000).toFixed(2)}M</span>
+            <span className="text-xl font-extrabold text-slate-800">
+              {totalRevenueVal >= 1000000 
+                ? `₦${(totalRevenueVal / 1000000).toFixed(2)}M` 
+                : `₦${totalRevenueVal.toLocaleString()}`}
+            </span>
           </div>
           <div className="h-1 w-full bg-sky-100/50 rounded-full" />
         </div>
