@@ -197,7 +197,7 @@ export default function BillingPage() {
         },
         callback: async function (paymentResponse: any) {
           try {
-            const txId = paymentResponse.transaction_id || paymentResponse.id;
+            const txId = paymentResponse.transaction_id || paymentResponse.id || paymentResponse.tx_ref;
             if (!txId) {
               throw new Error('Payment gateway did not return a valid Transaction ID.');
             }
