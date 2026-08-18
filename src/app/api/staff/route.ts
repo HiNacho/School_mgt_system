@@ -85,6 +85,7 @@ export async function GET(req: NextRequest) {
           role: s.role,
           phone: s.phone || 'Not Provided',
           passportPhoto: s.passportPhoto || null,
+          signature: s.signature || null,
           status: s.status,
           createdAt: s.createdAt,
           classTeacherArms: s.classTeacherArms,
@@ -373,7 +374,7 @@ export async function PATCH(req: NextRequest) {
 
     const body = await req.json();
     const { 
-      staffId, schoolId, firstName, lastName, title, email, phone, passportPhoto,
+      staffId, schoolId, firstName, lastName, title, email, phone, passportPhoto, signature,
       role, classTeacherArmId, subjectAssignments, dateOfBirth
     } = body;
 
@@ -423,6 +424,7 @@ export async function PATCH(req: NextRequest) {
           phone: phone !== undefined ? (phone ? phone.trim() : null) : undefined,
           role: (!isSelfUpdate && role !== undefined) ? role : undefined,
           passportPhoto: passportPhoto !== undefined ? (passportPhoto ? passportPhoto : null) : undefined,
+          signature: signature !== undefined ? (signature ? signature : null) : undefined,
           dateOfBirth: dateOfBirth !== undefined ? (dateOfBirth ? dateOfBirth.trim() : null) : undefined,
         }
       });

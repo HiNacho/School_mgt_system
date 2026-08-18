@@ -96,6 +96,7 @@ model User {
   role         String // SUPER_ADMIN, SCHOOL_ADMIN, HEAD_TEACHER, CLASS_TEACHER, SUBJECT_TEACHER
   phone        String?
   passportPhoto String?
+  signature    String?
   dateOfBirth  String?
   status       String   @default("ACTIVE") // ACTIVE, INACTIVE
   isActive     Boolean  @default(true)

@@ -22,6 +22,9 @@ interface StudentReport {
     armName: string;
   };
   classTeacherName?: string;
+  classTeacherSignature?: string | null;
+  principalName?: string;
+  principalSignature?: string | null;
   subjects: Array<{
     subjectId: string;
     subjectName: string;

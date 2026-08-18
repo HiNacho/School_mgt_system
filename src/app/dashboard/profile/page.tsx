@@ -17,6 +17,7 @@ export default function UserProfilePage() {
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [passportPhoto, setPassportPhoto] = useState<string | null>(null);
+  const [signature, setSignature] = useState<string | null>(null);
   const [dateOfBirth, setDateOfBirth] = useState('');
   
   // Password change states
@@ -47,6 +48,7 @@ export default function UserProfilePage() {
         setEmail(sessionObj.user.email || '');
         setPhone(sessionObj.user.phone || '');
         setPassportPhoto(sessionObj.user.passportPhoto || null);
+        setSignature(sessionObj.user.signature || null);
         setDateOfBirth(sessionObj.user.dateOfBirth || '');
       } catch (e) {
         setErrorMsg('Failed to parse user session parameters.');
@@ -75,6 +77,25 @@ export default function UserProfilePage() {
     reader.readAsDataURL(file);
   };
 
+  const handleSignatureUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 2 * 1024 * 1024) {
+      setErrorMsg('Signature image must be under 2MB.');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setSignature(reader.result as string);
+    };
+    reader.onerror = () => {
+      setErrorMsg('Failed to read signature image.');
+    };
+    reader.readAsDataURL(file);
+  };
+
   // Submit profile edits
   const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -99,6 +120,7 @@ export default function UserProfilePage() {
           email,
           phone,
           passportPhoto,
+          signature,
           dateOfBirth
         })
       });
@@ -106,7 +128,7 @@ export default function UserProfilePage() {
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || 'Failed to update profile coordinates.');
 
-      setSuccessMsg('Your profile has been successfully updated! Session settings synchronized.');
+      setSuccessMsg('Your profile has been successfully updated! Digital signature and settings synchronized.');
       
       // Update local storage session so navbar headers adapt reactively
       const updatedUser = {
@@ -116,6 +138,7 @@ export default function UserProfilePage() {
         email,
         phone,
         passportPhoto,
+        signature,
         dateOfBirth
       };
       
@@ -324,6 +347,39 @@ export default function UserProfilePage() {
                 </div>
               </div>
             )}
+
+            {/* Digital Signature Upload Box */}
+            <div className="w-full border-t border-slate-100 pt-4 space-y-2">
+              <span className="block text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
+                Official Digital Signature
+              </span>
+              <div className="relative border-2 border-dashed border-slate-200 hover:border-slate-300 rounded-xl p-3 bg-slate-50 flex flex-col items-center justify-center text-center transition-colors">
+                {signature ? (
+                  <div className="space-y-1 flex flex-col items-center">
+                    <img src={signature} alt="Digital Signature" className="max-h-14 max-w-full object-contain bg-white p-1 rounded border border-slate-200" />
+                    <span className="text-[9px] text-emerald-600 font-bold flex items-center gap-1">
+                      <CheckCircle className="w-3 h-3" /> Signature Saved
+                    </span>
+                  </div>
+                ) : (
+                  <div className="py-2 text-slate-400 space-y-1">
+                    <ClipboardCheck className="w-5 h-5 mx-auto text-slate-300" />
+                    <span className="text-[10px] font-bold block text-slate-500">No Signature Uploaded</span>
+                    <span className="text-[8.5px] block text-slate-400 leading-tight">Uploaded signature automatically stamps report cards</span>
+                  </div>
+                )}
+
+                <label className="mt-2 text-[9.5px] font-extrabold px-3 py-1 bg-slate-900 text-white rounded-lg cursor-pointer hover:bg-slate-800 transition-colors">
+                  {signature ? 'Replace Signature Image' : 'Upload Signature Image'}
+                  <input 
+                    type="file" 
+                    accept="image/*" 
+                    onChange={handleSignatureUpload} 
+                    className="hidden" 
+                  />
+                </label>
+              </div>
+            </div>
           </div>
         </div>
 

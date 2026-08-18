@@ -124,7 +124,8 @@ export async function GET(req: NextRequest) {
             classTeacher: {
               select: {
                 firstName: true,
-                lastName: true
+                lastName: true,
+                signature: true
               }
             }
           }
@@ -135,6 +136,21 @@ export async function GET(req: NextRequest) {
     if (students.length === 0) {
       return NextResponse.json({ error: 'No active student files found for this query' }, { status: 404 });
     }
+
+    // Fetch Principal / Headteacher or Admin user for signature
+    const principalUser = await prisma.user.findFirst({
+      where: {
+        schoolId,
+        role: { in: ['SCHOOL_ADMIN', 'HEAD_TEACHER', 'SUPER_ADMIN'] },
+        isActive: true,
+      },
+      select: {
+        firstName: true,
+        lastName: true,
+        title: true,
+        signature: true,
+      }
+    });
 
     // 4. Fetch Subjects
     const subjects = await prisma.subject.findMany({
@@ -226,6 +242,11 @@ export async function GET(req: NextRequest) {
         classTeacherName: dbStud?.arm?.classTeacher 
           ? `${dbStud.arm.classTeacher.firstName} ${dbStud.arm.classTeacher.lastName}`
           : 'Class Teacher',
+        classTeacherSignature: dbStud?.arm?.classTeacher?.signature || null,
+        principalName: principalUser 
+          ? `${principalUser.title ? principalUser.title + ' ' : ''}${principalUser.firstName} ${principalUser.lastName}`.trim()
+          : 'Dr. A. B. Olumide',
+        principalSignature: principalUser?.signature || null,
         subjects: report.subjects.map(s => ({
           ...s,
           rankFormatted: getOrdinalSuffix(s.subjectRank),

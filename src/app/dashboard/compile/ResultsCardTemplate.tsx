@@ -19,6 +19,9 @@ export interface StudentReport {
     dateOfAdmission?: string;
   };
   classTeacherName?: string;
+  classTeacherSignature?: string | null;
+  principalName?: string;
+  principalSignature?: string | null;
   subjects: Array<{
     subjectId: string;
     subjectName: string;
@@ -336,45 +339,66 @@ export default function ResultsCardTemplate({ report, compiledSchool, compiledTe
           {/* ================= 4. FOOTER SECTION: REMARKS & SIGNATURES ================= */}
           <div className="grid grid-cols-12 gap-2 items-center border-t-[2px] border-slate-900 pt-2 relative z-10">
             
-            {/* Left: Class Teacher Remarks */}
-            <div className="col-span-5 border-[2px] border-slate-900 rounded p-1.5 text-[10px] bg-slate-50/50">
-              <span className="block text-[8.5px] font-black uppercase text-slate-700 tracking-wider mb-0.5">
-                CLASS TEACHER'S REMARKS
-              </span>
-              <p className="font-serif italic text-slate-800 text-[10px] leading-tight min-h-[32px]">
-                "{report.comments?.teacher || 'A bright and hardworking student. Shows great interest in studies and activities. Keep up the excellent work!'}"
-              </p>
-              <div className="text-[7.5px] text-slate-400 font-mono font-bold mt-0.5">
-                DATE: {new Date().toLocaleDateString()}
+            {/* Left: Class Teacher & Principal Remarks */}
+            <div className="col-span-6 grid grid-cols-2 gap-1.5 font-sans">
+              
+              {/* Class Teacher Remarks */}
+              <div className="border-[1.5px] border-slate-900 rounded p-1 text-[9.5px] bg-white/70">
+                <span className="block text-[8px] font-black uppercase text-slate-700 tracking-wider mb-0.5 border-b border-slate-300 pb-0.5">
+                  TEACHER'S REMARKS
+                </span>
+                <p className="font-serif italic text-slate-900 text-[9.5px] leading-tight min-h-[28px]">
+                  "{report.comments?.teacher || 'No comments recorded.'}"
+                </p>
               </div>
+
+              {/* Principal Remarks */}
+              <div className="border-[1.5px] border-slate-900 rounded p-1 text-[9.5px] bg-white/70">
+                <span className="block text-[8px] font-black uppercase text-slate-700 tracking-wider mb-0.5 border-b border-slate-300 pb-0.5">
+                  PRINCIPAL'S REMARKS
+                </span>
+                <p className="font-serif italic text-slate-900 text-[9.5px] leading-tight min-h-[28px]">
+                  "{report.comments?.headTeacher || 'Satisfactory progress.'}"
+                </p>
+              </div>
+
             </div>
 
             {/* Center: Wreath Emblem Badge */}
-            <div className="col-span-3 flex justify-center items-center">
-              <div className="relative w-16 h-16 flex flex-col items-center justify-center text-center">
-                <div className="w-14 h-14 rounded-full border-2 border-amber-600 border-dashed bg-amber-50 text-amber-900 font-black text-[8px] uppercase tracking-wider flex flex-col items-center justify-center p-0.5 shadow-xs border border-amber-300">
-                  <span className="text-[7px] text-amber-600">★ ★ ★</span>
-                  <span className="leading-none text-amber-950 font-black">WELL</span>
-                  <span className="leading-none text-amber-950 font-black">DONE!</span>
+            <div className="col-span-2 flex justify-center items-center">
+              <div className="relative w-14 h-14 flex flex-col items-center justify-center text-center">
+                <div className="w-12 h-12 rounded-full border-2 border-amber-600 border-dashed bg-amber-50/90 text-amber-900 font-black text-[7.5px] uppercase tracking-wider flex flex-col items-center justify-center p-0.5 shadow-xs border border-amber-300">
+                  <span className="text-[6.5px] text-amber-600">★ ★ ★</span>
+                  <span className="leading-none text-amber-950 font-black text-[7px]">WELL</span>
+                  <span className="leading-none text-amber-950 font-black text-[7px]">DONE!</span>
                 </div>
               </div>
             </div>
 
             {/* Right: Dual Signatures */}
             <div className="col-span-4 grid grid-cols-2 gap-1 text-center text-[9.5px] font-bold">
-              <div className="space-y-0.5">
-                <div className="h-6 flex items-end justify-center font-serif text-[10px] text-indigo-900 italic font-black">
-                  {report.classTeacherName || 'Bijaya'}
+              <div className="space-y-0.5 flex flex-col justify-end">
+                <div className="h-7 flex items-end justify-center font-serif text-[10px] text-indigo-900 italic font-black">
+                  {report.classTeacherSignature ? (
+                    <img src={report.classTeacherSignature} alt="Teacher Signature" className="max-h-7 max-w-full object-contain" />
+                  ) : (
+                    <span>{report.classTeacherName || 'Class Teacher'}</span>
+                  )}
                 </div>
-                <div className="border-t-[2px] border-slate-900 pt-0.5 text-slate-800 uppercase tracking-wider text-[8px] font-black">
+                <div className="border-t-[1.5px] border-slate-900 pt-0.5 text-slate-800 uppercase tracking-wider text-[7.5px] font-black">
                   CLASS TEACHER
                 </div>
               </div>
-              <div className="space-y-0.5">
-                <div className="h-6 flex items-end justify-center font-serif text-[10px] text-indigo-900 italic font-black">
-                  Dr. A. B. Olumide
+
+              <div className="space-y-0.5 flex flex-col justify-end">
+                <div className="h-7 flex items-end justify-center font-serif text-[10px] text-indigo-900 italic font-black">
+                  {report.principalSignature ? (
+                    <img src={report.principalSignature} alt="Principal Signature" className="max-h-7 max-w-full object-contain" />
+                  ) : (
+                    <span>{report.principalName || 'Dr. A. B. Olumide'}</span>
+                  )}
                 </div>
-                <div className="border-t-[2px] border-slate-900 pt-0.5 text-slate-800 uppercase tracking-wider text-[8px] font-black">
+                <div className="border-t-[1.5px] border-slate-900 pt-0.5 text-slate-800 uppercase tracking-wider text-[7.5px] font-black">
                   PRINCIPAL
                 </div>
               </div>
