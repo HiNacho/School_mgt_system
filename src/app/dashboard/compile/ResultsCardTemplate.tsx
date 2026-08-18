@@ -92,10 +92,28 @@ export default function ResultsCardTemplate({ report, compiledSchool, compiledTe
   return (
     <div className="report-card-container w-full bg-white border-[3px] border-amber-600/90 p-1.5 sm:p-3 text-slate-900 font-sans shadow-lg relative my-auto box-border" style={{ pageBreakAfter: 'always', breakAfter: 'page' }}>
       {/* Double Border Frame */}
-      <div className="border-[2px] border-slate-900 p-2 sm:p-4 relative flex flex-col justify-between h-full bg-white box-border">
+      <div className="border-[2px] border-slate-900 p-2 sm:p-4 relative flex flex-col justify-between h-full bg-white box-border overflow-hidden">
         
+        {/* ================= BACKGROUND WATERMARK ================= */}
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-0 select-none overflow-hidden p-6">
+          {compiledSchool?.logo ? (
+            <img 
+              src={compiledSchool.logo} 
+              alt="" 
+              className="w-80 h-80 sm:w-[400px] sm:h-[400px] object-contain opacity-[0.06] grayscale scale-110" 
+            />
+          ) : (
+            <div className="w-80 h-80 sm:w-[380px] sm:h-[380px] rounded-full border-[10px] border-slate-400/20 flex flex-col items-center justify-center text-slate-400/20 opacity-[0.07]">
+              <span className="text-8xl">🎓</span>
+              <span className="text-xl font-black uppercase tracking-widest mt-2">
+                {compiledSchool?.name ? compiledSchool.name.slice(0, 16) : 'ACADEMIC REPORT'}
+              </span>
+            </div>
+          )}
+        </div>
+
         {/* ================= 1. HEADER SECTION ================= */}
-        <div className="space-y-2">
+        <div className="space-y-2 relative z-10">
           <div className="flex items-center justify-between gap-2 border-b-[2px] border-slate-900 pb-2">
             
             {/* Top Left: School Crest/Logo */}
@@ -147,7 +165,7 @@ export default function ResultsCardTemplate({ report, compiledSchool, compiledTe
           </div>
 
           {/* ================= 2. STUDENT DETAILS & GRADE SCALE GRID ================= */}
-          <div className="grid grid-cols-12 gap-2 border-[2px] border-slate-900 p-2 rounded bg-white text-[10px] leading-snug">
+          <div className="grid grid-cols-12 gap-2 border-[2px] border-slate-900 p-2 rounded bg-white/90 text-[10px] leading-snug relative z-10">
             
             {/* Student Passport Photo */}
             <div className="col-span-3 flex items-center justify-center">
@@ -242,7 +260,7 @@ export default function ResultsCardTemplate({ report, compiledSchool, compiledTe
           </div>
 
           {/* ================= 3. ACADEMIC PERFORMANCE TABLE & RESULT SUMMARY ================= */}
-          <div className="grid grid-cols-12 gap-2 items-start">
+          <div className="grid grid-cols-12 gap-2 items-start relative z-10">
             
             {/* Subject Marks Table */}
             <div className="col-span-8 border-[2px] border-slate-900 rounded overflow-hidden">
