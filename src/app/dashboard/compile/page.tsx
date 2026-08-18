@@ -99,6 +99,106 @@ export default function ReportCardCompilerPage() {
       }
     }
   }, []);
+
+  // Edit Remarks Modal states
+  const [editingReport, setEditingReport] = useState<StudentReport | null>(null);
+  const [editTeacherComment, setEditTeacherComment] = useState('');
+  const [editHeadTeacherComment, setEditHeadTeacherComment] = useState('');
+  const [savingEdit, setSavingEdit] = useState(false);
+
+  const handleSaveEditedReport = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingReport) return;
+
+    setSavingEdit(true);
+    setErrorMsg('');
+    setSuccessMsg('');
+
+    try {
+      const res = await fetch('/api/comments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          schoolId: compiledSchool?.id || session?.school?.id,
+          termId: selectedTerm,
+          classId: selectedClass,
+          armId: selectedArm,
+          comments: [{
+            studentId: editingReport.student.id,
+            teacherComment: editTeacherComment,
+            headTeacherComment: editHeadTeacherComment,
+          }]
+        })
+      });
+
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || 'Failed to save remarks.');
+
+      setReports(prev => prev.map(r => {
+        if (r.student.id === editingReport.student.id) {
+          return {
+            ...r,
+            comments: {
+              ...r.comments,
+              teacher: editTeacherComment,
+              headTeacher: editHeadTeacherComment,
+            }
+          };
+        }
+        return r;
+      }));
+
+      if (previewReport && previewReport.student.id === editingReport.student.id) {
+        setPreviewReport({
+          ...previewReport,
+          comments: {
+            ...previewReport.comments,
+            teacher: editTeacherComment,
+            headTeacher: editHeadTeacherComment,
+          }
+        });
+      }
+
+      setSuccessMsg(`Remarks for ${editingReport.student.firstName} ${editingReport.student.lastName} successfully updated!`);
+      setEditingReport(null);
+    } catch (err: any) {
+      setErrorMsg(err.message || 'Error saving remarks.');
+    } finally {
+      setSavingEdit(false);
+    }
+  };
+
+  const handleAutoGenerateAiComment = () => {
+    if (!editingReport) return;
+    const avg = editingReport.summary?.averageScore || 0;
+    let autoComment = '';
+    if (avg >= 85) {
+      autoComment = 'An outstanding academic performance! Demonstrates exceptional brilliance, dedication, and exemplary conduct across all subjects.';
+    } else if (avg >= 75) {
+      autoComment = 'A very strong academic result! Shows commendable effort, focus, and good understanding of concepts. Keep up the high standard.';
+    } else if (avg >= 60) {
+      autoComment = 'A good performance overall. Displays active participation and steady progress. Encouraged to aim higher next term.';
+    } else if (avg >= 50) {
+      autoComment = 'A fair academic result. Capable of better output with more consistent revision and dedication to class activities.';
+    } else {
+      autoComment = 'Needs significant improvement and focused academic guidance. Urged to seek extra help and devote more time to studies.';
+    }
+    setEditTeacherComment(autoComment);
+  };
+
+  const handleAutoGenerateHeadTeacherComment = () => {
+    if (!editingReport) return;
+    const avg = editingReport.summary?.averageScore || 0;
+    let autoComment = '';
+    if (avg >= 80) {
+      autoComment = 'Excellent work! Approved for promotion with high honors.';
+    } else if (avg >= 60) {
+      autoComment = 'Satisfactory progress. Approved and recommended for continued growth.';
+    } else {
+      autoComment = 'Strive for greater academic discipline in the coming term.';
+    }
+    setEditHeadTeacherComment(autoComment);
+  };
   
   // Status feedback
   const [successMsg, setSuccessMsg] = useState('');
@@ -1387,6 +1487,18 @@ export default function ReportCardCompilerPage() {
                         <td className="p-4 flex items-center justify-center gap-2">
                           <button
                             type="button"
+                            onClick={() => {
+                              setEditingReport(row);
+                              setEditTeacherComment(row.comments?.teacher || '');
+                              setEditHeadTeacherComment(row.comments?.headTeacher || '');
+                            }}
+                            className="px-2.5 py-1.5 rounded-xl bg-indigo-50/80 hover:bg-indigo-100 border border-indigo-200 text-indigo-700 transition-colors text-[10px] font-bold flex items-center gap-1 shadow-2xs"
+                            title="Edit Teacher & Principal remarks for this student report card"
+                          >
+                            <Edit3 className="w-3.5 h-3.5 text-indigo-600" /> Edit Report
+                          </button>
+                          <button
+                            type="button"
                             onClick={() => setPreviewReport(row)}
                             className="px-2.5 py-1.5 rounded-xl bg-white hover:bg-slate-50 border border-slate-200 text-slate-600 hover:text-slate-800 transition-colors text-[10px] font-bold flex items-center gap-1 shadow-sm"
                           >
@@ -1665,6 +1777,19 @@ export default function ReportCardCompilerPage() {
               <div className="flex items-center gap-2">
                 <button
                   type="button"
+                  onClick={() => {
+                    setEditingReport(previewReport);
+                    setEditTeacherComment(previewReport.comments?.teacher || '');
+                    setEditHeadTeacherComment(previewReport.comments?.headTeacher || '');
+                  }}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 text-indigo-700 text-xs font-bold transition-all"
+                  title="Edit Teacher & Principal remarks for this report card"
+                >
+                  <Edit3 className="w-3.5 h-3.5 text-indigo-600" /> Edit Report
+                </button>
+
+                <button
+                  type="button"
                   onClick={() => handlePrintSingle(previewReport.student.id)}
                   className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all ${themeBgAccent}`}
                 >
@@ -1747,6 +1872,109 @@ export default function ReportCardCompilerPage() {
                 Send Feedback & Return
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* 4.8. EDIT REPORT REMARKS & COMMENTS MODAL (no-print) */}
+      {editingReport && (
+        <div className="no-print fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white border border-slate-200 rounded-3xl w-full max-w-xl overflow-hidden flex flex-col shadow-2xl animate-in zoom-in-95 duration-150">
+            
+            {/* Modal Header */}
+            <div className="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-xl bg-indigo-50 text-indigo-600 border border-indigo-100">
+                  <Edit3 className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-extrabold text-slate-800 text-sm">
+                    Edit Report Card Remarks
+                  </h3>
+                  <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">
+                    {editingReport.student.lastName}, {editingReport.student.firstName} ({editingReport.student.admissionNumber})
+                  </p>
+                </div>
+              </div>
+              <button 
+                type="button" 
+                onClick={() => setEditingReport(null)} 
+                className="p-1.5 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-400 hover:text-slate-600 border border-slate-200"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Modal Form Content */}
+            <form onSubmit={handleSaveEditedReport} className="p-6 space-y-5">
+              
+              {/* Class Teacher Remarks */}
+              <div className="space-y-1.5">
+                <div className="flex justify-between items-center">
+                  <label className="block text-xs font-black uppercase text-slate-700 tracking-wider">
+                    Class Teacher's Remarks
+                  </label>
+                  <button
+                    type="button"
+                    onClick={handleAutoGenerateAiComment}
+                    className="text-[10px] font-extrabold text-amber-700 bg-amber-50 hover:bg-amber-100 border border-amber-200 px-2 py-0.5 rounded-lg flex items-center gap-1 transition-all"
+                  >
+                    <Sparkles className="w-3 h-3 text-amber-500" />
+                    <span>Auto-Generate Counsel</span>
+                  </button>
+                </div>
+                <textarea
+                  value={editTeacherComment}
+                  onChange={(e) => setEditTeacherComment(e.target.value)}
+                  placeholder="Enter custom teacher counsel, assessment, and encouragement..."
+                  className="w-full h-24 bg-white border border-slate-200 rounded-xl p-3 text-xs font-serif italic text-slate-800 focus:outline-none focus:border-indigo-400 transition-colors resize-none shadow-xs"
+                />
+              </div>
+
+              {/* Principal / Headteacher Remarks */}
+              <div className="space-y-1.5">
+                <div className="flex justify-between items-center">
+                  <label className="block text-xs font-black uppercase text-slate-700 tracking-wider">
+                    Principal's Official Remarks
+                  </label>
+                  <button
+                    type="button"
+                    onClick={handleAutoGenerateHeadTeacherComment}
+                    className="text-[10px] font-extrabold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 px-2 py-0.5 rounded-lg flex items-center gap-1 transition-all"
+                  >
+                    <Sparkles className="w-3 h-3 text-indigo-500" />
+                    <span>Auto-Generate Remark</span>
+                  </button>
+                </div>
+                <textarea
+                  value={editHeadTeacherComment}
+                  onChange={(e) => setEditHeadTeacherComment(e.target.value)}
+                  placeholder="Enter official principal evaluation or decision..."
+                  className="w-full h-20 bg-white border border-slate-200 rounded-xl p-3 text-xs font-serif italic text-slate-800 focus:outline-none focus:border-indigo-400 transition-colors resize-none shadow-xs"
+                />
+              </div>
+
+              {/* Actions Footer */}
+              <div className="pt-3 border-t border-slate-100 flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setEditingReport(null)}
+                  className="px-4 py-2.5 rounded-xl text-xs font-bold text-slate-500 bg-white hover:bg-slate-50 border border-slate-200 transition-all"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={savingEdit}
+                  className={`flex items-center gap-1.5 px-5 py-2.5 rounded-xl text-xs font-bold text-white transition-all shadow-sm ${themeBgAccent}`}
+                >
+                  {savingEdit ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                  Save & Update Report
+                </button>
+              </div>
+
+            </form>
+
           </div>
         </div>
       )}
