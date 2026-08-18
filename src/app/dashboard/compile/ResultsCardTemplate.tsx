@@ -95,18 +95,18 @@ export default function ResultsCardTemplate({ report, compiledSchool, compiledTe
       <div className="border-[2px] border-slate-900 p-2 sm:p-4 relative flex flex-col justify-between h-full bg-white box-border overflow-hidden">
         
         {/* ================= BACKGROUND WATERMARK ================= */}
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-0 select-none overflow-hidden p-6">
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-0 select-none overflow-hidden p-4">
           {compiledSchool?.logo ? (
             <img 
               src={compiledSchool.logo} 
               alt="" 
-              className="w-80 h-80 sm:w-[400px] sm:h-[400px] object-contain opacity-[0.06] grayscale scale-110" 
+              className="w-[320px] h-[320px] sm:w-[420px] sm:h-[420px] object-contain opacity-[0.14] scale-125 select-none" 
             />
           ) : (
-            <div className="w-80 h-80 sm:w-[380px] sm:h-[380px] rounded-full border-[10px] border-slate-400/20 flex flex-col items-center justify-center text-slate-400/20 opacity-[0.07]">
+            <div className="w-80 h-80 sm:w-[400px] sm:h-[400px] rounded-full border-[10px] border-slate-400/30 flex flex-col items-center justify-center text-slate-400/30 opacity-[0.12]">
               <span className="text-8xl">🎓</span>
-              <span className="text-xl font-black uppercase tracking-widest mt-2">
-                {compiledSchool?.name ? compiledSchool.name.slice(0, 16) : 'ACADEMIC REPORT'}
+              <span className="text-xl font-black uppercase tracking-widest mt-2 text-slate-500">
+                {compiledSchool?.name ? compiledSchool.name.slice(0, 20) : 'ACADEMIC REPORT'}
               </span>
             </div>
           )}
@@ -165,7 +165,7 @@ export default function ResultsCardTemplate({ report, compiledSchool, compiledTe
           </div>
 
           {/* ================= 2. STUDENT DETAILS & GRADE SCALE GRID ================= */}
-          <div className="grid grid-cols-12 gap-2 border-[2px] border-slate-900 p-2 rounded bg-white/90 text-[10px] leading-snug relative z-10">
+          <div className="grid grid-cols-12 gap-2 border-[2px] border-slate-900 p-2 rounded bg-white/60 text-[10px] leading-snug relative z-10 backdrop-blur-[1px]">
             
             {/* Student Passport Photo */}
             <div className="col-span-3 flex items-center justify-center">
@@ -277,7 +277,7 @@ export default function ResultsCardTemplate({ report, compiledSchool, compiledTe
                 </thead>
                 <tbody className="divide-y divide-slate-300 font-bold text-slate-800 text-[10px]">
                   {report.subjects.map((sub, idx) => (
-                    <tr key={sub.subjectId || idx} className={idx % 2 === 0 ? 'bg-white' : 'bg-slate-50/60'}>
+                    <tr key={sub.subjectId || idx} className={idx % 2 === 0 ? 'bg-white/70' : 'bg-slate-50/40'}>
                       <td className="p-1.5 border-r border-slate-300 uppercase font-black">{sub.subjectName}</td>
                       <td className="p-1.5 border-r border-slate-300 text-center font-mono font-bold">100</td>
                       <td className="p-1.5 border-r border-slate-300 text-center font-mono font-bold">{sub.total}</td>
@@ -301,7 +301,7 @@ export default function ResultsCardTemplate({ report, compiledSchool, compiledTe
             </div>
 
             {/* Result Summary Card */}
-            <div className="col-span-4 border-[2px] border-slate-900 rounded overflow-hidden bg-white">
+            <div className="col-span-4 border-[2px] border-slate-900 rounded overflow-hidden bg-white/70 backdrop-blur-[1px]">
               <div className="bg-slate-900 text-white font-black text-[9.5px] uppercase tracking-wider text-center py-1.5">
                 RESULT SUMMARY
               </div>
@@ -334,7 +334,7 @@ export default function ResultsCardTemplate({ report, compiledSchool, compiledTe
           </div>
 
           {/* ================= 4. FOOTER SECTION: REMARKS & SIGNATURES ================= */}
-          <div className="grid grid-cols-12 gap-2 items-center border-t-[2px] border-slate-900 pt-2">
+          <div className="grid grid-cols-12 gap-2 items-center border-t-[2px] border-slate-900 pt-2 relative z-10">
             
             {/* Left: Class Teacher Remarks */}
             <div className="col-span-5 border-[2px] border-slate-900 rounded p-1.5 text-[10px] bg-slate-50/50">
