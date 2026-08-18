@@ -5,8 +5,9 @@ import {
   Users, Search, Filter, FileText, CheckSquare, 
   Plus, AlertCircle, CheckCircle2, User, CreditCard, 
   Download, Printer, Bell, FileWarning, Award, Percent,
-  Activity, X, DollarSign, Camera, Clock
+  Activity, X, DollarSign, Camera, Clock, ShieldCheck, ExternalLink, Settings
 } from 'lucide-react';
+import SchoolFeeReceiptModal from './SchoolFeeReceiptModal';
 
 interface Student {
   id: string;
@@ -103,6 +104,17 @@ export default function StudentFeesPage() {
 
   const [actionLoading, setActionLoading] = useState(false);
 
+  // Online Payment Setup & Receipt states
+  const [showSetupModal, setShowSetupModal] = useState(false);
+  const [paymentSetup, setPaymentSetup] = useState<any>(null);
+  const [flwSubaccountId, setFlwSubaccountId] = useState('');
+  const [flwMerchantId, setFlwMerchantId] = useState('');
+  const [onlineEnabled, setOnlineEnabled] = useState(false);
+  const [allowPartial, setAllowPartial] = useState(true);
+  const [minPartialAmt, setMinPartialAmt] = useState('1000');
+  const [savingPaymentSetup, setSavingPaymentSetup] = useState(false);
+  const [viewingReceiptPayment, setViewingReceiptPayment] = useState<any>(null);
+
   // 1. Initial Data Fetch
   useEffect(() => {
     const sessionStr = localStorage.getItem('report_user_session');
@@ -112,11 +124,63 @@ export default function StudentFeesPage() {
         setSchool(sessionObj.school);
         fetchStudentsList(sessionObj.school.id);
         fetchSchoolMetadata(sessionObj.school.id);
+        fetchPaymentSetup(sessionObj.school.id);
       } catch (e) {
         setErrorMsg('Failed to parse active user session.');
       }
     }
   }, []);
+
+  const fetchPaymentSetup = async (schoolId: string) => {
+    try {
+      const res = await fetch(`/api/bursar/payment-setup?schoolId=${schoolId}`);
+      const json = await res.json();
+      if (res.ok && json.success) {
+        setPaymentSetup(json.data);
+        setFlwSubaccountId(json.data.flutterwaveSubaccountId || '');
+        setFlwMerchantId(json.data.flutterwaveMerchantId || '');
+        setOnlineEnabled(json.data.onlinePaymentsEnabled || false);
+        setAllowPartial(json.data.allowPartialPayments ?? true);
+        setMinPartialAmt(String(json.data.minPartialPaymentAmount || 1000));
+      }
+    } catch (e) {
+      console.error('Error fetching payment setup:', e);
+    }
+  };
+
+  const handleSavePaymentSetup = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSavingPaymentSetup(true);
+    setErrorMsg('');
+    setSuccessMsg('');
+
+    try {
+      const res = await fetch('/api/bursar/payment-setup', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          schoolId: school?.id,
+          flutterwaveSubaccountId: flwSubaccountId,
+          flutterwaveMerchantId: flwMerchantId,
+          onlinePaymentsEnabled: onlineEnabled,
+          allowPartialPayments: allowPartial,
+          minPartialPaymentAmount: Number(minPartialAmt),
+          flutterwaveStatus: flwSubaccountId.trim() ? 'ACTIVE' : 'NOT_CONNECTED',
+        }),
+      });
+
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || 'Failed to update payment setup settings.');
+
+      setSuccessMsg('Flutterwave Payment Setup successfully updated!');
+      setPaymentSetup(json.data);
+      setShowSetupModal(false);
+    } catch (err: any) {
+      setErrorMsg(err.message || 'Error updating payment setup settings.');
+    } finally {
+      setSavingPaymentSetup(false);
+    }
+  };
 
   const fetchStudentsList = async (schoolId: string) => {
     setLoading(true);
@@ -382,8 +446,24 @@ export default function StudentFeesPage() {
             Student <span className="text-emerald-500 serif-italic font-normal">Fees & Profiles</span>
           </h1>
           <p className="text-xs text-[#64748b] font-semibold mt-0.5">
-            Query student profiles, check parent contact details, review term invoice schedules, adjust discounts, and verify manual collections.
+            Query student profiles, check parent contact details, review term invoice schedules, adjust discounts, and verify collections.
           </p>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-3">
+          <button
+            type="button"
+            onClick={() => setShowSetupModal(true)}
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl border text-xs font-bold transition-all shadow-sm ${
+              paymentSetup?.onlinePaymentsEnabled && paymentSetup?.flutterwaveSubaccountId
+                ? 'bg-emerald-50 border-emerald-200 text-emerald-800 hover:bg-emerald-100'
+                : 'bg-amber-50 border-amber-200 text-amber-900 hover:bg-amber-100'
+            }`}
+          >
+            <CreditCard className="w-4 h-4 text-emerald-600" />
+            <span>Online Payments: <strong>{paymentSetup?.onlinePaymentsEnabled && paymentSetup?.flutterwaveSubaccountId ? '● ACTIVE' : '⚠ SETUP REQUIRED'}</strong></span>
+            <Settings className="w-3.5 h-3.5 text-slate-400" />
+          </button>
         </div>
       </div>
 
@@ -1098,6 +1178,152 @@ export default function StudentFeesPage() {
 
           </div>
         </div>
+      )}
+
+      {/* FLUTTERWAVE ONLINE PAYMENT SETUP MODAL */}
+      {showSetupModal && (
+        <div className="no-print fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white border border-slate-200 rounded-3xl w-full max-w-lg overflow-hidden flex flex-col shadow-2xl animate-in zoom-in-95 duration-150">
+            <div className="p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/60">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 rounded-xl bg-emerald-50 text-emerald-600 border border-emerald-100">
+                  <CreditCard className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-extrabold text-slate-800 text-sm">Online School Fee Payments</h3>
+                  <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Flutterwave Subaccount Settlement</p>
+                </div>
+              </div>
+              <button 
+                type="button" 
+                onClick={() => setShowSetupModal(false)}
+                className="p-1.5 rounded-xl bg-white hover:bg-slate-100 text-slate-400 hover:text-slate-600 border border-slate-200"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSavePaymentSetup} className="p-6 space-y-5">
+              
+              {/* Status Banner */}
+              <div className={`p-4 rounded-2xl border text-xs flex items-start gap-3 ${
+                onlineEnabled && flwSubaccountId.trim()
+                  ? 'bg-emerald-50 border-emerald-200 text-emerald-900'
+                  : 'bg-amber-50 border-amber-200 text-amber-900'
+              }`}>
+                <ShieldCheck className={`w-5 h-5 flex-shrink-0 mt-0.5 ${onlineEnabled && flwSubaccountId.trim() ? 'text-emerald-600' : 'text-amber-600'}`} />
+                <div>
+                  <span className="font-black block uppercase tracking-wider text-[10px]">
+                    Status: {onlineEnabled && flwSubaccountId.trim() ? '● ACTIVE (Parents can pay online)' : '⚠ SETUP REQUIRED'}
+                  </span>
+                  <p className="text-[11px] font-medium leading-relaxed mt-0.5">
+                    {onlineEnabled && flwSubaccountId.trim()
+                      ? 'Parent payments automatically flow to your school Flutterwave subaccount.'
+                      : 'Provide your school Flutterwave Subaccount ID below to enable online fee collections.'
+                    }
+                  </p>
+                </div>
+              </div>
+
+              {/* Subaccount Form Fields */}
+              <div className="space-y-4 text-xs font-semibold text-slate-700">
+                <div>
+                  <label className="block text-[10px] font-extrabold uppercase tracking-wider text-slate-500 mb-1">
+                    Flutterwave Subaccount ID (Required)
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. RS_1234567890ABCDEF"
+                    value={flwSubaccountId}
+                    onChange={(e) => setFlwSubaccountId(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 font-mono text-xs text-slate-800 focus:outline-none focus:border-emerald-500"
+                  />
+                  <span className="text-[9.5px] text-slate-400 font-medium block mt-1">
+                    Obtained from your school's Flutterwave Dashboard under Settings → Subaccounts.
+                  </span>
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-extrabold uppercase tracking-wider text-slate-500 mb-1">
+                    Flutterwave Merchant ID (Optional)
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. 123456"
+                    value={flwMerchantId}
+                    onChange={(e) => setFlwMerchantId(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 font-mono text-xs text-slate-800 focus:outline-none focus:border-emerald-500"
+                  />
+                </div>
+
+                {/* Toggles */}
+                <div className="pt-2 border-t border-slate-100 space-y-3">
+                  <label className="flex items-center justify-between cursor-pointer p-2.5 bg-slate-50 rounded-xl border border-slate-200/80">
+                    <span className="text-xs font-bold text-slate-800">Enable Online Fee Payments</span>
+                    <input
+                      type="checkbox"
+                      checked={onlineEnabled}
+                      onChange={(e) => setOnlineEnabled(e.target.checked)}
+                      className="w-4 h-4 rounded text-emerald-600 focus:ring-0 cursor-pointer"
+                    />
+                  </label>
+
+                  <label className="flex items-center justify-between cursor-pointer p-2.5 bg-slate-50 rounded-xl border border-slate-200/80">
+                    <span className="text-xs font-bold text-slate-800">Allow Partial Fee Payments</span>
+                    <input
+                      type="checkbox"
+                      checked={allowPartial}
+                      onChange={(e) => setAllowPartial(e.target.checked)}
+                      className="w-4 h-4 rounded text-emerald-600 focus:ring-0 cursor-pointer"
+                    />
+                  </label>
+
+                  {allowPartial && (
+                    <div className="pl-2 space-y-1">
+                      <label className="block text-[9.5px] font-extrabold uppercase tracking-wider text-slate-400">
+                        Minimum Partial Payment (₦)
+                      </label>
+                      <input
+                        type="number"
+                        value={minPartialAmt}
+                        onChange={(e) => setMinPartialAmt(e.target.value)}
+                        className="w-full bg-white border border-slate-200 rounded-xl px-3 py-1.5 text-xs font-bold text-slate-800 focus:outline-none focus:border-emerald-500"
+                      />
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Modal Footer */}
+              <div className="pt-3 border-t border-slate-100 flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowSetupModal(false)}
+                  className="px-4 py-2 rounded-xl text-xs font-bold text-slate-500 bg-white hover:bg-slate-50 border border-slate-200 transition-all"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={savingPaymentSetup}
+                  className="flex items-center gap-1.5 px-5 py-2 rounded-xl text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 transition-all shadow-sm"
+                >
+                  {savingPaymentSetup ? <Clock className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
+                  Save Payment Setup
+                </button>
+              </div>
+
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* RECEIPT MODAL */}
+      {viewingReceiptPayment && (
+        <SchoolFeeReceiptModal
+          payment={viewingReceiptPayment}
+          onClose={() => setViewingReceiptPayment(null)}
+        />
       )}
 
     </div>

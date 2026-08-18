@@ -28,6 +28,15 @@ model School {
   gracePeriodEnd      DateTime?
   maxStudents         Int       @default(100)
 
+  // School Fee Online Payment Setup (Flutterwave Subaccount)
+  flutterwaveSubaccountId  String?
+  flutterwaveMerchantId   String?
+  flutterwaveStatus       String    @default("NOT_CONNECTED") // NOT_CONNECTED, PENDING_VERIFICATION, VERIFIED, ACTIVE, SUSPENDED, DISABLED
+  onlinePaymentsEnabled   Boolean   @default(false)
+  allowPartialPayments    Boolean   @default(true)
+  minPartialPaymentAmount Float     @default(1000)
+  operonPlatformFeePercent Float    @default(0)
+
   payments            Payment[]
   usageLogs           UsageLog[]
   feeStructures       FeeStructure[]
@@ -524,6 +533,7 @@ model Parent {
   school   School    @relation(fields: [schoolId], references: [id], onDelete: Cascade)
   students Student[]
   user     User?     @relation("ParentUser")
+  studentPayments StudentPayment[]
 }
 
 
@@ -919,29 +929,51 @@ model Invoice {
 }
 
 model StudentPayment {
-  id             String   @id @default(uuid())
-  schoolId       String
-  studentId      String
-  invoiceId      String?
-  receiptNumber  String
-  amount         Float
-  paymentMethod  String   // FLUTTERWAVE, CASH, POS, BANK_TRANSFER, CHEQUE
-  referenceNumber String?
-  bankName       String?
-  paymentDate    DateTime @default(now())
-  notes          String?
-  tellerImage    String?  // base64 or storage url
-  status         String   @default("VERIFIED") // PENDING, VERIFIED, FAILED
-  recordedById   String?
-  verifiedById   String?
-  deletedAt      DateTime? // soft delete support
-  createdAt      DateTime @default(now())
+  id                      String   @id @default(uuid())
+  schoolId                String
+  studentId               String
+  parentId                String?
+  invoiceId               String?
+  receiptNumber           String
+  amount                  Float
+  currency                String   @default("NGN")
+  paymentMethod           String   // FLUTTERWAVE, CASH, POS, BANK_TRANSFER, CHEQUE
+  paymentType             String   @default("SCHOOL_FEE") // SCHOOL_FEE (distinct from OPERON_SUBSCRIPTION)
+  referenceNumber         String?
+  flutterwaveRef          String?
+  flutterwaveTransactionId String?
+  bankName                String?
+  paymentDate             DateTime @default(now())
+  notes                   String?
+  tellerImage             String?  // base64 or storage url
+  feeBreakdown            Json?    // Category breakdown
+  refundReason            String?
+  status                  String   @default("VERIFIED") // PENDING, VERIFIED, SUCCESSFUL, FAILED, CANCELLED, REFUNDED, UNDER_REVIEW
+  recordedById            String?
+  verifiedById            String?
+  deletedAt               DateTime? // soft delete support
+  createdAt               DateTime @default(now())
 
   school         School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
   student        Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  parent         Parent?  @relation(fields: [parentId], references: [id], onDelete: SetNull)
   invoice        Invoice? @relation(fields: [invoiceId], references: [id], onDelete: SetNull)
   recordedBy     User?    @relation("PaymentRecorder", fields: [recordedById], references: [id])
   verifiedBy     User?    @relation("PaymentVerifier", fields: [verifiedById], references: [id])
+  refunds        SchoolFeeRefund[]
+}
+
+model SchoolFeeRefund {
+  id             String   @id @default(uuid())
+  schoolId       String
+  paymentId      String
+  amount         Float
+  reason         String
+  status         String   @default("COMPLETED") // COMPLETED, PENDING, FAILED
+  initiatedById  String?
+  createdAt      DateTime @default(now())
+
+  payment        StudentPayment @relation(fields: [paymentId], references: [id], onDelete: Cascade)
 }
 
 model InstallmentSchedule {
