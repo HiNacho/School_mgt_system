@@ -86,6 +86,16 @@ export default function ReportCardCompilerPage() {
   
   // Modals & previews
   const [previewReport, setPreviewReport] = useState<StudentReport | null>(null);
+  const [showPosition, setShowPosition] = useState<boolean>(true);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('report_show_position');
+      if (saved !== null) {
+        setShowPosition(saved === 'true');
+      }
+    }
+  }, []);
   
   // Status feedback
   const [successMsg, setSuccessMsg] = useState('');
@@ -991,6 +1001,26 @@ export default function ReportCardCompilerPage() {
 
             <button
               type="button"
+              onClick={() => {
+                const nextVal = !showPosition;
+                setShowPosition(nextVal);
+                if (typeof window !== 'undefined') {
+                  localStorage.setItem('report_show_position', String(nextVal));
+                }
+              }}
+              className={`flex items-center gap-1.5 px-3 py-2.5 rounded-xl border text-xs font-bold transition-all shadow-sm ${
+                showPosition 
+                  ? 'bg-amber-50 border-amber-200 text-amber-900 hover:bg-amber-100' 
+                  : 'bg-slate-100 border-slate-300 text-slate-500 hover:bg-slate-200'
+              }`}
+              title="Click to toggle Position/Ranking display on report cards"
+            >
+              <Award className={`w-4 h-4 ${showPosition ? 'text-amber-600' : 'text-slate-400'}`} />
+              <span>Position: <strong className="uppercase">{showPosition ? 'ON (SHOW)' : 'OFF (HIDE)'}</strong></span>
+            </button>
+
+            <button
+              type="button"
               onClick={handlePrintSelected}
               disabled={selectedStudentIds.size === 0 || reports.length === 0}
               className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all disabled:opacity-50 ${themeBgAccent}`}
@@ -1337,7 +1367,7 @@ export default function ReportCardCompilerPage() {
                           />
                         </td>
                         <td className="p-4 text-center font-bold text-slate-700 font-mono">
-                          {row.summary.classPositionFormatted}
+                          {showPosition ? row.summary.classPositionFormatted : '-'}
                         </td>
                         <td className="p-4 font-mono text-slate-500 font-bold uppercase">{row.student.admissionNumber}</td>
                         <td className="p-4 text-slate-800 font-semibold">{row.student.lastName}, {row.student.firstName} {row.student.middleName}</td>
@@ -1655,6 +1685,7 @@ export default function ReportCardCompilerPage() {
                   report={previewReport}
                   compiledSchool={compiledSchool}
                   compiledTerm={compiledTerm}
+                  showPosition={showPosition}
                 />
               </div>
             </div>
@@ -1725,6 +1756,7 @@ export default function ReportCardCompilerPage() {
             report={report}
             compiledSchool={compiledSchool}
             compiledTerm={compiledTerm}
+            showPosition={showPosition}
           />
         ))}
       </div>

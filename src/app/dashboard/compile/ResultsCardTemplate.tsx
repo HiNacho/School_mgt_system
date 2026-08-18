@@ -58,9 +58,10 @@ interface ResultsCardTemplateProps {
   report: StudentReport;
   compiledSchool: any;
   compiledTerm: any;
+  showPosition?: boolean;
 }
 
-export default function ResultsCardTemplate({ report, compiledSchool, compiledTerm }: ResultsCardTemplateProps) {
+export default function ResultsCardTemplate({ report, compiledSchool, compiledTerm, showPosition = true }: ResultsCardTemplateProps) {
   // Calculations
   const totalMaxMarks = (report.subjects?.length || 0) * 100;
   const totalMarksObtained = report.summary?.aggregateScore || report.subjects?.reduce((sum, s) => sum + (s.total || 0), 0) || 0;
@@ -189,11 +190,13 @@ export default function ResultsCardTemplate({ report, compiledSchool, compiledTe
                 <span className="mr-1">:</span>
                 <span className="font-mono font-bold text-slate-900">{report.student.admissionNumber}</span>
               </div>
-              <div className="flex">
-                <span className="w-28 text-slate-700 font-extrabold uppercase text-[9.5px]">ROLL NO.</span>
-                <span className="mr-1">:</span>
-                <span className="font-mono font-bold text-slate-900">{report.summary.classPositionFormatted}</span>
-              </div>
+              {showPosition && (
+                <div className="flex">
+                  <span className="w-28 text-slate-700 font-extrabold uppercase text-[9.5px]">ROLL NO.</span>
+                  <span className="mr-1">:</span>
+                  <span className="font-mono font-bold text-slate-900">{report.summary.classPositionFormatted}</span>
+                </div>
+              )}
             </div>
 
             {/* Dates & Grade Scale Column */}
