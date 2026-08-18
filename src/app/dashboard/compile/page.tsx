@@ -5,7 +5,7 @@ import * as XLSX from 'xlsx';
 import { 
   FileBarChart, CheckSquare, Sparkles, Printer, RefreshCw, 
   AlertCircle, CheckCircle, Award, Percent, Users, TrendingUp,
-  Search, Eye, HelpCircle, X, Check, XCircle, FileSpreadsheet, Edit3, Save
+  Search, Eye, HelpCircle, X, Check, XCircle, FileSpreadsheet, Edit3, Save, Download, Upload
 } from 'lucide-react';
 import ResultsCardTemplate from './ResultsCardTemplate';
 
@@ -1059,7 +1059,7 @@ export default function ReportCardCompilerPage() {
             </p>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2.5">
             {/* Hidden file input for Broadsheet import */}
             <input
               type="file"
@@ -1069,68 +1069,74 @@ export default function ReportCardCompilerPage() {
               className="hidden"
             />
 
-            <button
-              type="button"
-              onClick={() => setShowBroadsheetModal(true)}
-              disabled={reports.length === 0}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-900 text-white hover:bg-slate-800 text-xs font-bold transition-all shadow-md disabled:opacity-50"
-              title="Open full interactive broadsheet matrix table"
-            >
-              <Eye className="w-4 h-4 text-emerald-400" />
-              📊 View Full Broadsheet Matrix
-            </button>
+            {/* Group 1: Broadsheet Operations */}
+            <div className="inline-flex items-center p-1 bg-slate-100 border border-slate-200/80 rounded-2xl gap-1 shadow-2xs flex-wrap">
+              <button
+                type="button"
+                onClick={() => setShowBroadsheetModal(true)}
+                disabled={reports.length === 0}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-900 text-white hover:bg-slate-800 text-xs font-bold transition-all disabled:opacity-40 shadow-2xs"
+                title="Open full interactive broadsheet matrix table"
+              >
+                <Eye className="w-3.5 h-3.5 text-emerald-400" />
+                <span>View Broadsheet</span>
+              </button>
 
-            <button
-              type="button"
-              onClick={handleExportBroadsheet}
-              disabled={broadsheetLoading || !selectedClass || !selectedArm || !selectedTerm}
-              className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 text-xs font-bold transition-all shadow-sm disabled:opacity-50"
-              title="Download complete class broadsheet Excel file"
-            >
-              <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
-              {broadsheetLoading ? 'Generating Broadsheet...' : '📥 Export Broadsheet (.xlsx)'}
-            </button>
+              <button
+                type="button"
+                onClick={handleExportBroadsheet}
+                disabled={broadsheetLoading || !selectedClass || !selectedArm || !selectedTerm}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white text-slate-700 hover:bg-slate-50 text-xs font-bold transition-all border border-slate-200/60 disabled:opacity-40 shadow-2xs"
+                title="Download complete class broadsheet Excel file"
+              >
+                <Download className="w-3.5 h-3.5 text-indigo-600" />
+                <span>{broadsheetLoading ? 'Exporting...' : 'Export (.xlsx)'}</span>
+              </button>
 
-            <button
-              type="button"
-              onClick={() => broadsheetFileInputRef.current?.click()}
-              disabled={importingBroadsheet || !selectedClass || !selectedArm || !selectedTerm}
-              className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 hover:bg-emerald-100 text-xs font-bold transition-all shadow-sm disabled:opacity-50"
-              title="Import filled Broadsheet Excel file to auto-generate report cards"
-            >
-              <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
-              {importingBroadsheet ? 'Importing Scores & Generating...' : '📤 Import Broadsheet (.xlsx)'}
-            </button>
+              <button
+                type="button"
+                onClick={() => broadsheetFileInputRef.current?.click()}
+                disabled={importingBroadsheet || !selectedClass || !selectedArm || !selectedTerm}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 text-emerald-800 hover:bg-emerald-100 text-xs font-bold transition-all border border-emerald-200/80 disabled:opacity-40 shadow-2xs"
+                title="Import filled Broadsheet Excel file to auto-generate report cards"
+              >
+                <Upload className="w-3.5 h-3.5 text-emerald-600" />
+                <span>{importingBroadsheet ? 'Importing...' : 'Import (.xlsx)'}</span>
+              </button>
+            </div>
 
-            <button
-              type="button"
-              onClick={() => {
-                const nextVal = !showPosition;
-                setShowPosition(nextVal);
-                if (typeof window !== 'undefined') {
-                  localStorage.setItem('report_show_position', String(nextVal));
-                }
-              }}
-              className={`flex items-center gap-1.5 px-3 py-2.5 rounded-xl border text-xs font-bold transition-all shadow-sm ${
-                showPosition 
-                  ? 'bg-amber-50 border-amber-200 text-amber-900 hover:bg-amber-100' 
-                  : 'bg-slate-100 border-slate-300 text-slate-500 hover:bg-slate-200'
-              }`}
-              title="Click to toggle Position/Ranking display on report cards"
-            >
-              <Award className={`w-4 h-4 ${showPosition ? 'text-amber-600' : 'text-slate-400'}`} />
-              <span>Position: <strong className="uppercase">{showPosition ? 'ON (SHOW)' : 'OFF (HIDE)'}</strong></span>
-            </button>
+            {/* Group 2: Report Card Settings & Batch Actions */}
+            <div className="inline-flex items-center p-1 bg-slate-100 border border-slate-200/80 rounded-2xl gap-1 shadow-2xs flex-wrap">
+              <button
+                type="button"
+                onClick={() => {
+                  const nextVal = !showPosition;
+                  setShowPosition(nextVal);
+                  if (typeof window !== 'undefined') {
+                    localStorage.setItem('report_show_position', String(nextVal));
+                  }
+                }}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                  showPosition 
+                    ? 'bg-amber-100/90 text-amber-950 border border-amber-300/80' 
+                    : 'bg-white text-slate-500 border border-slate-200/60 hover:bg-slate-50'
+                }`}
+                title="Click to toggle Position/Ranking display on report cards"
+              >
+                <Award className={`w-3.5 h-3.5 ${showPosition ? 'text-amber-700' : 'text-slate-400'}`} />
+                <span>Position: <strong className="uppercase">{showPosition ? 'ON (SHOW)' : 'OFF (HIDE)'}</strong></span>
+              </button>
 
-            <button
-              type="button"
-              onClick={handlePrintSelected}
-              disabled={selectedStudentIds.size === 0 || reports.length === 0}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all disabled:opacity-50 ${themeBgAccent}`}
-            >
-              <Printer className="w-4 h-4" />
-              Print Selected Cards ({selectedStudentIds.size})
-            </button>
+              <button
+                type="button"
+                onClick={handlePrintSelected}
+                disabled={selectedStudentIds.size === 0 || reports.length === 0}
+                className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all disabled:opacity-40 shadow-2xs ${themeBgAccent}`}
+              >
+                <Printer className="w-3.5 h-3.5" />
+                <span>Print Selected Cards ({selectedStudentIds.size})</span>
+              </button>
+            </div>
           </div>
         </div>
 
