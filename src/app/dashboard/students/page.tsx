@@ -540,6 +540,7 @@ export default function StudentsDirectoryPage() {
   };
 
   const handleBulkUpload = async () => {
+    if (!parsedStudents || parsedStudents.length === 0) return;
     setUploading(true);
     try {
       const res = await fetch('/api/students/upload', {
