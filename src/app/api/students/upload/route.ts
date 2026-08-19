@@ -71,8 +71,6 @@ export async function POST(req: NextRequest) {
       }, { status: 403 });
     }
 
-    const defaultPasswordHash = await bcrypt.hash('Student123', 10);
-
     const results = {
       successCount: 0,
       failCount: 0,
@@ -134,22 +132,8 @@ export async function POST(req: NextRequest) {
       if (!targetArm && armId && targetClass.arms) {
         targetArm = targetClass.arms.find((a: any) => a.id === armId);
       }
-      if (!targetArm && targetClass) {
-        let defaultArm = await prisma.arm.findFirst({
-          where: { classId: targetClass.id }
-        });
-        if (!defaultArm) {
-          defaultArm = await prisma.arm.create({
-            data: {
-              name: 'A',
-              classId: targetClass.id,
-              schoolId,
-            }
-          });
-        }
-        targetArm = defaultArm;
-        if (!targetClass.arms) targetClass.arms = [];
-        targetClass.arms.push(defaultArm);
+      if (!targetArm && targetClass.arms && targetClass.arms.length > 0) {
+        targetArm = targetClass.arms[0];
       }
 
       if (!targetArm) {
@@ -290,8 +274,9 @@ export async function POST(req: NextRequest) {
             return student;
           });
         } else {
-          tempPassword = 'Student123';
-          const passwordHash = defaultPasswordHash;
+          tempPassword = generateTempPassword();
+          const salt = await bcrypt.genSalt(10);
+          const passwordHash = await bcrypt.hash(tempPassword, salt);
           username = await generateUniqueUsername(cleanLastName || 'student');
           const email = `${username}@student.local`;
 
