@@ -417,52 +417,29 @@ export default function ClassesAndArmsPage() {
       return;
     }
 
-    let totalCreated = 0;
-    let totalSkipped = 0;
-    const allFailures: any[] = [];
-    const allCreatedStudents: any[] = [];
-    const BATCH_SIZE = 50;
-
     try {
-      for (let i = 0; i < parsedStudents.length; i += BATCH_SIZE) {
-        const chunk = parsedStudents.slice(i, i + BATCH_SIZE);
-        const res = await fetch('/api/students/upload', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            schoolId: school.id,
-            classId: selectedArm.classId,
-            armId: selectedArm.id,
-            students: chunk
-          })
-        });
-
-        const json = await res.json();
-        if (!res.ok) throw new Error(json.error || `Bulk enrollment batch ${Math.floor(i / BATCH_SIZE) + 1} failed.`);
-
-        const createdCount = json.created || json.data?.successCount || 0;
-        const skippedCount = json.skipped || json.data?.failCount || 0;
-
-        totalCreated += createdCount;
-        totalSkipped += skippedCount;
-
-        if (json.data?.failures) allFailures.push(...json.data.failures);
-        if (json.data?.createdStudents) allCreatedStudents.push(...json.data.createdStudents);
-      }
-
-      setUploadResult({
-        successCount: totalCreated,
-        failCount: totalSkipped,
-        failures: allFailures,
-        createdStudents: allCreatedStudents,
+      const res = await fetch('/api/students/upload', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          schoolId: school.id,
+          classId: selectedArm.classId,
+          armId: selectedArm.id,
+          students: parsedStudents
+        })
       });
+
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || 'Bulk enrollment failed.');
+
+      setUploadResult(json.data);
       setParsedStudents([]);
       
       // Reload lists
       await loadRosterStudents(selectedArm);
       await loadClassesData(school.id);
     } catch (err: any) {
-      setDrawerErrorMsg(err.message || 'Bulk enrollment failed.');
+      setDrawerErrorMsg(err.message || 'A network exception occurred during direct uploader.');
     } finally {
       setUploading(false);
     }

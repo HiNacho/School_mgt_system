@@ -539,67 +539,26 @@ export default function StudentsDirectoryPage() {
     reader.readAsArrayBuffer(file);
   };
 
-  const [uploadProgress, setUploadProgress] = useState<{ current: number; total: number } | null>(null);
-
   const handleBulkUpload = async () => {
-    if (!parsedStudents || parsedStudents.length === 0) return;
     setUploading(true);
-    setUploadProgress({ current: 0, total: parsedStudents.length });
-    
-    let totalCreated = 0;
-    let totalSkipped = 0;
-    const allFailures: any[] = [];
-    const allCreatedStudents: any[] = [];
-
-    const BATCH_SIZE = 50;
-
     try {
-      for (let i = 0; i < parsedStudents.length; i += BATCH_SIZE) {
-        const chunk = parsedStudents.slice(i, i + BATCH_SIZE);
-        
-        const res = await fetch('/api/students/upload', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ schoolId: session.school.id, students: chunk }),
-        });
+      const res = await fetch('/api/students/upload', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ schoolId: session.school.id, students: parsedStudents }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || 'Upload failed');
+      setUploadResult(json);
 
-        const json = await res.json();
-        if (!res.ok) throw new Error(json.error || `Upload batch ${Math.floor(i / BATCH_SIZE) + 1} failed`);
+      const createdCount = json.created || json.data?.successCount || 0;
+      const skippedCount = json.skipped || json.data?.failCount || 0;
 
-        const createdCount = json.created || json.data?.successCount || 0;
-        const skippedCount = json.skipped || json.data?.failCount || 0;
-
-        totalCreated += createdCount;
-        totalSkipped += skippedCount;
-
-        if (json.data?.failures) allFailures.push(...json.data.failures);
-        if (json.data?.createdStudents) allCreatedStudents.push(...json.data.createdStudents);
-
-        setUploadProgress({ current: Math.min(i + BATCH_SIZE, parsedStudents.length), total: parsedStudents.length });
-      }
-
-      const aggregateResult = {
-        success: true,
-        created: totalCreated,
-        skipped: totalSkipped,
-        data: {
-          successCount: totalCreated,
-          failCount: totalSkipped,
-          failures: allFailures,
-          createdStudents: allCreatedStudents,
-        }
-      };
-
-      setUploadResult(aggregateResult);
-      setImportSuccessBanner({ count: totalCreated, skipped: totalSkipped });
-      showSuccess(`🎉 Bulk import complete! Successfully imported ${totalCreated} student${totalCreated !== 1 ? 's' : ''} across ${Math.ceil(parsedStudents.length / BATCH_SIZE)} batches.`);
+      setImportSuccessBanner({ count: createdCount, skipped: skippedCount });
+      showSuccess(`🎉 Bulk import complete! Successfully imported ${createdCount} student${createdCount !== 1 ? 's' : ''}.`);
       await loadAll(session);
-    } catch (e: any) { 
-      showError(e.message); 
-    } finally {
-      setUploading(false);
-      setUploadProgress(null);
-    }
+    } catch (e: any) { showError(e.message); }
+    setUploading(false);
   };
 
   // ── Unique houses for filter ─────────────────────────────────────────────────
