@@ -331,7 +331,8 @@ export async function POST(req: NextRequest) {
         } else {
           tempPassword = 'Student123';
           const passwordHash = defaultPasswordHash;
-          username = await generateUniqueUsername(cleanLastName || 'student');
+          const cleanUserPrefix = (cleanLastName || cleanFirstName || 'student').toLowerCase().replace(/[^a-z0-9]/g, '');
+          username = `${cleanUserPrefix}${Date.now().toString().slice(-4)}${Math.floor(100 + Math.random() * 900)}`;
           const email = `${username}@student.local`;
 
           resultStudent = await prisma.$transaction(async (tx) => {

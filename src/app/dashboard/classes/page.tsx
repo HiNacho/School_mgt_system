@@ -421,7 +421,7 @@ export default function ClassesAndArmsPage() {
     let totalSkipped = 0;
     const allFailures: any[] = [];
     const allCreatedStudents: any[] = [];
-    const BATCH_SIZE = 50;
+    const BATCH_SIZE = 20;
 
     try {
       for (let i = 0; i < parsedStudents.length; i += BATCH_SIZE) {
