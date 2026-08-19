@@ -26,7 +26,7 @@ model School {
   subscriptionStart   DateTime?
   subscriptionEnd     DateTime?
   gracePeriodEnd      DateTime?
-  maxStudents         Int       @default(100)
+  maxStudents         Int       @default(700)
 
   // School Fee Online Payment Setup (Flutterwave Subaccount)
   flutterwaveSubaccountId  String?

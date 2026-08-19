@@ -174,7 +174,7 @@ export async function POST(req: NextRequest) {
     const activeStudentsCount = await prisma.student.count({
       where: { schoolId, status: 'ACTIVE' }
     });
-    const studentLimit = schoolObj?.maxStudents ?? 100;
+    const studentLimit = schoolObj?.maxStudents ?? 700;
     if (activeStudentsCount >= studentLimit) {
       return NextResponse.json({
         error: `Prepaid student limit reached. Your school has registered ${activeStudentsCount} of ${studentLimit} allowed students. Please upgrade your subscription plan to register more students.`,

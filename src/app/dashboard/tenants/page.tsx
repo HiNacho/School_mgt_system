@@ -1189,7 +1189,7 @@ The Operon Support Team
                       type="number"
                       min="1"
                       className="w-20 bg-white border border-slate-200 rounded-lg px-2 py-1 text-center font-extrabold font-mono text-xs focus:outline-none focus:border-slate-400 text-slate-850"
-                      defaultValue={viewingTenant.maxStudents || 100}
+                      defaultValue={viewingTenant.maxStudents || 700}
                       id={`max-capacity-${viewingTenant.id}`}
                     />
                     <button
