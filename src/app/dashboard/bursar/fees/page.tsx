@@ -5,7 +5,7 @@ import {
   Users, Search, Filter, FileText, CheckSquare, 
   Plus, AlertCircle, CheckCircle2, User, CreditCard, 
   Download, Printer, Bell, FileWarning, Award, Percent,
-  Activity, X, DollarSign, Camera, Clock, ShieldCheck, ExternalLink, Settings
+  Activity, X, DollarSign, Camera, Clock, ShieldCheck, ExternalLink, Settings, Sparkles
 } from 'lucide-react';
 import SchoolFeeReceiptModal from './SchoolFeeReceiptModal';
 
@@ -1207,17 +1207,17 @@ export default function StudentFeesPage() {
               
               {/* Status Banner */}
               <div className={`p-4 rounded-2xl border text-xs flex items-start gap-3 ${
-                onlineEnabled && flwSubaccountId.trim()
+                onlineEnabled && (flwSubaccountId || '').trim()
                   ? 'bg-emerald-50 border-emerald-200 text-emerald-900'
                   : 'bg-amber-50 border-amber-200 text-amber-900'
               }`}>
-                <ShieldCheck className={`w-5 h-5 flex-shrink-0 mt-0.5 ${onlineEnabled && flwSubaccountId.trim() ? 'text-emerald-600' : 'text-amber-600'}`} />
+                <ShieldCheck className={`w-5 h-5 flex-shrink-0 mt-0.5 ${onlineEnabled && (flwSubaccountId || '').trim() ? 'text-emerald-600' : 'text-amber-600'}`} />
                 <div>
                   <span className="font-black block uppercase tracking-wider text-[10px]">
-                    Status: {onlineEnabled && flwSubaccountId.trim() ? '● ACTIVE (Parents can pay online)' : '⚠ SETUP REQUIRED'}
+                    Status: {onlineEnabled && (flwSubaccountId || '').trim() ? '● ACTIVE (Parents can pay online)' : '⚠ SETUP REQUIRED'}
                   </span>
                   <p className="text-[11px] font-medium leading-relaxed mt-0.5">
-                    {onlineEnabled && flwSubaccountId.trim()
+                    {onlineEnabled && (flwSubaccountId || '').trim()
                       ? 'Parent payments automatically flow to your school Flutterwave subaccount.'
                       : 'Provide your school Flutterwave Subaccount ID below to enable online fee collections.'
                     }
