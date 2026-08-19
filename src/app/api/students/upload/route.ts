@@ -81,33 +81,28 @@ export async function POST(req: NextRequest) {
     };
 
     for (const s of students) {
-      let cleanFirstName = String(firstName || s.name || s.fullName || s.studentName || '').trim();
-      let cleanLastName = String(lastName || s.surname || '').trim();
+      const { firstName, lastName, middleName, admissionNumber, gender } = s;
+
+      const cleanFirstName = String(firstName || '').trim();
+      const cleanLastName = String(lastName || '').trim();
       const cleanMiddleName = middleName ? String(middleName).trim() : null;
-
-      // Handle single full name column (e.g. "Babatunde Ojo")
-      if (!cleanFirstName && (s.fullName || s.name || s.studentName)) {
-        const full = String(s.fullName || s.name || s.studentName).trim();
-        const parts = full.split(' ');
-        cleanFirstName = parts[0] || 'Student';
-        cleanLastName = parts.slice(1).join(' ') || 'Roster';
-      }
-
-      let cleanAdmissionNumber = String(admissionNumber || s.admNo || s.regNo || s.studentId || '').trim();
-      if (!cleanAdmissionNumber) {
-        cleanAdmissionNumber = `ADM-${Date.now().toString().slice(-6)}-${Math.floor(100 + Math.random() * 900)}`;
-      }
-
-      if (!cleanFirstName) {
-        cleanFirstName = `Student-${cleanAdmissionNumber}`;
-      }
-
+      const cleanAdmissionNumber = String(admissionNumber || '').trim();
       let cleanGender = String(gender || 'MALE').trim().toUpperCase();
       if (cleanGender !== 'MALE' && cleanGender !== 'FEMALE') {
         cleanGender = 'MALE';
       }
 
       const displayName = cleanLastName ? `${cleanLastName}, ${cleanFirstName}` : cleanFirstName;
+
+      if (!cleanFirstName || !cleanAdmissionNumber) {
+        results.failCount++;
+        results.failures.push({
+          name: displayName || 'Unknown Student',
+          admissionNumber: cleanAdmissionNumber || 'MISSING',
+          error: 'First name and Admission number are required fields.'
+        });
+        continue;
+      }
 
       // Resolve Target Class
       let targetClass = null;
