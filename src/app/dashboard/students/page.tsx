@@ -1194,35 +1194,51 @@ export default function StudentsDirectoryPage() {
               </div>
 
               {uploadResult ? (
-                <div className="rounded-2xl bg-emerald-950/90 border border-emerald-500/30 p-6 text-white space-y-4 shadow-xl animate-fadeIn">
-                  <div className="flex items-center justify-between border-b border-emerald-500/20 pb-3">
-                    <div className="flex items-center gap-2 font-black text-base text-emerald-400">
-                      <CheckCircle className="w-6 h-6 text-emerald-400" /> Bulk Import Complete
+                <div className="rounded-2xl border border-emerald-500/40 p-6 space-y-5 shadow-2xl" style={{ background: 'linear-gradient(135deg, #064e3b 0%, #065f46 100%)' }}>
+
+                  {/* Big success icon + title */}
+                  <div className="flex flex-col items-center text-center gap-3 py-2">
+                    <div className="w-16 h-16 rounded-full bg-emerald-400/20 flex items-center justify-center border-2 border-emerald-400/50">
+                      <CheckCircle className="w-9 h-9 text-emerald-400" />
                     </div>
-                    <span className="px-3.5 py-1 rounded-full bg-emerald-500/20 text-emerald-300 text-xs font-black border border-emerald-500/30">
-                      🎉 {uploadResult.created || 0} Students Imported
+                    <div>
+                      <p className="text-2xl font-black text-emerald-300">Upload Complete!</p>
+                      <p className="text-sm text-emerald-400/80 font-semibold mt-0.5">
+                        Your student roster has been successfully imported.
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Stats row */}
+                  <div className="grid grid-cols-3 gap-3">
+                    <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-center space-y-0.5">
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-400/70">Created</p>
+                      <p className="text-2xl font-black text-emerald-300">{uploadResult.created || 0}</p>
+                    </div>
+                    <div className="p-3 rounded-xl bg-slate-900/40 border border-slate-700/50 text-center space-y-0.5">
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Already Existed</p>
+                      <p className={`text-2xl font-black ${(uploadResult.skipped || 0) > 0 ? 'text-amber-300' : 'text-slate-500'}`}>{uploadResult.skipped || 0}</p>
+                    </div>
+                    <div className="p-3 rounded-xl bg-slate-900/40 border border-slate-700/50 text-center space-y-0.5">
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Failed</p>
+                      <p className={`text-2xl font-black ${(uploadResult.data?.failures?.length || 0) > 0 ? 'text-red-400' : 'text-slate-500'}`}>{uploadResult.data?.failures?.length || 0}</p>
+                    </div>
+                  </div>
+
+                  {/* Info note */}
+                  <div className="flex items-start gap-3 p-3.5 rounded-xl bg-black/20 border border-emerald-500/20 text-xs text-emerald-200 leading-relaxed">
+                    <CheckCircle className="w-4 h-4 text-emerald-400 flex-shrink-0 mt-0.5" />
+                    <span>
+                      All <strong className="text-emerald-300">{uploadResult.created || 0}</strong> students now have active profiles, user accounts, and guardian records.
+                      Default login password: <strong className="font-mono bg-emerald-500/20 text-emerald-300 px-1.5 py-0.5 rounded border border-emerald-500/30">Student123</strong>
                     </span>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-3 text-xs">
-                    <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-center space-y-0.5">
-                      <p className="text-slate-400 text-[10px] font-bold uppercase tracking-wider">Successfully Created</p>
-                      <p className="text-2xl font-black text-emerald-400">{uploadResult.created || 0}</p>
-                    </div>
-                    <div className="p-3.5 rounded-xl bg-slate-900/80 border border-slate-800 text-center space-y-0.5">
-                      <p className="text-slate-400 text-[10px] font-bold uppercase tracking-wider">Skipped / Failed</p>
-                      <p className={`text-2xl font-black ${uploadResult.skipped > 0 ? 'text-amber-400' : 'text-slate-400'}`}>{uploadResult.skipped || 0}</p>
-                    </div>
-                  </div>
-
-                  <p className="text-xs text-slate-300 leading-relaxed">
-                    All <strong className="text-emerald-400 font-extrabold">{uploadResult.created || 0}</strong> imported student profiles & guardian accounts are active in your registry. Initial login password: <strong className="font-mono bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded border border-emerald-500/30">password</strong>
-                  </p>
-
+                  {/* Failures log */}
                   {uploadResult.data?.failures && uploadResult.data.failures.length > 0 && (
-                    <div className="pt-3 border-t border-emerald-500/20 space-y-2">
-                      <p className="text-xs font-extrabold text-amber-400 flex items-center gap-1">⚠️ Skipped Records Log ({uploadResult.data.failures.length}):</p>
-                      <div className="max-h-36 overflow-y-auto text-[11px] font-mono space-y-1 bg-red-950/60 p-3 rounded-xl text-red-300 border border-red-800/40">
+                    <div className="pt-1 space-y-2">
+                      <p className="text-xs font-extrabold text-amber-400 flex items-center gap-1">⚠️ Skipped Records ({uploadResult.data.failures.length}):</p>
+                      <div className="max-h-32 overflow-y-auto text-[11px] font-mono space-y-1 bg-red-950/60 p-3 rounded-xl text-red-300 border border-red-800/40">
                         {uploadResult.data.failures.map((f: any, idx: number) => (
                           <div key={idx} className="flex gap-1.5 items-start">
                             <span className="text-red-400">❌</span>
@@ -1232,6 +1248,14 @@ export default function StudentsDirectoryPage() {
                       </div>
                     </div>
                   )}
+
+                  {/* Done button */}
+                  <button
+                    onClick={() => { setExcelOpen(false); setParsedStudents([]); setUploadResult(null); }}
+                    className="w-full py-3 rounded-xl font-black text-sm bg-emerald-500 hover:bg-emerald-400 text-white transition-all active:scale-95 shadow-lg shadow-emerald-900/40"
+                  >
+                    ✓ Done — View Students
+                  </button>
                 </div>
               ) : (
                 <>
