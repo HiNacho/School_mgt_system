@@ -109,31 +109,10 @@ export async function POST(req: NextRequest) {
 
       const displayName = cleanLastName ? `${cleanLastName}, ${cleanFirstName}` : cleanFirstName;
 
-      // Resolve Target Class (Auto-create class if not exists)
+      // Resolve Target Class
       let targetClass = null;
       if (s.className) {
         targetClass = classMapByName.get(String(s.className).trim().toLowerCase());
-        if (!targetClass) {
-          const rawClassName = String(s.className).trim();
-          let createdClass = await prisma.class.findFirst({
-            where: { schoolId, name: { equals: rawClassName, mode: 'insensitive' } },
-            include: { arms: true }
-          });
-          if (!createdClass) {
-            createdClass = await prisma.class.create({
-              data: { name: rawClassName, schoolId },
-              include: { arms: true }
-            });
-            const createdArm = await prisma.arm.create({
-              data: { name: 'A', classId: createdClass.id, schoolId }
-            });
-            (createdClass as any).arms = [createdArm];
-          }
-          targetClass = createdClass;
-          classMapByName.set(rawClassName.toLowerCase(), targetClass);
-          classMapById.set(targetClass.id, targetClass);
-          allClasses.push(targetClass);
-        }
       }
       if (!targetClass && classId) {
         targetClass = classMapById.get(classId);
@@ -152,25 +131,12 @@ export async function POST(req: NextRequest) {
         continue;
       }
 
-      // Resolve Target Arm (Auto-create arm if missing)
+      // Resolve Target Arm
       let targetArm = null;
-      if (s.armName && targetClass && targetClass.arms) {
+      if (s.armName && targetClass.arms) {
         targetArm = targetClass.arms.find((a: any) => a.name.trim().toLowerCase() === String(s.armName).trim().toLowerCase());
-        if (!targetArm) {
-          const rawArmName = String(s.armName).trim();
-          let createdArm = await prisma.arm.findFirst({
-            where: { classId: targetClass.id, name: { equals: rawArmName, mode: 'insensitive' } }
-          });
-          if (!createdArm) {
-            createdArm = await prisma.arm.create({
-              data: { name: rawArmName, classId: targetClass.id, schoolId }
-            });
-          }
-          targetArm = createdArm;
-          targetClass.arms.push(createdArm);
-        }
       }
-      if (!targetArm && armId && targetClass && targetClass.arms) {
+      if (!targetArm && armId && targetClass.arms) {
         targetArm = targetClass.arms.find((a: any) => a.id === armId);
       }
       if (!targetArm && targetClass) {
