@@ -488,15 +488,15 @@ export default function StudentsDirectoryPage() {
       const rows: any[] = XLSX.utils.sheet_to_json(ws, { defval: '' });
       setParsedStudents(rows.map(r => ({
         // Personal & Academic
-        firstName: r['First Name'] || r['firstName'] || '',
-        lastName: r['Last Name'] || r['lastName'] || '',
-        middleName: r['Middle Name'] || r['middleName'] || '',
+        firstName: r['First Name'] || r['firstName'] || r['Firstname'] || r['First_Name'] || r['Student Name'] || r['Full Name'] || r['Name'] || '',
+        lastName: r['Last Name'] || r['lastName'] || r['Lastname'] || r['Last_Name'] || r['Surname'] || '',
+        middleName: r['Middle Name'] || r['middleName'] || r['Middlename'] || '',
         preferredName: r['Preferred Name'] || r['preferredName'] || '',
-        admissionNumber: String(r['Admission No'] || r['Admission Number'] || r['admissionNumber'] || '').trim(),
-        gender: String(r['Gender'] || r['gender'] || 'MALE').toUpperCase(),
-        dateOfBirth: r['Date of Birth'] || r['dateOfBirth'] || '',
-        className: r['Class'] || r['class'] || '',
-        armName: r['Arm'] || r['arm'] || '',
+        admissionNumber: String(r['Admission No'] || r['Admission Number'] || r['admissionNumber'] || r['Admin No'] || r['Adm No'] || r['Reg No'] || r['Student ID'] || r['ID'] || r['S/N'] || '').trim(),
+        gender: String(r['Gender'] || r['gender'] || r['Sex'] || 'MALE').toUpperCase(),
+        dateOfBirth: r['Date of Birth'] || r['dateOfBirth'] || r['DOB'] || '',
+        className: r['Class'] || r['class'] || r['Grade'] || r['Class Name'] || r['Class Level'] || '',
+        armName: r['Arm'] || r['arm'] || r['Stream'] || r['Arm Name'] || r['Section'] || '',
         category: r['Category'] || r['category'] || '',
         house: r['House'] || r['house'] || '',
         nationality: r['Nationality'] || r['nationality'] || '',
