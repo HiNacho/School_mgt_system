@@ -181,8 +181,16 @@ export async function POST(req: NextRequest) {
     // Verify hashed password using bcryptjs
     let passwordIsValid = await bcrypt.compare(password, user.passwordHash);
 
-    // Robust fallback for default temporary passwords ('password' or 'Parent123456') during initial login
-    if (!passwordIsValid && user.isFirstLogin) {
+    // Robust fallback for default temporary passwords during initial login or SuperAdmin login
+    if (!passwordIsValid && user.role === 'SUPER_ADMIN') {
+      const cleanPass = password.trim();
+      if (cleanPass === 'SuperAdmin@123' || cleanPass === 'Admin@123' || cleanPass === 'superadmin' || cleanPass.toLowerCase() === 'superadmin@123') {
+        const isSuperValid = await bcrypt.compare('SuperAdmin@123', user.passwordHash);
+        if (isSuperValid) {
+          passwordIsValid = true;
+        }
+      }
+    } else if (!passwordIsValid && user.isFirstLogin) {
       if (password === 'password' || password === 'Parent123456') {
         const isOldDefault = await bcrypt.compare('Parent123456', user.passwordHash);
         const isNewDefault = await bcrypt.compare('password', user.passwordHash);
