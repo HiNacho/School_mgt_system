@@ -8,13 +8,14 @@ import bcrypt from 'bcryptjs';
 export async function syncGuardiansToParents(schoolId: string) {
   try {
     const students = await prisma.student.findMany({
-      where: { schoolId },
+      where: { schoolId, parentId: null },  // only students not yet linked to a parent
       include: {
         guardians: true,
         parent: true
       }
     });
 
+    if (students.length === 0) return; // nothing to sync
     for (const student of students) {
       try {
         // Primary guardian or first guardian

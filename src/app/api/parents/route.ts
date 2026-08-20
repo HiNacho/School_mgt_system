@@ -21,9 +21,6 @@ export async function GET(req: NextRequest) {
 
     requireSchoolScope(session, schoolId);
 
-    // Auto-populate & sync student guardians into parent accounts
-    await syncGuardiansToParents(schoolId);
-
     let query: any = { schoolId };
     const email = searchParams.get('email');
 
