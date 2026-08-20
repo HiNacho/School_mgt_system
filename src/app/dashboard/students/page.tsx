@@ -73,6 +73,7 @@ export default function StudentsDirectoryPage() {
 
   // Filters
   const [searchQuery, setSearchQuery] = useState('');
+  const [filterSection, setFilterSection] = useState(''); // NEW — section filter
   const [filterClass, setFilterClass] = useState('');
   const [filterArm, setFilterArm] = useState('');
   const [filterStatus, setFilterStatus] = useState('ACTIVE');
@@ -169,6 +170,7 @@ export default function StudentsDirectoryPage() {
     let data = [...students];
 
     if (filterStatus !== 'ALL') data = data.filter(s => s.status === filterStatus);
+    if (filterSection) data = data.filter(s => s.class?.sectionId === filterSection || s.class?.section?.id === filterSection);
     if (filterClass) data = data.filter(s => s.classId === filterClass);
     if (filterArm) data = data.filter(s => s.armId === filterArm);
     if (filterHouse) data = data.filter(s => s.house === filterHouse);
@@ -198,12 +200,12 @@ export default function StudentsDirectoryPage() {
     });
 
     return data;
-  }, [students, filterStatus, filterClass, filterArm, filterHouse, filterCategory, searchQuery, sortField, sortDir]);
+  }, [students, filterStatus, filterSection, filterClass, filterArm, filterHouse, filterCategory, searchQuery, sortField, sortDir]);
 
   const totalPages = Math.max(1, Math.ceil(filteredStudents.length / itemsPerPage));
   const pagedStudents = filteredStudents.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
-  useEffect(() => { setCurrentPage(1); setSelectedIds([]); }, [filterClass, filterArm, filterStatus, filterHouse, filterCategory, searchQuery, viewMode]);
+  useEffect(() => { setCurrentPage(1); setSelectedIds([]); }, [filterSection, filterClass, filterArm, filterStatus, filterHouse, filterCategory, searchQuery, viewMode]);
 
   // ── Sort toggle ─────────────────────────────────────────────────────────────
   const toggleSort = (field: SortField) => {
@@ -572,8 +574,13 @@ export default function StudentsDirectoryPage() {
   // ── Unique houses for filter ─────────────────────────────────────────────────
   const uniqueHouses = useMemo(() => [...new Set(students.map(s => s.house).filter(Boolean))], [students]);
 
-  // ── Arm filter options ───────────────────────────────────────────────────────
-  const armOptions = useMemo(() => setup?.arms?.filter((a: any) => !filterClass || a.classId === filterClass) || [], [setup, filterClass]);
+  // ── Class & Arm filter options (cascade: section → class → arm) ──────────────
+  const classOptions = useMemo(() =>
+    (setup?.classes || []).filter((c: any) => !filterSection || c.sectionId === filterSection),
+    [setup, filterSection]);
+  const armOptions = useMemo(() =>
+    (setup?.arms || []).filter((a: any) => (!filterClass || a.classId === filterClass) && (!filterSection || classOptions.some((c: any) => c.id === a.classId))),
+    [setup, filterClass, filterSection, classOptions]);
 
   const isAdmin = session?.user?.role && ['SUPER_ADMIN', 'SCHOOL_ADMIN', 'HEAD_TEACHER'].includes(session.user.role);
   const isTeacher = session?.user?.role === 'CLASS_TEACHER';
@@ -689,12 +696,23 @@ export default function StudentsDirectoryPage() {
               style={{ background: 'var(--bg-card)', borderColor: 'var(--border-color)', color: 'var(--text-primary)' }}
             />
           </div>
+          {/* Section filter — only shown if school has multiple sections */}
+          {setup?.sections?.length > 1 && (
+            <select value={filterSection} onChange={e => { setFilterSection(e.target.value); setFilterClass(''); setFilterArm(''); }}
+              className="px-3 py-2.5 rounded-xl text-sm border outline-none min-w-[130px]"
+              style={{ background: 'var(--bg-card)', borderColor: 'var(--border-color)', color: 'var(--text-primary)' }}>
+              <option value="">All Sections</option>
+              {setup.sections.map((sec: any) => (
+                <option key={sec.id} value={sec.id}>{sec.name}</option>
+              ))}
+            </select>
+          )}
           {/* Class filter */}
           <select value={filterClass} onChange={e => { setFilterClass(e.target.value); setFilterArm(''); }}
             className="px-3 py-2.5 rounded-xl text-sm border outline-none min-w-[130px]"
             style={{ background: 'var(--bg-card)', borderColor: 'var(--border-color)', color: 'var(--text-primary)' }}>
             <option value="">All Classes</option>
-            {setup?.classes?.map((c: any) => <option key={c.id} value={c.id}>{c.name}</option>)}
+            {classOptions.map((c: any) => <option key={c.id} value={c.id}>{c.name}</option>)}
           </select>
           {/* Arm filter */}
           <select value={filterArm} onChange={e => setFilterArm(e.target.value)}
