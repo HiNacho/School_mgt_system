@@ -553,11 +553,18 @@ export default function StudentsDirectoryPage() {
       setUploadResult(json);
 
       const createdCount = json.created || json.data?.successCount || 0;
-      const skippedCount = json.skipped || json.data?.failCount || 0;
+      const skippedCount = json.skipped || 0;
 
       setImportSuccessBanner({ count: createdCount, skipped: skippedCount });
-      showSuccess(`🎉 Bulk import complete! Successfully imported ${createdCount} student${createdCount !== 1 ? 's' : ''}.`);
       await loadAll(session);
+
+      // Show big success toast then auto-close modal after 2 seconds
+      showSuccess(`🎉 ${createdCount} student${createdCount !== 1 ? 's' : ''} imported successfully!`);
+      setTimeout(() => {
+        setExcelOpen(false);
+        setParsedStudents([]);
+        setUploadResult(null);
+      }, 2000);
     } catch (e: any) { showError(e.message); }
     setUploading(false);
   };
@@ -587,10 +594,10 @@ export default function StudentsDirectoryPage() {
     <div className="min-h-screen" style={{ background: 'var(--bg-primary)' }}>
       {/* ── Notification Toasts ─────────────────────────────────────────────── */}
       {successMsg && (
-        <div className="fixed top-4 right-4 z-50 flex items-start gap-3 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 rounded-xl px-4 py-3 max-w-sm shadow-xl backdrop-blur-sm animate-in slide-in-from-right-4">
-          <CheckCircle className="w-5 h-5 mt-0.5 flex-shrink-0" />
-          <p className="text-sm">{successMsg}</p>
-          <button onClick={() => setSuccessMsg('')}><X className="w-4 h-4 opacity-60 hover:opacity-100" /></button>
+        <div className="fixed top-5 right-5 z-[200] flex items-start gap-3 bg-emerald-600 text-white rounded-2xl px-5 py-4 max-w-sm shadow-2xl shadow-emerald-900/40 animate-in slide-in-from-right-4 duration-300">
+          <CheckCircle className="w-6 h-6 mt-0.5 flex-shrink-0" />
+          <p className="text-sm font-bold leading-snug flex-1">{successMsg}</p>
+          <button onClick={() => setSuccessMsg('')} className="mt-0.5 opacity-70 hover:opacity-100"><X className="w-4 h-4" /></button>
         </div>
       )}
       {errorMsg && (
