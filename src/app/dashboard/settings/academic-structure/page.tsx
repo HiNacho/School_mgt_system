@@ -79,8 +79,7 @@ export default function AcademicStructurePage() {
   const [showEditClass, setShowEditClass] = useState<ClassRecord | null>(null);
 
   // Form state
-  const [newSectionType, setNewSectionType] = useState('');
-  const [newSectionName, setNewSectionName] = useState('');
+  const [newSelectedTypes, setNewSelectedTypes] = useState<string[]>([]);
   const [autoCreateLevels, setAutoCreateLevels] = useState(true);
   const [newClassName, setNewClassName] = useState('');
   const [newArmName, setNewArmName] = useState('');
@@ -125,30 +124,34 @@ export default function AcademicStructurePage() {
     finally { setSectionLoading(false); }
   }, [school]);
 
-  // ── Add Section ─────────────────────────────────────────────────────────────
+  // ── Add Section(s) ──────────────────────────────────────────────────────────
   const handleAddSection = async () => {
-    if (!newSectionType) return showError('Please select a section type');
+    if (newSelectedTypes.length === 0) return showError('Please select at least one section type');
     setSaving(true);
+    const errors: string[] = [];
+    const created: string[] = [];
     try {
-      const res = await fetch('/api/sections', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          schoolId: school.school.id,
-          type: newSectionType,
-          name: newSectionName || undefined,
-          autoCreateLevels,
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok) return showError(data.error || 'Failed to add section');
-      showSuccess(`✅ ${data.data.name} section added successfully`);
+      for (const type of newSelectedTypes) {
+        const res = await fetch('/api/sections', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            schoolId: school.school.id,
+            type,
+            autoCreateLevels,
+          }),
+        });
+        const data = await res.json();
+        if (!res.ok) errors.push(data.error || `Failed to add ${type}`);
+        else created.push(data.data.name);
+      }
+      if (created.length > 0) showSuccess(`✅ Added: ${created.join(', ')}`);
+      if (errors.length > 0) showError(errors.join(' | '));
       setShowAddSection(false);
-      setNewSectionType('');
-      setNewSectionName('');
+      setNewSelectedTypes([]);
       setAutoCreateLevels(true);
       await load();
-    } catch { showError('Failed to add section'); }
+    } catch { showError('Failed to add sections'); }
     finally { setSaving(false); }
   };
 
@@ -444,85 +447,82 @@ export default function AcademicStructurePage() {
       </div>
 
       {/* ══════════════════════════════════════════════════════════════ */}
-      {/* MODAL: Add Section                                             */}
+      {/* MODAL: Add Section(s)                                          */}
       {/* ══════════════════════════════════════════════════════════════ */}
       {showAddSection && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.5)' }}>
           <div className="w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden" style={{ background: 'var(--bg-card)' }}>
             <div className="flex items-center justify-between px-6 py-4 border-b" style={{ borderColor: 'var(--border)' }}>
-              <h2 className="font-bold text-lg" style={{ color: 'var(--text-primary)' }}>Add Academic Section</h2>
-              <button onClick={() => setShowAddSection(false)}><X className="w-5 h-5" style={{ color: 'var(--text-muted)' }} /></button>
-            </div>
-            <div className="p-6 space-y-5">
-              {/* Section type picker */}
               <div>
-                <label className="block text-xs font-semibold mb-2 uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>
-                  Section Type *
-                </label>
-                <div className="grid gap-2">
-                  {availableTypes.map(t => {
-                    const meta = SECTION_META[t.type] || SECTION_META.CUSTOM;
-                    const Icon = meta.icon;
-                    return (
-                      <button key={t.type}
-                        onClick={() => { setNewSectionType(t.type); setNewSectionName(t.label); }}
-                        className={`flex items-center gap-3 p-3 rounded-xl border-2 text-left transition-all ${
-                          newSectionType === t.type ? `${meta.border} ${meta.bg}` : 'border-transparent hover:border-gray-200'
-                        }`}>
-                        <div className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 ${meta.bg}`}>
-                          <Icon className={`w-5 h-5 ${meta.color}`} />
-                        </div>
-                        <div>
-                          <p className="font-semibold text-sm" style={{ color: 'var(--text-primary)' }}>{t.label}</p>
-                          <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{t.sub}</p>
-                        </div>
-                        {newSectionType === t.type && <CheckCircle className={`w-5 h-5 ml-auto ${meta.color}`} />}
-                      </button>
-                    );
-                  })}
-                </div>
+                <h2 className="font-bold text-lg" style={{ color: 'var(--text-primary)' }}>Add Academic Section(s)</h2>
+                <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>Select one or more sections to add</p>
               </div>
+              <button onClick={() => { setShowAddSection(false); setNewSelectedTypes([]); }}>
+                <X className="w-5 h-5" style={{ color: 'var(--text-muted)' }} />
+              </button>
+            </div>
+            <div className="p-6 space-y-3">
+              {availableTypes.map(t => {
+                const meta = SECTION_META[t.type] || SECTION_META.CUSTOM;
+                const Icon = meta.icon;
+                const isSelected = newSelectedTypes.includes(t.type);
+                const toggle = () => setNewSelectedTypes(prev =>
+                  isSelected ? prev.filter(x => x !== t.type) : [...prev, t.type]
+                );
+                return (
+                  <button key={t.type} onClick={toggle}
+                    className={`w-full flex items-center gap-3 p-3.5 rounded-xl border-2 text-left transition-all ${
+                      isSelected ? `${meta.border} ${meta.bg}` : 'border-transparent hover:border-gray-200'
+                    }`}
+                    style={{ background: isSelected ? undefined : 'var(--bg-hover)' }}>
+                    <div className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 ${meta.bg}`}>
+                      <Icon className={`w-5 h-5 ${meta.color}`} />
+                    </div>
+                    <div className="flex-1">
+                      <p className="font-semibold text-sm" style={{ color: 'var(--text-primary)' }}>{t.label}</p>
+                      <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{t.sub}</p>
+                    </div>
+                    {/* Checkbox indicator */}
+                    <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center flex-shrink-0 transition-all ${
+                      isSelected ? `${meta.color} border-current bg-white` : 'border-gray-300'
+                    }`}>
+                      {isSelected && <CheckCircle className={`w-4 h-4 ${meta.color}`} />}
+                    </div>
+                  </button>
+                );
+              })}
 
-              {/* Custom name override */}
-              {newSectionType && (
-                <div>
-                  <label className="block text-xs font-semibold mb-1.5 uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>
-                    Display Name (optional)
-                  </label>
-                  <input value={newSectionName} onChange={e => setNewSectionName(e.target.value)}
-                    className="w-full px-3 py-2.5 rounded-xl border text-sm" style={{ borderColor: 'var(--border)', background: 'var(--bg-input)', color: 'var(--text-primary)' }}
-                    placeholder="e.g. Primary School" />
-                </div>
-              )}
-
-              {/* Auto-create levels toggle */}
-              {newSectionType && newSectionType !== 'CUSTOM' && (
-                <div className="flex items-center justify-between p-3 rounded-xl" style={{ background: 'var(--bg-hover)' }}>
+              {/* Auto-create levels toggle — shown when any non-CUSTOM type selected */}
+              {newSelectedTypes.some(t => t !== 'CUSTOM') && (
+                <div className="flex items-center justify-between p-3 rounded-xl mt-2" style={{ background: 'var(--bg-hover)' }}>
                   <div>
                     <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>Auto-create default class levels</p>
                     <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                      {newSectionType === 'NURSERY' && 'Creates: Creche, Playgroup, Nursery 1, Nursery 2, Kindergarten'}
-                      {newSectionType === 'PRIMARY' && 'Creates: Primary 1 through Primary 6'}
-                      {newSectionType === 'JUNIOR_SECONDARY' && 'Creates: JSS 1, JSS 2, JSS 3'}
-                      {newSectionType === 'SENIOR_SECONDARY' && 'Creates: SS 1, SS 2, SS 3'}
+                      Each section will get its standard class levels pre-created
                     </p>
                   </div>
                   <button onClick={() => setAutoCreateLevels(!autoCreateLevels)}
-                    className={`w-11 h-6 rounded-full transition-colors flex items-center ${autoCreateLevels ? 'bg-blue-500' : 'bg-gray-300'}`}>
+                    className={`w-11 h-6 rounded-full transition-colors flex items-center flex-shrink-0 ${autoCreateLevels ? 'bg-blue-500' : 'bg-gray-300'}`}>
                     <span className={`w-5 h-5 bg-white rounded-full shadow transition-transform mx-0.5 ${autoCreateLevels ? 'translate-x-5' : 'translate-x-0'}`} />
                   </button>
                 </div>
               )}
             </div>
-            <div className="px-6 py-4 border-t flex justify-end gap-3" style={{ borderColor: 'var(--border)' }}>
-              <button onClick={() => setShowAddSection(false)} className="px-4 py-2 rounded-xl text-sm border" style={{ borderColor: 'var(--border)', color: 'var(--text-muted)' }}>
-                Cancel
-              </button>
-              <button onClick={handleAddSection} disabled={saving || !newSectionType}
-                className="px-5 py-2 rounded-xl text-sm font-semibold bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-50 flex items-center gap-2">
-                {saving && <Loader2 className="w-4 h-4 animate-spin" />}
-                Add Section
-              </button>
+            <div className="px-6 py-4 border-t flex justify-between items-center" style={{ borderColor: 'var(--border)' }}>
+              <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                {newSelectedTypes.length === 0 ? 'No sections selected' : `${newSelectedTypes.length} section${newSelectedTypes.length > 1 ? 's' : ''} selected`}
+              </p>
+              <div className="flex gap-3">
+                <button onClick={() => { setShowAddSection(false); setNewSelectedTypes([]); }}
+                  className="px-4 py-2 rounded-xl text-sm border" style={{ borderColor: 'var(--border)', color: 'var(--text-muted)' }}>
+                  Cancel
+                </button>
+                <button onClick={handleAddSection} disabled={saving || newSelectedTypes.length === 0}
+                  className="px-5 py-2 rounded-xl text-sm font-semibold bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-50 flex items-center gap-2">
+                  {saving && <Loader2 className="w-4 h-4 animate-spin" />}
+                  Add {newSelectedTypes.length > 1 ? `${newSelectedTypes.length} Sections` : 'Section'}
+                </button>
+              </div>
             </div>
           </div>
         </div>
