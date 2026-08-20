@@ -22,7 +22,7 @@ export async function POST(req: NextRequest) {
     // ── 1. Pre-fetch all classes and arms ──────────────────────────────────────
     const allClasses = await prisma.class.findMany({
       where: { schoolId },
-      include: { arms: true }
+      select: { id: true, name: true, sectionId: true, arms: true }
     });
 
     const classMapByName = new Map<string, any>();
@@ -31,7 +31,7 @@ export async function POST(req: NextRequest) {
     allClasses.forEach(c => {
       classMapByName.set(c.name.trim().toLowerCase(), c);
       classMapById.set(c.id, c);
-      c.arms.forEach((a: any) => armMapByKey.set(`${c.id}|${a.name.trim().toLowerCase()}`, a));
+      (c.arms as any[]).forEach((a: any) => armMapByKey.set(`${c.id}|${a.name.trim().toLowerCase()}`, a));
     });
 
     // ── 2. Capacity check ──────────────────────────────────────────────────────

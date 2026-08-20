@@ -46,8 +46,10 @@ export default function AttendanceSheetsPage() {
   const [terms, setTerms] = useState<Term[]>([]);
   const [classes, setClasses] = useState<ClassLevel[]>([]);
   const [arms, setArms] = useState<Arm[]>([]);
-  
+  const [sections, setSections] = useState<any[]>([]); // school sections
+
   const [selectedTermId, setSelectedTermId] = useState('');
+  const [selectedSectionId, setSelectedSectionId] = useState(''); // section filter
   const [selectedClassId, setSelectedClassId] = useState('');
   const [selectedArmId, setSelectedArmId] = useState('');
   const [selectedDate, setSelectedDate] = useState('2026-05-26'); // Default to local time in metadata
@@ -99,6 +101,7 @@ export default function AttendanceSheetsPage() {
       setTerms(setupJson.data.terms || []);
       setClasses(setupJson.data.classes || []);
       setArms(setupJson.data.arms || []);
+      setSections(setupJson.data.sections || []);
 
       // Auto select active term
       const activeTerm = setupJson.data.terms?.find((t: Term) => t.isCurrent);
@@ -448,6 +451,34 @@ export default function AttendanceSheetsPage() {
           ) : (
             /* Admin/Dean Fallback selection panels */
             <>
+              {/* Section filter — only shown when school has multiple sections */}
+              {sections.length > 1 && (
+                <div>
+                  <label className="block text-[10px] font-extrabold uppercase tracking-wider text-slate-400 mb-1.5">Section</label>
+                  <select
+                    value={selectedSectionId}
+                    onChange={(e) => {
+                      setSelectedSectionId(e.target.value);
+                      // Reset class + arm when section changes
+                      const firstClassInSection = classes.find((c: any) => !e.target.value || c.sectionId === e.target.value);
+                      const firstClassId = firstClassInSection?.id || '';
+                      const firstArm = arms.find((a: Arm) => a.classId === firstClassId);
+                      setSelectedClassId(firstClassId);
+                      setSelectedArmId(firstArm?.id || '');
+                      if (firstClassId && firstArm) {
+                        handleFilterChange(selectedTermId, firstClassId, firstArm.id, selectedDate);
+                      }
+                    }}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-slate-700 focus:outline-none focus:border-slate-300 font-bold"
+                  >
+                    <option value="">All Sections</option>
+                    {sections.map((sec: any) => (
+                      <option key={sec.id} value={sec.id}>{sec.name}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
               <div>
                 <label className="block text-[10px] font-extrabold uppercase tracking-wider text-slate-400 mb-1.5">Select Class (Admin View)</label>
                 <select
@@ -455,9 +486,11 @@ export default function AttendanceSheetsPage() {
                   onChange={(e) => handleClassChange(e.target.value)}
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-slate-700 focus:outline-none focus:border-slate-300 font-bold"
                 >
-                  {classes.map((cls) => (
-                    <option key={cls.id} value={cls.id}>{cls.name}</option>
-                  ))}
+                  {classes
+                    .filter((cls: any) => !selectedSectionId || cls.sectionId === selectedSectionId)
+                    .map((cls) => (
+                      <option key={cls.id} value={cls.id}>{cls.name}</option>
+                    ))}
                 </select>
               </div>
 

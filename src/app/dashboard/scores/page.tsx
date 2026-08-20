@@ -28,6 +28,7 @@ export default function ScoresManagerPage() {
   const [loading, setLoading] = useState(true);
 
   // Filter selections
+  const [selectedSection, setSelectedSection] = useState(''); // section filter
   const [selectedClass, setSelectedClass] = useState('');
   const [selectedArm, setSelectedArm] = useState('');
   const [selectedSubject, setSelectedSubject] = useState('');
@@ -491,12 +492,17 @@ export default function ScoresManagerPage() {
   // Compute available items based on RBAC rules
   const availableClasses = React.useMemo(() => {
     if (!setup?.classes) return [];
-    if (!isTeacher) return setup.classes;
-    
+    let classes = setup.classes;
+
+    // Filter by section if one is selected
+    if (selectedSection) classes = classes.filter((c: any) => c.sectionId === selectedSection);
+
+    if (!isTeacher) return classes;
+
     // Filter classes that appear in teacher's assignments
     const assignedClassIds = new Set(myAssignments.map((a: any) => a.classId));
-    return setup.classes.filter((c: any) => assignedClassIds.has(c.id));
-  }, [setup, isTeacher, myAssignments]);
+    return classes.filter((c: any) => assignedClassIds.has(c.id));
+  }, [setup, isTeacher, myAssignments, selectedSection]);
 
   const availableArms = React.useMemo(() => {
     if (!setup?.arms || !selectedClass) return [];
@@ -639,7 +645,29 @@ export default function ScoresManagerPage() {
       )}
 
       {/* Setup configuration selectors */}
-      <div className="p-6 rounded-2xl bg-white border border-slate-200/80 shadow-sm grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className={`p-6 rounded-2xl bg-white border border-slate-200/80 shadow-sm grid grid-cols-1 gap-4 ${setup?.sections?.length > 1 ? 'md:grid-cols-5' : 'md:grid-cols-4'}`}>
+
+        {/* Section filter — only rendered when school has multiple sections */}
+        {setup?.sections?.length > 1 && (
+          <div>
+            <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1.5">Section</label>
+            <select
+              value={selectedSection}
+              onChange={(e) => {
+                setSelectedSection(e.target.value);
+                setSelectedClass('');
+                setSelectedArm('');
+              }}
+              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 text-slate-800 font-medium transition-all shadow-inner hover:border-slate-350"
+            >
+              <option value="">All Sections</option>
+              {setup.sections.map((sec: any) => (
+                <option key={sec.id} value={sec.id}>{sec.name}</option>
+              ))}
+            </select>
+          </div>
+        )}
+
         <div>
           <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1.5">Class</label>
           <select
