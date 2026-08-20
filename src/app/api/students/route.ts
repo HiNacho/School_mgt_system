@@ -208,7 +208,7 @@ export async function POST(req: NextRequest) {
           dateOfBirth: dateOfBirth || null,
           classId,
           armId,
-          passportPhoto: passportPhoto || null,
+          passportPhoto: passportPhoto || `https://api.dicebear.com/9.x/notionists/svg?seed=${encodeURIComponent(`${firstName.trim()} ${lastName.trim()}`)}&backgroundColor=b6e3f4,c0aede,d1d4f9,ffd5dc,ffdfbf&scale=110`,
           status: 'ACTIVE',
         },
       });

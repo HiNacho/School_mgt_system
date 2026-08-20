@@ -127,6 +127,10 @@ export async function POST(req: NextRequest) {
 
       const studentId = randomUUID();
 
+      // Auto-generate default passport photo (DiceBear Notionists) — replaced when school uploads a real photo
+      const avatarSeed = encodeURIComponent(`${cleanFirstName} ${cleanLastName}`);
+      const defaultPassportPhoto = `https://api.dicebear.com/9.x/notionists/svg?seed=${avatarSeed}&backgroundColor=b6e3f4,c0aede,d1d4f9,ffd5dc,ffdfbf&scale=110`;
+
       studentRows.push({
         id: studentId,
         schoolId,
@@ -140,6 +144,7 @@ export async function POST(req: NextRequest) {
         classId: targetClass.id,
         armId: targetArm.id,
         status: 'ACTIVE',
+        passportPhoto: defaultPassportPhoto,
         category: s.category ? String(s.category).trim() : null,
         house: s.house ? String(s.house).trim() : null,
         nationality: s.nationality ? String(s.nationality).trim() : null,
