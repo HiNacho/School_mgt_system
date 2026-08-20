@@ -101,7 +101,7 @@ export default function AcademicStructurePage() {
     setSchool(s);
     setLoading(true);
     try {
-      const res = await fetch(`/api/sections?schoolId=${s.schoolId}`);
+      const res = await fetch(`/api/sections?schoolId=${s.school?.id}`);
       const data = await res.json();
       if (data.success) setSections(data.data);
     } catch { showError('Failed to load academic structure'); }
@@ -115,7 +115,7 @@ export default function AcademicStructurePage() {
     setSelectedSection(section);
     setSectionLoading(true);
     try {
-      const res = await fetch(`/api/sections?schoolId=${section.schoolId || school?.schoolId}&includeClasses=true`);
+      const res = await fetch(`/api/sections?schoolId=${section.schoolId || school?.school?.id}&includeClasses=true`);
       const data = await res.json();
       if (data.success) {
         const found = data.data.find((s: SchoolSection) => s.id === section.id);
@@ -134,7 +134,7 @@ export default function AcademicStructurePage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          schoolId: school.schoolId,
+          schoolId: school.school.id,
           type: newSectionType,
           name: newSectionName || undefined,
           autoCreateLevels,
@@ -177,7 +177,7 @@ export default function AcademicStructurePage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           type: 'CLASS',
-          schoolId: school.schoolId,
+          schoolId: school.school.id,
           name: newClassName.trim(),
           sectionId: selectedSection.id,
         }),
@@ -203,7 +203,7 @@ export default function AcademicStructurePage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           type: 'ARM',
-          schoolId: school.schoolId,
+          schoolId: school.school.id,
           classId: newArmClassId,
           name: newArmName.trim(),
         }),
