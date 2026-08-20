@@ -100,6 +100,13 @@ export async function GET(req: NextRequest) {
       ]
     });
 
+    // 8. Fetch school sections (grouped academic tiers)
+    const sections = await prisma.schoolSection.findMany({
+      where: { schoolId, isActive: true },
+      orderBy: { displayOrder: 'asc' },
+      include: { _count: { select: { classes: true } } },
+    });
+
     return NextResponse.json(
       {
         success: true,
@@ -110,7 +117,8 @@ export async function GET(req: NextRequest) {
           arms,
           subjects,
           gradingRules,
-          teachers
+          teachers,
+          sections,
         },
       },
       {

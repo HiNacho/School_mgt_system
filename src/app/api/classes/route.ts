@@ -7,19 +7,22 @@ export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const schoolId = searchParams.get('schoolId');
+    const sectionId = searchParams.get('sectionId'); // optional filter by section
 
     if (!schoolId) {
       return NextResponse.json({ error: 'School ID is required' }, { status: 400 });
     }
 
-    // Fetch classes for this school
+    const classWhere: any = { schoolId };
+    if (sectionId) classWhere.sectionId = sectionId;
+
+    // Fetch classes for this school (with section info)
     const classes = await prisma.class.findMany({
-      where: { schoolId },
-      orderBy: { name: 'asc' },
+      where: classWhere,
+      orderBy: [{ section: { displayOrder: 'asc' } }, { levelOrder: 'asc' }, { name: 'asc' }],
       include: {
-        _count: {
-          select: { students: true }
-        }
+        section: { select: { id: true, name: true, type: true, displayOrder: true } },
+        _count: { select: { students: true } }
       }
     });
 
@@ -36,7 +39,7 @@ export async function GET(req: NextRequest) {
         { name: 'asc' }
       ],
       include: {
-        class: true,
+        class: { include: { section: { select: { id: true, name: true, type: true } } } },
         classTeacher: {
           select: {
             id: true,
@@ -49,6 +52,12 @@ export async function GET(req: NextRequest) {
           select: { students: true }
         }
       }
+    });
+
+    // Fetch sections for this school
+    const sections = await prisma.schoolSection.findMany({
+      where: { schoolId, isActive: true },
+      orderBy: { displayOrder: 'asc' },
     });
 
     // Fetch active staff in school who can be assigned as class teachers
@@ -75,7 +84,8 @@ export async function GET(req: NextRequest) {
       data: {
         classes,
         arms,
-        staff
+        staff,
+        sections,
       }
     });
   } catch (error: any) {
@@ -88,7 +98,7 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { type, schoolId, name, classId, classTeacherId } = body;
+    const { type, schoolId, name, classId, classTeacherId, sectionId } = body;
 
     if (!schoolId) {
       return NextResponse.json({ error: 'School ID is required' }, { status: 400 });
@@ -101,26 +111,31 @@ export async function POST(req: NextRequest) {
     if (type === 'CLASS') {
       // Check if class with identical name already exists for this school
       const existing = await prisma.class.findFirst({
-        where: { 
-          schoolId,
-          name: name.trim()
-        }
+        where: { schoolId, name: name.trim() }
       });
 
       if (existing) {
         return NextResponse.json({ error: `Class level "${name}" already exists.` }, { status: 400 });
       }
 
-      // Create new Class
+      // Auto-detect levelOrder from name if not provided
+      const levelMatch = name.trim().match(/(\d+)/);
+      const levelOrder = levelMatch ? parseInt(levelMatch[1]) : 0;
+
+      // Create new Class (with optional sectionId)
       const newClass = await prisma.class.create({
         data: {
           schoolId,
-          name: name.trim()
-        }
+          name: name.trim(),
+          sectionId: sectionId || null,
+          levelOrder,
+          isActive: true,
+        },
+        include: { section: { select: { id: true, name: true, type: true } } }
       });
 
       return NextResponse.json({ success: true, data: newClass });
-    } 
+    }
     
     else if (type === 'ARM') {
       if (!classId) {

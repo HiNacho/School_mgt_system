@@ -28,6 +28,9 @@ model School {
   gracePeriodEnd      DateTime?
   maxStudents         Int       @default(700)
 
+  // Multi-section school support
+  sectionTypes        String?   // JSON array: ["NURSERY","PRIMARY","JUNIOR_SECONDARY","SENIOR_SECONDARY"]
+
   // School Fee Online Payment Setup (Flutterwave Subaccount)
   flutterwaveSubaccountId  String?
   flutterwaveMerchantId   String?
@@ -49,7 +52,6 @@ model School {
   saasPaymentReceipts   PaymentReceipt[]
   billingAuditLogs      BillingAuditLog[]
   subscriptionReminders SubscriptionReminder[]
-
 
   users              User[]
   students           Student[]
@@ -88,7 +90,31 @@ model School {
   studentMedicals         StudentMedical[]
   studentDocuments        StudentDocument[]
   pendingApplications     PendingApplication[]
+  sections                SchoolSection[]
 }
+
+// ─── School Section ─────────────────────────────────────────────────────────
+// Groups classes into academic tiers: Nursery, Primary, Junior/Senior Secondary
+model SchoolSection {
+  id           String   @id @default(uuid())
+  schoolId     String
+  name         String   // Display name e.g. "Primary School", "Junior Secondary School"
+  type         String   // NURSERY | PRIMARY | JUNIOR_SECONDARY | SENIOR_SECONDARY | CUSTOM
+  description  String?
+  displayOrder Int      @default(0)
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  school        School         @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  classes       Class[]
+  feeStructures FeeStructure[]
+  gradingRules  GradingRule[]
+
+  @@unique([schoolId, type])
+}
+
+
 
 
 model User {
@@ -204,12 +230,16 @@ model Term {
 }
 
 model Class {
-  id        String   @id @default(uuid())
-  schoolId  String
-  name      String // E.g., "JSS 1", "SSS 3"
-  createdAt DateTime @default(now())
+  id           String   @id @default(uuid())
+  schoolId     String
+  name         String   // E.g., "JSS 1", "SSS 3"
+  sectionId    String?  // FK → SchoolSection (null for legacy/unclassified)
+  levelOrder   Int      @default(0)  // e.g. Primary 1 = 1, Primary 6 = 6, JSS 1 = 1
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
 
   school                School                 @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  section               SchoolSection?         @relation(fields: [sectionId], references: [id], onDelete: SetNull)
   arms                  Arm[]
   students              Student[]
   scores                Score[]
@@ -390,13 +420,15 @@ model Score {
 model GradingRule {
   id             String   @id @default(uuid())
   schoolId       String
+  sectionId      String?  // null = school-wide default; set = section-specific override
   minScore       Float
   maxScore       Float
   grade          String // E.g., "A1", "C4", "F9"
   interpretation String // E.g., "Excellent", "Credit", "Fail"
   createdAt      DateTime @default(now())
 
-  school School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  school   School         @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  section  SchoolSection? @relation(fields: [sectionId], references: [id], onDelete: Cascade)
 }
 
 model Attendance {
@@ -878,8 +910,9 @@ model StudentTimeline {
 model FeeStructure {
   id              String   @id @default(uuid())
   schoolId        String
+  sectionId       String?  // FK → SchoolSection (optional; keeps backward compat with section String)
   name            String
-  section         String   // NURSERY, PRIMARY, JUNIOR_SECONDARY, SENIOR_SECONDARY
+  section         String   // NURSERY, PRIMARY, JUNIOR_SECONDARY, SENIOR_SECONDARY (kept for BC)
   tuition         Float    @default(0)
   developmentLevy Float    @default(0)
   ict             Float    @default(0)
@@ -897,7 +930,8 @@ model FeeStructure {
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
-  school          School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  school          School         @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  schoolSection   SchoolSection? @relation(fields: [sectionId], references: [id], onDelete: SetNull)
   classes         Class[]
 }
 

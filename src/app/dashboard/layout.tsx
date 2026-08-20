@@ -378,6 +378,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       { name: 'Parents', href: '/dashboard/parents', icon: User },
       { name: 'Subjects', href: '/dashboard/subjects', icon: BookOpen },
       { name: 'Classes', href: '/dashboard/classes', icon: Layers },
+      { name: 'Academic Structure', href: '/dashboard/settings/academic-structure', icon: Layers },
       { name: 'Attendance', href: '/dashboard/attendance', icon: ClipboardList },
       { name: 'Messages', href: '/dashboard/messages', icon: MessageSquare },
       { name: 'Billing & Subscription', href: '/dashboard/billing', icon: CreditCard },
