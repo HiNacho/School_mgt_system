@@ -401,7 +401,11 @@ export async function DELETE(req: NextRequest) {
       await tx.term.deleteMany({ where: { schoolId } });
       await tx.academicSession.deleteMany({ where: { schoolId } });
 
-      // 9. Finally, delete the school itself
+      // 9. Unlink demoSchoolId on any lead associated with this school, then delete the school itself
+      await tx.lead.updateMany({
+        where: { demoSchoolId: schoolId },
+        data: { demoSchoolId: null }
+      });
       await tx.school.delete({ where: { id: schoolId } });
     }, {
       timeout: 35000 // 35 seconds to prevent timeout over slow pooled connections

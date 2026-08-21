@@ -81,12 +81,12 @@ export async function POST(req: NextRequest) {
       ? interestedFeatures.join(', ')
       : (interestedFeatures || null);
 
-    if (!lead) {
-      // Parse integers if they come as strings
-      const parsedStudentCount = studentCount ? parseInt(studentCount, 10) : null;
-      const parsedTeacherCount = teacherCount ? parseInt(teacherCount, 10) : null;
-      const parsedClassCount = classCount ? parseInt(classCount, 10) : null;
+    // Parse integers if they come as strings
+    const parsedStudentCount = studentCount ? parseInt(studentCount, 10) : null;
+    const parsedTeacherCount = teacherCount ? parseInt(teacherCount, 10) : null;
+    const parsedClassCount = classCount ? parseInt(classCount, 10) : null;
 
+    if (!lead) {
       // Create new Lead record in the database
       lead = await prisma.lead.create({
         data: {
@@ -105,6 +105,23 @@ export async function POST(req: NextRequest) {
           biggestChallenge: biggestChallenge || null,
           interestedFeatures: resolvedFeatures,
           leadStatus: 'NEW',
+        }
+      });
+    } else {
+      // Update existing lead with newly submitted details (e.g. new school name or contact name)
+      lead = await prisma.lead.update({
+        where: { id: lead.id },
+        data: {
+          schoolName,
+          schoolType: schoolType || lead.schoolType,
+          ownershipType: ownershipType || lead.ownershipType,
+          contactName: resolvedContactName,
+          position: position || lead.position,
+          phone: phone || lead.phone,
+          studentCount: parsedStudentCount ?? lead.studentCount,
+          teacherCount: parsedTeacherCount ?? lead.teacherCount,
+          classCount: parsedClassCount ?? lead.classCount,
+          interestedFeatures: resolvedFeatures || lead.interestedFeatures,
         }
       });
     }
