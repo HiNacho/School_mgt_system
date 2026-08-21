@@ -55,6 +55,10 @@ export default function PaymentSettingsPage() {
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
 
+  const [bankSearchQuery, setBankSearchQuery] = useState('');
+  const [autoDetecting, setAutoDetecting] = useState(false);
+  const [autoDetectedBankName, setAutoDetectedBankName] = useState('');
+
   // Form State
   const [bankCode, setBankCode] = useState('058');
   const [accountNumber, setAccountNumber] = useState('');
@@ -71,6 +75,33 @@ export default function PaymentSettingsPage() {
     fetchBanksList();
     fetchPaymentSettings();
   }, []);
+
+  const handleAutoDetectBank = async (accNum: string) => {
+    const clean = accNum.replace(/[^0-9]/g, '');
+    if (clean.length !== 10) return;
+
+    setAutoDetecting(true);
+    setErrorMsg('');
+
+    try {
+      const res = await fetch('/api/banks/resolve', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ accountNumber: clean, autoDetect: true }),
+      });
+      const json = await res.json();
+
+      if (res.ok && json.success && json.data) {
+        setBankCode(json.data.bankCode);
+        setAutoDetectedBankName(json.data.bankName);
+        setResolvedAccountName(json.data.accountName);
+      }
+    } catch (err) {
+      console.warn('Auto-detect did not find matching bank');
+    } finally {
+      setAutoDetecting(false);
+    }
+  };
 
   const fetchBanksList = async () => {
     try {
@@ -443,31 +474,62 @@ export default function PaymentSettingsPage() {
 
             <div className="space-y-4">
               <div>
-                <label className="block text-xs font-extrabold uppercase tracking-wider text-slate-500 mb-1">Select Bank</label>
+                <label className="block text-xs font-extrabold uppercase tracking-wider text-slate-500 mb-1">10-Digit NUBAN Account Number</label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    maxLength={10}
+                    placeholder="Enter 10-digit account number..."
+                    value={accountNumber}
+                    onChange={(e) => {
+                      const num = e.target.value.replace(/[^0-9]/g, '');
+                      setAccountNumber(num);
+                      if (num.length === 10) {
+                        handleAutoDetectBank(num);
+                      }
+                    }}
+                    className="w-full px-4 py-3 rounded-xl border border-slate-300 font-mono text-base font-extrabold text-slate-900 focus:outline-none focus:border-indigo-600"
+                  />
+                  {autoDetecting && (
+                    <div className="absolute right-3 top-3.5 flex items-center gap-1.5 text-xs text-indigo-600 font-bold">
+                      <RefreshCw className="w-4 h-4 animate-spin" /> Auto-detecting...
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-xs font-extrabold uppercase tracking-wider text-slate-500">Select Bank</label>
+                  <span className="text-[10px] text-slate-400 font-medium">Type to filter list</span>
+                </div>
+                <input
+                  type="text"
+                  placeholder="🔍 Search bank name (e.g. GTBank, PalmPay, Moniepoint)..."
+                  value={bankSearchQuery}
+                  onChange={(e) => setBankSearchQuery(e.target.value)}
+                  className="w-full px-3.5 py-2 mb-2 rounded-lg border border-slate-200 text-xs font-bold focus:outline-none focus:border-indigo-600"
+                />
                 <select
                   value={bankCode}
                   onChange={(e) => setBankCode(e.target.value)}
                   className="w-full px-4 py-3 rounded-xl border border-slate-300 text-sm font-extrabold text-slate-900 focus:outline-none focus:border-indigo-600"
                 >
-                  {bankList.map((b) => (
-                    <option key={b.code} value={b.code}>
-                      {b.name}
-                    </option>
-                  ))}
+                  {bankList
+                    .filter((b) => b.name.toLowerCase().includes(bankSearchQuery.toLowerCase()))
+                    .map((b) => (
+                      <option key={b.code} value={b.code}>
+                        {b.name}
+                      </option>
+                    ))}
                 </select>
               </div>
 
-              <div>
-                <label className="block text-xs font-extrabold uppercase tracking-wider text-slate-500 mb-1">10-Digit NUBAN Account Number</label>
-                <input
-                  type="text"
-                  maxLength={10}
-                  placeholder="0123456789"
-                  value={accountNumber}
-                  onChange={(e) => setAccountNumber(e.target.value.replace(/[^0-9]/g, ''))}
-                  className="w-full px-4 py-3 rounded-xl border border-slate-300 font-mono text-base font-extrabold text-slate-900 focus:outline-none focus:border-indigo-600"
-                />
-              </div>
+              {autoDetectedBankName && (
+                <div className="p-3 rounded-xl bg-indigo-50 border border-indigo-200 text-indigo-900 text-xs font-extrabold flex items-center gap-2">
+                  <Zap className="w-4 h-4 text-indigo-600 shrink-0 animate-bounce" /> Auto-Detected Bank: {autoDetectedBankName}
+                </div>
+              )}
 
               {resolvedAccountName && (
                 <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-extrabold flex items-center gap-2">
@@ -487,7 +549,7 @@ export default function PaymentSettingsPage() {
                   type="button"
                   onClick={handleResolveAccount}
                   disabled={resolving || accountNumber.length !== 10}
-                  className="flex-1 py-3.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-xs uppercase tracking-wider transition disabled:opacity-50 flex items-center justify-center gap-2"
+                  className="flex-1 py-3.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-xs uppercase tracking-wider transition disabled:opacity-50 flex items-center justify-center gap-2 shadow-lg shadow-indigo-600/20"
                 >
                   {resolving ? <RefreshCw className="w-4 h-4 animate-spin" /> : 'Verify & Activate Subaccount'}
                 </button>

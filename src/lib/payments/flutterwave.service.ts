@@ -152,6 +152,54 @@ export async function resolveBankAccount(accountNumber: string, bankCode: string
   };
 }
 
+export async function autoDetectBankAccount(accountNumber: string) {
+  const cleanNumber = accountNumber.replace(/[^0-9]/g, '').trim();
+  if (cleanNumber.length !== 10) {
+    throw new Error('Account number must be exactly 10 digits.');
+  }
+
+  const topCandidateBanks = [
+    { code: '058', name: 'Guaranty Trust Bank (GTBank)' },
+    { code: '044', name: 'Access Bank' },
+    { code: '057', name: 'Zenith Bank' },
+    { code: '011', name: 'First Bank of Nigeria' },
+    { code: '033', name: 'United Bank for Africa (UBA)' },
+    { code: '035', name: 'Wema Bank' },
+    { code: '214', name: 'First City Monument Bank (FCMB)' },
+    { code: '070', name: 'Fidelity Bank' },
+    { code: '50515', name: 'Moniepoint MFB' },
+    { code: '090129', name: 'Moniepoint Microfinance Bank' },
+    { code: '100004', name: 'OPay Digital Services' },
+    { code: '100033', name: 'PalmPay' },
+    { code: '090405', name: 'PalmPay MFB' },
+    { code: '50211', name: 'Kuda Bank' },
+    { code: '221', name: 'Stanbic IBTC Bank' },
+    { code: '101', name: 'Providus Bank' },
+    { code: '076', name: 'Polaris Bank' },
+    { code: '082', name: 'Keystone Bank' },
+  ];
+
+  const results = await Promise.allSettled(
+    topCandidateBanks.map(async (bank) => {
+      const res = await resolveBankAccount(cleanNumber, bank.code);
+      return {
+        bankCode: bank.code,
+        bankName: bank.name,
+        accountNumber: res.accountNumber,
+        accountName: res.accountName,
+      };
+    })
+  );
+
+  const matched = results.find(r => r.status === 'fulfilled');
+
+  if (matched && matched.status === 'fulfilled') {
+    return matched.value;
+  }
+
+  throw new Error('Could not auto-detect bank for this account number. Please select your bank manually from the list.');
+}
+
 export async function createFlutterwaveSubaccount(params: CreateSubaccountParams) {
   if (!getSecretKey()) {
     throw new Error('Flutterwave Secret Key is not configured on server.');
