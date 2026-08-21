@@ -560,13 +560,8 @@ export default function StudentsDirectoryPage() {
       setImportSuccessBanner({ count: createdCount, skipped: skippedCount });
       await loadAll(session);
 
-      // Show big success toast then auto-close modal after 2 seconds
-      showSuccess(`🎉 ${createdCount} student${createdCount !== 1 ? 's' : ''} imported successfully!`);
-      setTimeout(() => {
-        setExcelOpen(false);
-        setParsedStudents([]);
-        setUploadResult(null);
-      }, 2000);
+      // Show success notification toast
+      showSuccess(`🎉 ${createdCount} student${createdCount !== 1 ? 's' : ''} uploaded successfully!`);
     } catch (e: any) { showError(e.message); }
     setUploading(false);
   };
@@ -1277,9 +1272,9 @@ export default function StudentsDirectoryPage() {
                   {/* Done button */}
                   <button
                     onClick={() => { setExcelOpen(false); setParsedStudents([]); setUploadResult(null); }}
-                    className="w-full py-3 rounded-xl font-black text-sm bg-emerald-500 hover:bg-emerald-400 text-white transition-all active:scale-95 shadow-lg shadow-emerald-900/40"
+                    className="w-full py-3 rounded-xl font-black text-sm bg-emerald-500 hover:bg-emerald-400 text-white transition-all active:scale-95 shadow-lg shadow-emerald-900/40 cursor-pointer"
                   >
-                    ✓ Done — View Students
+                    ✓ Done — View {uploadResult.created || 0} Imported Student{(uploadResult.created || 0) !== 1 ? 's' : ''}
                   </button>
                 </div>
               ) : (
