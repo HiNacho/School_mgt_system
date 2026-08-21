@@ -107,9 +107,7 @@ export async function GET(req: NextRequest) {
           data: {
             schoolId: payment.schoolId,
             userId: admin.id,
-            title: 'School Fee Payment Received',
-            message: `₦${payment.amount.toLocaleString()} received for ${payment.student.firstName} ${payment.student.lastName} (${payment.receiptNumber}).`,
-            type: 'PAYMENT',
+            message: `💳 School Fee Payment Received: ₦${payment.amount.toLocaleString()} received for ${payment.student.firstName} ${payment.student.lastName} (${payment.receiptNumber}).`,
           },
         });
       }

@@ -32,19 +32,29 @@ model School {
   sectionTypes        String?   // JSON array: ["NURSERY","PRIMARY","JUNIOR_SECONDARY","SENIOR_SECONDARY"]
 
   // School Fee Online Payment Setup (Flutterwave Subaccount)
-  flutterwaveSubaccountId  String?
-  flutterwaveMerchantId   String?
-  flutterwaveStatus       String    @default("NOT_CONNECTED") // NOT_CONNECTED, PENDING_VERIFICATION, VERIFIED, ACTIVE, SUSPENDED, DISABLED
-  onlinePaymentsEnabled   Boolean   @default(false)
-  allowPartialPayments    Boolean   @default(true)
-  minPartialPaymentAmount Float     @default(1000)
-  operonPlatformFeePercent Float    @default(0)
+  flutterwaveSubaccountId       String?
+  flutterwaveMerchantId          String?
+  flutterwaveStatus              String    @default("NOT_CONNECTED") // NOT_CONNECTED, PENDING_VERIFICATION, VERIFIED, ACTIVE, SUSPENDED, DISABLED
+  flutterwaveBankCode            String?
+  flutterwaveAccountName         String?
+  flutterwaveAccountNumberLast4  String?
+  paymentOnboardingStatus        String    @default("NOT_CONFIGURED") // NOT_CONFIGURED, SETUP_REQUIRED, PENDING_VERIFICATION, ACTIVE, SUSPENDED, FAILED
+  paymentOnboardingCompletedAt   DateTime?
+  onlinePaymentsEnabled          Boolean   @default(false)
+  allowPartialPayments           Boolean   @default(true)
+  minPartialPaymentAmount        Float     @default(1000)
+  operonPlatformFeePercent       Float     @default(0)
+  platformFeeType                String    @default("PERCENTAGE") // PERCENTAGE, FIXED
+  platformFeeValue               Float     @default(0)
 
   payments            Payment[]
   usageLogs           UsageLog[]
   feeStructures       FeeStructure[]
   invoices            Invoice[]
   studentPayments     StudentPayment[]
+  schoolFeeRefunds    SchoolFeeRefund[]
+  paymentDisputes     PaymentDispute[]
+  paymentAuditLogs    PaymentAuditLog[]
   financialAuditLogs  FinancialAuditLog[]
   subscriptionDetail    SchoolSubscription?
   saasBillingInvoices   SaaSBillingInvoice[]
@@ -972,6 +982,11 @@ model StudentPayment {
   receiptNumber           String
   amount                  Float
   currency                String   @default("NGN")
+  grossAmount             Float    @default(0)
+  platformFee             Float    @default(0)
+  schoolAmount            Float    @default(0)
+  netAmount               Float    @default(0)
+  flutterwaveFee          Float    @default(0)
   paymentMethod           String   // FLUTTERWAVE, CASH, POS, BANK_TRANSFER, CHEQUE
   paymentType             String   @default("SCHOOL_FEE") // SCHOOL_FEE (distinct from OPERON_SUBSCRIPTION)
   referenceNumber         String?
@@ -983,7 +998,7 @@ model StudentPayment {
   tellerImage             String?  // base64 or storage url
   feeBreakdown            Json?    // Category breakdown
   refundReason            String?
-  status                  String   @default("VERIFIED") // PENDING, VERIFIED, SUCCESSFUL, FAILED, CANCELLED, REFUNDED, UNDER_REVIEW
+  status                  String   @default("VERIFIED") // PENDING, PROCESSING, VERIFIED, SUCCESSFUL, FAILED, CANCELLED, REFUNDED, PARTIALLY_REFUNDED, DISPUTED
   recordedById            String?
   verifiedById            String?
   deletedAt               DateTime? // soft delete support
@@ -999,16 +1014,65 @@ model StudentPayment {
 }
 
 model SchoolFeeRefund {
-  id             String   @id @default(uuid())
-  schoolId       String
-  paymentId      String
-  amount         Float
-  reason         String
-  status         String   @default("COMPLETED") // COMPLETED, PENDING, FAILED
-  initiatedById  String?
-  createdAt      DateTime @default(now())
+  id                  String   @id @default(uuid())
+  schoolId            String
+  paymentId           String
+  refundReference     String?
+  flutterwaveRefundId String?
+  amount              Float
+  reason              String
+  status              String   @default("COMPLETED") // COMPLETED, PENDING, FAILED
+  initiatedById       String?
+  approvedById        String?
+  executedById        String?
+  createdAt           DateTime @default(now())
 
-  payment        StudentPayment @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+  school              School         @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  payment             StudentPayment @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+}
+
+model PaymentEvent {
+  id            String    @id @default(uuid())
+  provider      String    @default("FLUTTERWAVE")
+  eventId       String    @unique
+  transactionId String?
+  eventType     String
+  payloadHash   String?
+  processed     Boolean   @default(false)
+  processedAt   DateTime?
+  createdAt     DateTime  @default(now())
+}
+
+model PaymentDispute {
+  id                 String    @id @default(uuid())
+  schoolId           String
+  studentId          String?
+  parentId           String?
+  paymentId          String?
+  paymentReference   String
+  flutterwaveTxId    String?
+  amount             Float
+  disputeStatus      String    @default("OPEN") // OPEN, UNDER_REVIEW, RESOLVED_WON, RESOLVED_LOST
+  reason             String?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  school             School    @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+}
+
+model PaymentAuditLog {
+  id           String   @id @default(uuid())
+  schoolId     String
+  actorId      String?
+  actorRole    String?
+  action       String   // SUBACCOUNT_CREATED, PAYMENT_INITIALIZED, WEBHOOK_VERIFIED, REFUND_EXECUTED, etc.
+  resourceType String   // SCHOOL, PAYMENT, INVOICE, SUBACCOUNT, REFUND
+  resourceId   String
+  metadata     Json?
+  ipAddress    String?
+  createdAt    DateTime @default(now())
+
+  school       School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
 }
 
 model InstallmentSchedule {

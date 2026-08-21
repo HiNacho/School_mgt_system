@@ -2,15 +2,26 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth, requireRole } from '@/lib/auth-middleware';
 import prisma from '@/lib/db';
 
-// GET /api/bursar/payments - Retrieve payment entries
+// GET /api/bursar/payments - Retrieve payment entries with analytics and filters
 export async function GET(req: NextRequest) {
   try {
     const session = await requireAuth(req);
-    requireRole(session, ['SUPER_ADMIN', 'SCHOOL_ADMIN', 'BURSAR']);
+    requireRole(session, ['SUPER_ADMIN', 'SCHOOL_ADMIN', 'BURSAR', 'HEAD_TEACHER']);
+    
     const { searchParams } = new URL(req.url);
     const studentId = searchParams.get('studentId');
     const invoiceId = searchParams.get('invoiceId');
-    const schoolId = session.schoolId;
+    const status = searchParams.get('status');
+    const paymentMethod = searchParams.get('paymentMethod');
+    const classId = searchParams.get('classId');
+    const startDate = searchParams.get('startDate');
+    const endDate = searchParams.get('endDate');
+    const search = searchParams.get('search');
+    
+    let schoolId = session.schoolId || searchParams.get('schoolId');
+    if (session.role === 'SUPER_ADMIN' && searchParams.get('schoolId')) {
+      schoolId = searchParams.get('schoolId');
+    }
 
     if (!schoolId) {
       return NextResponse.json({ error: 'School context required' }, { status: 400 });
@@ -21,34 +32,137 @@ export async function GET(req: NextRequest) {
       deletedAt: null
     };
 
-    if (studentId) {
-      whereClause.studentId = studentId;
+    if (studentId) whereClause.studentId = studentId;
+    if (invoiceId) whereClause.invoiceId = invoiceId;
+
+    if (status && status !== 'ALL') {
+      whereClause.status = status;
     }
 
-    if (invoiceId) {
-      whereClause.invoiceId = invoiceId;
+    if (paymentMethod && paymentMethod !== 'ALL') {
+      whereClause.paymentMethod = paymentMethod;
     }
 
-    const payments = await prisma.studentPayment.findMany({
-      where: whereClause,
-      include: {
-        student: {
-          select: {
-            id: true,
-            firstName: true,
-            lastName: true,
-            admissionNumber: true,
-            class: { select: { name: true } },
-            arm: { select: { name: true } }
-          }
+    if (classId && classId !== 'ALL') {
+      whereClause.student = { classId };
+    }
+
+    if (startDate || endDate) {
+      whereClause.paymentDate = {};
+      if (startDate) whereClause.paymentDate.gte = new Date(startDate);
+      if (endDate) whereClause.paymentDate.lte = new Date(endDate);
+    }
+
+    if (search && search.trim()) {
+      const q = search.trim();
+      whereClause.OR = [
+        { receiptNumber: { contains: q, mode: 'insensitive' } },
+        { referenceNumber: { contains: q, mode: 'insensitive' } },
+        { flutterwaveTransactionId: { contains: q, mode: 'insensitive' } },
+        { student: { firstName: { contains: q, mode: 'insensitive' } } },
+        { student: { lastName: { contains: q, mode: 'insensitive' } } },
+        { student: { admissionNumber: { contains: q, mode: 'insensitive' } } },
+      ];
+    }
+
+    // Consolidated execution for payments list + financial summary metrics
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
+
+    const [payments, summaryGroups, todayPayments, refundsCount] = await Promise.all([
+      prisma.studentPayment.findMany({
+        where: whereClause,
+        include: {
+          student: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              admissionNumber: true,
+              class: { select: { id: true, name: true } },
+              arm: { select: { id: true, name: true } }
+            }
+          },
+          invoice: {
+            select: {
+              id: true,
+              invoiceNumber: true,
+              netAmount: true,
+              paidAmount: true,
+              status: true
+            }
+          },
+          parent: { select: { id: true, firstName: true, lastName: true, email: true, phone: true } }
         },
-        invoice: { select: { invoiceNumber: true, netAmount: true, paidAmount: true } }
-      },
-      orderBy: { createdAt: 'desc' }
+        orderBy: { paymentDate: 'desc' }
+      }),
+
+      // Grouped metrics for School Dashboard
+      prisma.studentPayment.groupBy({
+        by: ['status'],
+        where: { schoolId, deletedAt: null },
+        _sum: { amount: true, grossAmount: true, platformFee: true, schoolAmount: true },
+        _count: { id: true }
+      }),
+
+      // Today's collection
+      prisma.studentPayment.aggregate({
+        where: {
+          schoolId,
+          deletedAt: null,
+          status: { in: ['VERIFIED', 'SUCCESSFUL'] },
+          paymentDate: { gte: startOfToday }
+        },
+        _sum: { amount: true }
+      }),
+
+      // Refunds count & total
+      prisma.schoolFeeRefund.aggregate({
+        where: { schoolId, status: 'COMPLETED' },
+        _sum: { amount: true },
+        _count: { id: true }
+      })
+    ]);
+
+    // Calculate Summary Metrics
+    let totalCollected = 0;
+    let successfulCount = 0;
+    let pendingAmount = 0;
+    let pendingCount = 0;
+    let failedCount = 0;
+
+    for (const group of summaryGroups) {
+      if (['VERIFIED', 'SUCCESSFUL'].includes(group.status)) {
+        totalCollected += group._sum.amount || 0;
+        successfulCount += group._count.id || 0;
+      } else if (['PENDING', 'PROCESSING', 'UNDER_REVIEW'].includes(group.status)) {
+        pendingAmount += group._sum.amount || 0;
+        pendingCount += group._count.id || 0;
+      } else if (['FAILED', 'CANCELLED'].includes(group.status)) {
+        failedCount += group._count.id || 0;
+      }
+    }
+
+    const todayCollection = todayPayments._sum.amount || 0;
+    const refundedAmount = refundsCount._sum.amount || 0;
+
+    return NextResponse.json({
+      success: true,
+      data: payments,
+      summary: {
+        totalCollected,
+        todayCollection,
+        pendingAmount,
+        pendingCount,
+        successfulCount,
+        failedCount,
+        refundedAmount,
+        refundsCount: refundsCount._count.id || 0
+      }
     });
 
-    return NextResponse.json({ success: true, data: payments });
   } catch (error: any) {
+    console.error('Bursar Payments GET Error:', error);
     return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: error.status || 500 });
   }
 }

@@ -349,6 +349,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     menuItems = [
       { name: 'Home', href: '/dashboard', icon: Home },
       { name: 'Tenants', href: '/dashboard/tenants', icon: Layers },
+      { name: 'SaaS Payments & Subaccounts', href: '/dashboard/admin/payments', icon: CreditCard },
       { name: 'Messages', href: '/dashboard/messages', icon: MessageSquare },
       { name: 'Global Rules', href: '/dashboard/global-rules', icon: Settings },
     ];
@@ -356,7 +357,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     menuItems = [
       { name: 'Dashboard', href: '/dashboard', icon: Home },
       { name: 'Student Fees', href: '/dashboard/bursar/fees', icon: CreditCard },
-      { name: 'Payments', href: '/dashboard/bursar/payments', icon: CheckCircle },
+      { name: 'Payments & Collections', href: '/dashboard/bursar/payments', icon: CheckCircle },
+      { name: 'Payment Account Setup', href: '/dashboard/settings/payments', icon: Settings },
       { name: 'Invoices', href: '/dashboard/bursar/invoices', icon: FileText },
       { name: 'Receipts', href: '/dashboard/bursar/receipts', icon: CheckSquare },
       { name: 'Fee Structure', href: '/dashboard/bursar/structures', icon: Layers },
@@ -376,6 +378,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       { name: 'Teachers', href: '/dashboard/teachers', icon: Users },
       { name: 'Students', href: '/dashboard/students', icon: GraduationCap },
       { name: 'Parents', href: '/dashboard/parents', icon: User },
+      { name: 'Payments & Collections', href: '/dashboard/bursar/payments', icon: CheckCircle },
+      { name: 'Payment Account Setup', href: '/dashboard/settings/payments', icon: Settings },
       { name: 'Subjects', href: '/dashboard/subjects', icon: BookOpen },
       { name: 'Classes', href: '/dashboard/classes', icon: Layers },
       { name: 'Academic Structure', href: '/dashboard/settings/academic-structure', icon: Layers },
@@ -403,6 +407,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       );
     } else if (role === 'PARENT') {
       menuItems.push(
+        { name: 'School Fees & Receipts', href: '/dashboard/parents/fees', icon: CreditCard },
         { name: 'Messages', href: '/dashboard/messages', icon: MessageSquare },
       );
     } else if (role === 'STUDENT') {
