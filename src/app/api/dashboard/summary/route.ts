@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/db';
-import { requireAuth } from '@/lib/auth-middleware';
+import { requireAuth, buildSectionFilter } from '@/lib/auth-middleware';
 
 export async function GET(req: NextRequest) {
   try {
@@ -50,7 +50,24 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    // Consolidated database queries for School Admin / Teacher / Parent / Bursar
+    // ── Section scope ─────────────────────────────────────────────────────────
+    // null = full school access, array = restricted to these section IDs
+    const sectionScope = session.managedSectionIds || null;
+
+    // Build class-level where clause for section-scoped admins
+    const classWhere: any = { schoolId: schoolId! };
+    if (sectionScope) classWhere.sectionId = { in: sectionScope };
+
+    // Build student-level where clause (students belong to a class with a sectionId)
+    const studentWhere: any = { schoolId: schoolId! };
+    if (sectionScope) studentWhere.class = { sectionId: { in: sectionScope } };
+
+    // Build staff where clause — for section-scoped admins, show teachers whose
+    // class teacher arm is in one of the scoped sections, plus all admins/bursars
+    const staffRoles = ['SCHOOL_ADMIN', 'CLASS_TEACHER', 'SUBJECT_TEACHER', 'HEAD_TEACHER', 'BURSAR'];
+    const staffWhere: any = { schoolId: schoolId!, role: { in: staffRoles } };
+
+    // Consolidated database queries
     const [
       school,
       sessions,
@@ -74,8 +91,9 @@ export async function GET(req: NextRequest) {
         include: { terms: { orderBy: { createdAt: 'asc' } } },
         orderBy: { createdAt: 'desc' }
       }),
+      // Classes — scoped to managed sections
       prisma.class.findMany({
-        where: { schoolId: schoolId! },
+        where: classWhere,
         include: { 
           arms: { 
             include: { 
@@ -84,7 +102,7 @@ export async function GET(req: NextRequest) {
               } 
             } 
           }, 
-          _count: { select: { students: true } } 
+          _count: { select: { students: true } }
         },
         orderBy: { name: 'asc' }
       }),
@@ -102,32 +120,66 @@ export async function GET(req: NextRequest) {
         take: 10,
         orderBy: { createdAt: 'desc' }
       }),
+      // Student counts — scoped to managed sections
       prisma.student.groupBy({
         by: ['status', 'gender'],
-        where: { schoolId: schoolId! },
+        where: studentWhere,
         _count: { id: true }
       }),
-      prisma.user.count({
-        where: { schoolId: schoolId!, role: { in: ['SCHOOL_ADMIN', 'CLASS_TEACHER', 'SUBJECT_TEACHER', 'BURSAR'] } }
-      }),
+      // Staff count — for section-scoped admin, count teachers in their classes + all admins/bursars
+      sectionScope
+        ? prisma.user.count({
+            where: {
+              schoolId: schoolId!,
+              OR: [
+                // Admins and bursars (not scoped)
+                { role: { in: ['SCHOOL_ADMIN', 'BURSAR'] } },
+                // Teachers assigned to arms in scoped sections
+                {
+                  role: { in: ['CLASS_TEACHER', 'SUBJECT_TEACHER', 'HEAD_TEACHER'] },
+                  classTeacherArms: { some: { class: { sectionId: { in: sectionScope } } } }
+                }
+              ]
+            }
+          })
+        : prisma.user.count({ where: staffWhere }),
       prisma.user.count({
         where: { schoolId: schoolId!, role: 'PARENT' }
       }),
-      // Light student summary for stats
+      // Light student summary — scoped
       prisma.student.findMany({
-        where: { schoolId: schoolId! },
+        where: studentWhere,
         select: { id: true, firstName: true, lastName: true, admissionNumber: true, status: true, gender: true, classId: true, armId: true }
       }),
-      // Light staff summary
-      prisma.user.findMany({
-        where: { schoolId: schoolId!, role: { in: ['SCHOOL_ADMIN', 'CLASS_TEACHER', 'SUBJECT_TEACHER', 'BURSAR'] } },
-        select: { id: true, firstName: true, lastName: true, role: true, email: true }
-      }),
-      // Subject Assignments for Teacher Course Allocations
+      // Light staff summary — scoped for section admins
+      sectionScope
+        ? prisma.user.findMany({
+            where: {
+              schoolId: schoolId!,
+              OR: [
+                { role: { in: ['SCHOOL_ADMIN', 'BURSAR'] } },
+                {
+                  role: { in: ['CLASS_TEACHER', 'SUBJECT_TEACHER', 'HEAD_TEACHER'] },
+                  classTeacherArms: { some: { class: { sectionId: { in: sectionScope } } } }
+                }
+              ]
+            },
+            select: { id: true, firstName: true, lastName: true, role: true, email: true }
+          })
+        : prisma.user.findMany({
+            where: staffWhere,
+            select: { id: true, firstName: true, lastName: true, role: true, email: true }
+          }),
+      // Subject Assignments
       prisma.subjectAssignment.findMany({
         where: {
           schoolId: schoolId!,
-          ...(session.role === 'CLASS_TEACHER' || session.role === 'SUBJECT_TEACHER' ? { teacherId: session.userId || (session as any).id } : {})
+          ...(session.role === 'CLASS_TEACHER' || session.role === 'SUBJECT_TEACHER'
+            ? { teacherId: session.userId || (session as any).id }
+            : {}),
+          ...(sectionScope
+            ? { class: { sectionId: { in: sectionScope } } }
+            : {})
         },
         include: {
           subject: true,
