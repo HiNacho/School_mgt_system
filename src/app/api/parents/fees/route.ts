@@ -6,15 +6,22 @@ export async function GET(req: NextRequest) {
   try {
     const session = await requireAuth(req);
 
-    let parentId = session.parentId;
-    let parentEmail = session.email;
+    // Fetch user to get parentId and email
+    const user = await prisma.user.findUnique({
+      where: { id: session.userId },
+      select: { id: true, email: true, schoolId: true }
+    });
 
-    // Search for parent profile by user parentId or email
+    if (!user) {
+      return NextResponse.json({ success: true, data: [] });
+    }
+
+    // Search for parent profile by user ID or email
     const parent = await prisma.parent.findFirst({
       where: {
         OR: [
-          { id: parentId || undefined },
-          { email: parentEmail },
+          { user: { id: user.id } },
+          { email: user.email },
         ],
       },
       include: {
@@ -38,7 +45,7 @@ export async function GET(req: NextRequest) {
       },
     });
 
-    if (!parent) {
+    if (!parent || !parent.students || parent.students.length === 0) {
       return NextResponse.json({ success: true, data: [] });
     }
 

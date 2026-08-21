@@ -22,10 +22,17 @@ export async function POST(req: NextRequest) {
     // 1. Verify Parent-Student ownership server-side if parent user
     let parentObj = null;
     if (session.role === 'PARENT') {
+      const user = await prisma.user.findUnique({
+        where: { id: session.userId },
+        select: { id: true, email: true },
+      });
+
       parentObj = await prisma.parent.findFirst({
         where: {
-          id: session.parentId || undefined,
-          email: session.email,
+          OR: [
+            { user: { id: user?.id } },
+            { email: user?.email },
+          ],
         },
         include: { students: true },
       });
@@ -137,9 +144,9 @@ export async function POST(req: NextRequest) {
 
     const parentName = parentObj 
       ? `${parentObj.firstName} ${parentObj.lastName}` 
-      : `${session.user?.firstName || 'Parent'} ${session.user?.lastName || ''}`.trim();
+      : 'School Parent';
       
-    const parentEmail = parentObj?.email || session.email;
+    const parentEmail = parentObj?.email || 'parent@school.com';
 
     const checkoutResult = await initializePaymentCheckout({
       tx_ref,
