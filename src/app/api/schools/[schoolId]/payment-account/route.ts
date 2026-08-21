@@ -15,10 +15,15 @@ export async function GET(
     const session = await requireAuth(req);
     const { schoolId } = await params;
 
-    requireSchoolScope(session, schoolId);
+    const targetSchoolId = (schoolId === 'me' || schoolId === 'current') ? session.schoolId : schoolId;
+    if (!targetSchoolId) {
+      return NextResponse.json({ error: 'School tenant context missing from session' }, { status: 400 });
+    }
+
+    requireSchoolScope(session, targetSchoolId);
 
     const school = await prisma.school.findUnique({
-      where: { id: schoolId },
+      where: { id: targetSchoolId },
       select: {
         id: true,
         name: true,
@@ -62,7 +67,12 @@ export async function POST(
     const session = await requireAuth(req);
     const { schoolId } = await params;
 
-    requireSchoolScope(session, schoolId);
+    const targetSchoolId = (schoolId === 'me' || schoolId === 'current') ? session.schoolId : schoolId;
+    if (!targetSchoolId) {
+      return NextResponse.json({ error: 'School tenant context missing from session' }, { status: 400 });
+    }
+
+    requireSchoolScope(session, targetSchoolId);
 
     if (!['SUPER_ADMIN', 'SCHOOL_ADMIN', 'BURSAR'].includes(session.role)) {
       return NextResponse.json({ error: 'Unauthorized to configure payment accounts' }, { status: 403 });
@@ -76,7 +86,7 @@ export async function POST(
     }
 
     const updatedSchool = await onboardSchoolSubaccount({
-      schoolId,
+      schoolId: targetSchoolId,
       accountBank,
       accountNumber,
       businessName,
@@ -111,9 +121,14 @@ export async function PUT(
     const session = await requireAuth(req);
     const { schoolId } = await params;
 
-    requireSchoolScope(session, schoolId);
+    const targetSchoolId = (schoolId === 'me' || schoolId === 'current') ? session.schoolId : schoolId;
+    if (!targetSchoolId) {
+      return NextResponse.json({ error: 'School tenant context missing from session' }, { status: 400 });
+    }
 
-    if (!['SUPER_ADMIN', 'SCHOOL_ADMIN'].includes(session.role)) {
+    requireSchoolScope(session, targetSchoolId);
+
+    if (!['SUPER_ADMIN', 'SCHOOL_ADMIN', 'BURSAR'].includes(session.role)) {
       return NextResponse.json({ error: 'Unauthorized to update settlement account' }, { status: 403 });
     }
 
@@ -123,7 +138,7 @@ export async function PUT(
     let updatedSchool;
     if (accountBank && accountNumber) {
       updatedSchool = await updateSchoolSettlementAccount({
-        schoolId,
+        schoolId: targetSchoolId,
         accountBank,
         accountNumber,
         businessName,
@@ -135,7 +150,7 @@ export async function PUT(
 
     if (onlinePaymentsEnabled !== undefined || allowPartialPayments !== undefined || minPartialPaymentAmount !== undefined) {
       updatedSchool = await prisma.school.update({
-        where: { id: schoolId },
+        where: { id: targetSchoolId },
         data: {
           onlinePaymentsEnabled: onlinePaymentsEnabled !== undefined ? Boolean(onlinePaymentsEnabled) : undefined,
           allowPartialPayments: allowPartialPayments !== undefined ? Boolean(allowPartialPayments) : undefined,

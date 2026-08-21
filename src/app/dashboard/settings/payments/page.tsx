@@ -64,18 +64,7 @@ export default function PaymentSettingsPage() {
     setLoading(true);
     setErrorMsg('');
     try {
-      // Get current school session context
-      const sessionRes = await fetch('/api/setup');
-      const sessionData = await sessionRes.json();
-      const schoolId = sessionData?.school?.id;
-
-      if (!schoolId) {
-        setErrorMsg('School context missing.');
-        setLoading(false);
-        return;
-      }
-
-      const res = await fetch(`/api/schools/${schoolId}/payment-account`);
+      const res = await fetch(`/api/schools/me/payment-account`);
       const data = await res.json();
 
       if (res.ok && data.success) {
@@ -106,7 +95,7 @@ export default function PaymentSettingsPage() {
     setResolvedAccountName('');
 
     try {
-      const schoolId = schoolData?.id;
+      const schoolId = schoolData?.id || 'me';
       const res = await fetch(`/api/schools/${schoolId}/payment-account`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -142,7 +131,7 @@ export default function PaymentSettingsPage() {
     setSuccessMsg('');
 
     try {
-      const schoolId = schoolData?.id;
+      const schoolId = schoolData?.id || 'me';
       const res = await fetch(`/api/schools/${schoolId}/payment-account`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
