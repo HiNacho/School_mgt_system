@@ -41,6 +41,7 @@ export default function PaymentSettingsPage() {
   const [saving, setSaving] = useState(false);
   const [resolving, setResolving] = useState(false);
   const [schoolData, setSchoolData] = useState<any>(null);
+  const [bankList, setBankList] = useState<any[]>(NIGERIAN_BANKS);
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
 
@@ -57,8 +58,21 @@ export default function PaymentSettingsPage() {
   const [showEditModal, setShowEditModal] = useState(false);
 
   useEffect(() => {
+    fetchBanksList();
     fetchPaymentSettings();
   }, []);
+
+  const fetchBanksList = async () => {
+    try {
+      const res = await fetch('/api/banks');
+      const json = await res.json();
+      if (res.ok && json.data && Array.isArray(json.data) && json.data.length > 0) {
+        setBankList(json.data);
+      }
+    } catch (e) {
+      console.warn('Using default Nigerian banks list fallback');
+    }
+  };
 
   const fetchPaymentSettings = async () => {
     setLoading(true);
@@ -425,7 +439,7 @@ export default function PaymentSettingsPage() {
                   onChange={(e) => setBankCode(e.target.value)}
                   className="w-full px-4 py-3 rounded-xl border border-slate-300 text-sm font-extrabold text-slate-900 focus:outline-none focus:border-indigo-600"
                 >
-                  {NIGERIAN_BANKS.map((b) => (
+                  {bankList.map((b) => (
                     <option key={b.code} value={b.code}>
                       {b.name}
                     </option>

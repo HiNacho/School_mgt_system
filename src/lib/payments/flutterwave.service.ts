@@ -40,6 +40,48 @@ export interface CreateSubaccountParams {
   split_value?: number;
 }
 
+const DEFAULT_NIGERIAN_BANKS = [
+  { code: '058', name: 'Guaranty Trust Bank (GTBank)' },
+  { code: '044', name: 'Access Bank' },
+  { code: '057', name: 'Zenith Bank' },
+  { code: '011', name: 'First Bank of Nigeria' },
+  { code: '033', name: 'United Bank for Africa (UBA)' },
+  { code: '035', name: 'Wema Bank' },
+  { code: '070', name: 'Fidelity Bank' },
+  { code: '214', name: 'First City Monument Bank (FCMB)' },
+  { code: '050', name: 'Ecobank Nigeria' },
+  { code: '232', name: 'Sterling Bank' },
+  { code: '032', name: 'Union Bank of Nigeria' },
+  { code: '215', name: 'Unity Bank' },
+  { code: '50211', name: 'Kuda Bank' },
+  { code: '50515', name: 'Moniepoint MFB' },
+  { code: '999992', name: 'OPay Digital Services' },
+  { code: '999991', name: 'PalmPay' },
+];
+
+export async function getFlutterwaveBanks(country: string = 'NG') {
+  if (!FLW_SECRET_KEY) return DEFAULT_NIGERIAN_BANKS;
+  try {
+    const response = await fetch(`${FLW_BASE_URL}/banks/${country}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${FLW_SECRET_KEY}`,
+      },
+    });
+    const json = await response.json();
+    if (response.ok && json.status === 'success' && Array.isArray(json.data)) {
+      return json.data.map((b: any) => ({
+        code: String(b.code),
+        name: b.name,
+      }));
+    }
+  } catch (e) {
+    console.warn('Failed to fetch live banks from Flutterwave:', e);
+  }
+  return DEFAULT_NIGERIAN_BANKS;
+}
+
 export async function resolveBankAccount(accountNumber: string, bankCode: string) {
   if (!FLW_SECRET_KEY) {
     throw new Error('Flutterwave Secret Key is not configured on server.');
@@ -59,6 +101,21 @@ export async function resolveBankAccount(accountNumber: string, bankCode: string
 
   const json = await response.json();
   if (!response.ok || json.status !== 'success') {
+    const rawMsg = (json.message || '').toLowerCase();
+    const isTestKey = FLW_SECRET_KEY.includes('TEST');
+
+    if (rawMsg.includes('invalid account')) {
+      if (isTestKey) {
+        throw new Error(
+          'Flutterwave is currently in TEST MODE. Real live bank account numbers return "invalid account" in test mode. For test verification, use GTBank NUBAN 0690000032. For live school accounts, set FLW_SECRET_KEY to your Flutterwave Live Secret Key (FLWSECK-...).'
+        );
+      } else {
+        throw new Error(
+          'Invalid account details. Please double-check the 10-digit account number and ensure the correct bank is selected.'
+        );
+      }
+    }
+
     throw new Error(json.message || 'Bank account verification failed. Please check the account number and bank code.');
   }
 
