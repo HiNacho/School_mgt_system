@@ -1,10 +1,15 @@
 // Flutterwave API v3 Low-level Service Client
 import crypto from 'crypto';
 
-const FLW_PUBLIC_KEY = (process.env.FLW_PUBLIC_KEY || process.env.NEXT_PUBLIC_FLUTTERWAVE_PUBLIC_KEY || '').trim();
-const FLW_SECRET_KEY = (process.env.FLW_SECRET_KEY || process.env.FLUTTERWAVE_SECRET_KEY || '').trim();
-const FLW_SECRET_HASH = (process.env.FLW_SECRET_HASH || process.env.FLUTTERWAVE_WEBHOOK_SECRET || 'OPERON_FLW_WEBHOOK_SECRET_KEY').trim();
-
+function getSecretKey(): string {
+  return (process.env.FLW_SECRET_KEY || process.env.FLUTTERWAVE_SECRET_KEY || '').trim();
+}
+function getPublicKey(): string {
+  return (process.env.FLW_PUBLIC_KEY || process.env.NEXT_PUBLIC_FLUTTERWAVE_PUBLIC_KEY || '').trim();
+}
+function getSecretHash(): string {
+  return (process.env.FLW_SECRET_HASH || process.env.FLUTTERWAVE_WEBHOOK_SECRET || 'OPERON_FLW_WEBHOOK_SECRET_KEY').trim();
+}
 const FLW_BASE_URL = (process.env.FLUTTERWAVE_BASE_URL || 'https://api.flutterwave.com/v3').trim();
 
 export interface InitializePaymentParams {
@@ -83,7 +88,8 @@ export async function getFlutterwaveBanks(country: string = 'NG') {
 }
 
 export async function resolveBankAccount(accountNumber: string, bankCode: string) {
-  if (!FLW_SECRET_KEY) {
+  const secretKey = getSecretKey();
+  if (!secretKey) {
     throw new Error('Flutterwave Secret Key is not configured on server.');
   }
 
@@ -94,7 +100,7 @@ export async function resolveBankAccount(accountNumber: string, bankCode: string
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${FLW_SECRET_KEY}`,
+      'Authorization': `Bearer ${secretKey}`,
     },
     body: JSON.stringify({
       account_number: cleanAccountNumber,
@@ -109,11 +115,11 @@ export async function resolveBankAccount(accountNumber: string, bankCode: string
       cleanBankCode,
       httpStatus: response.status,
       json,
-      keyPrefix: FLW_SECRET_KEY.slice(0, 12),
+      keyPrefix: secretKey.slice(0, 12),
     });
 
     const rawMsg = (json.message || '').toLowerCase();
-    const isTestKey = FLW_SECRET_KEY.includes('TEST');
+    const isTestKey = secretKey.includes('TEST');
 
     if (rawMsg.includes('invalid account')) {
       if (isTestKey) {
