@@ -918,7 +918,7 @@ export default function LandingPage() {
                 
                 <div className="space-y-1">
                   <h3 className="text-base font-extrabold text-[#1e293b] uppercase tracking-wider">Free Trial Activated!</h3>
-                  <p className="text-xs text-slate-400 font-semibold">Your 1-Month Free Trial school portal is ready for use.</p>
+                  <p className="text-xs text-slate-400 font-semibold">Your 1-Term (3-Month) Free Trial school portal is ready for use.</p>
                 </div>
 
                 <div className="bg-[#f8f9fa] border border-[#e2e8f0] p-4.5 rounded-2xl text-left space-y-3.5 max-w-md mx-auto shadow-sm">

@@ -111,7 +111,7 @@ export async function ensureSchoolSubscription(schoolId: string) {
     });
 
     const now = new Date();
-    const trialEnd = school?.subscriptionEnd || new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000); // 14 days default trial
+    const trialEnd = school?.subscriptionEnd || new Date(now.getTime() + 90 * 24 * 60 * 60 * 1000); // 90 days (1 term / 3 months) default trial
 
     sub = await prisma.schoolSubscription.create({
       data: {

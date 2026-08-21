@@ -88,7 +88,7 @@ export async function POST(req: NextRequest) {
         subscriptionPlan: 'Standard',
         subscriptionStatus: 'trial',
         subscriptionStart: new Date(),
-        subscriptionEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
+        subscriptionEnd: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000), // 90 days (1 term / 3 months)
       },
     });
 
@@ -312,7 +312,7 @@ export async function POST(req: NextRequest) {
             <h2>Hello ${escapeHtml(resolvedContactName)},</h2>
             <p>Thank you for verifying your email! We are thrilled to help simplify academic operations at <strong>${escapeHtml(schoolName)}</strong>.</p>
             
-            <p>Your custom 1-month trial sandbox environment has been successfully prepared!</p>
+            <p>Your custom 1-term (3-month) trial sandbox environment has been successfully prepared!</p>
             
             <div style="text-align: center;">
               <a href="https://school-mgt-system-dun.vercel.app/login" class="btn">Go to Login Portal</a>

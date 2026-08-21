@@ -141,7 +141,7 @@ export async function POST(req: NextRequest) {
           subscriptionPlan: isCustomer ? 'Premium' : 'Standard',
           subscriptionStatus: isCustomer ? 'active' : 'trial',
           subscriptionStart: new Date(),
-          subscriptionEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
+          subscriptionEnd: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000), // 90 days (1 term / 3 months)
         },
       });
 

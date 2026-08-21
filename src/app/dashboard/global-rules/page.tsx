@@ -30,7 +30,7 @@ export default function GlobalRulesPage() {
   );
 
   // 4. Subscription & Platform Tiers State
-  const [freeTrialDuration, setFreeTrialDuration] = useState(30);
+  const [freeTrialDuration, setFreeTrialDuration] = useState(90); // 90 days (1 term / 3 months)
   const [pricePerStudentYear, setPricePerStudentYear] = useState(2500); // ₦2500 per student per academic year
   const [enableCustomDomains, setEnableCustomDomains] = useState(false);
 
