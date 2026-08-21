@@ -143,9 +143,16 @@ export async function GET(req: NextRequest) {
             }
           })
         : prisma.user.count({ where: staffWhere }),
-      prisma.user.count({
-        where: { schoolId: schoolId!, role: 'PARENT' }
-      }),
+      sectionScope
+        ? prisma.parent.count({
+            where: {
+              schoolId: schoolId!,
+              students: { some: { class: { sectionId: { in: sectionScope } } } }
+            }
+          })
+        : prisma.user.count({
+            where: { schoolId: schoolId!, role: 'PARENT' }
+          }),
       // Light student summary — scoped
       prisma.student.findMany({
         where: studentWhere,

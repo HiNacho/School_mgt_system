@@ -24,6 +24,16 @@ export async function GET(req: NextRequest) {
     let query: any = { schoolId };
     const email = searchParams.get('email');
 
+    // Section scope filter for section-scoped admins
+    const sectionScope = session.managedSectionIds || null;
+    if (sectionScope && (session.role === 'SCHOOL_ADMIN' || session.role === 'HEAD_TEACHER')) {
+      query.students = {
+        some: {
+          class: { sectionId: { in: sectionScope } }
+        }
+      };
+    }
+
     if (session.role === 'PARENT') {
       query.user = { id: session.userId };
     } else if (email) {
