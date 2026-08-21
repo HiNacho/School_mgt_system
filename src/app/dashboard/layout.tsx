@@ -235,6 +235,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       const isAllowedPath = pathname === '/dashboard' || 
         pathname === '/dashboard/profile' || 
         pathname === '/dashboard/settings' ||
+        pathname.startsWith('/dashboard/settings/') ||
         pathname.startsWith('/dashboard/bursar/');
       
       if (!isAllowedPath) {
@@ -358,7 +359,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       { name: 'Dashboard', href: '/dashboard', icon: Home },
       { name: 'Student Fees', href: '/dashboard/bursar/fees', icon: CreditCard },
       { name: 'Payments & Collections', href: '/dashboard/bursar/payments', icon: CheckCircle },
-      { name: 'Payment Account Setup', href: '/dashboard/settings/payments', icon: Settings },
+      { name: 'Payment Account Setup', href: '/dashboard/bursar/payment-setup', icon: Settings },
       { name: 'Invoices', href: '/dashboard/bursar/invoices', icon: FileText },
       { name: 'Receipts', href: '/dashboard/bursar/receipts', icon: CheckSquare },
       { name: 'Fee Structure', href: '/dashboard/bursar/structures', icon: Layers },
@@ -379,7 +380,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       { name: 'Students', href: '/dashboard/students', icon: GraduationCap },
       { name: 'Parents', href: '/dashboard/parents', icon: User },
       { name: 'Payments & Collections', href: '/dashboard/bursar/payments', icon: CheckCircle },
-      { name: 'Payment Account Setup', href: '/dashboard/settings/payments', icon: Settings },
+      { name: 'Payment Account Setup', href: '/dashboard/bursar/payment-setup', icon: Settings },
       { name: 'Subjects', href: '/dashboard/subjects', icon: BookOpen },
       { name: 'Classes', href: '/dashboard/classes', icon: Layers },
       { name: 'Academic Structure', href: '/dashboard/settings/academic-structure', icon: Layers },
