@@ -58,20 +58,30 @@ const DEFAULT_NIGERIAN_BANKS = [
   { code: '232', name: 'Sterling Bank' },
   { code: '032', name: 'Union Bank of Nigeria' },
   { code: '215', name: 'Unity Bank' },
-  { code: '50211', name: 'Kuda Bank' },
+  { code: '221', name: 'Stanbic IBTC Bank' },
+  { code: '101', name: 'Providus Bank' },
+  { code: '076', name: 'Polaris Bank' },
+  { code: '082', name: 'Keystone Bank' },
+  { code: '100033', name: 'PalmPay' },
+  { code: '090405', name: 'PalmPay MFB' },
+  { code: '100004', name: 'OPay Digital Services' },
+  { code: '090325', name: 'OPay' },
   { code: '50515', name: 'Moniepoint MFB' },
-  { code: '999992', name: 'OPay Digital Services' },
-  { code: '999991', name: 'PalmPay' },
+  { code: '090129', name: 'Moniepoint Microfinance Bank' },
+  { code: '50211', name: 'Kuda Bank' },
+  { code: '090267', name: 'Kuda Microfinance Bank' },
+  { code: '566', name: 'VFD Microfinance Bank' },
+  { code: '090110', name: 'VFD MFB' },
 ];
 
 export async function getFlutterwaveBanks(country: string = 'NG') {
-  if (!FLW_SECRET_KEY) return DEFAULT_NIGERIAN_BANKS;
+  if (!getSecretKey()) return DEFAULT_NIGERIAN_BANKS;
   try {
     const response = await fetch(`${FLW_BASE_URL}/banks/${country}`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${FLW_SECRET_KEY}`,
+        'Authorization': `Bearer ${getSecretKey()}`,
       },
     });
     const json = await response.json();
@@ -143,7 +153,7 @@ export async function resolveBankAccount(accountNumber: string, bankCode: string
 }
 
 export async function createFlutterwaveSubaccount(params: CreateSubaccountParams) {
-  if (!FLW_SECRET_KEY) {
+  if (!getSecretKey()) {
     throw new Error('Flutterwave Secret Key is not configured on server.');
   }
 
@@ -164,7 +174,7 @@ export async function createFlutterwaveSubaccount(params: CreateSubaccountParams
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${FLW_SECRET_KEY}`,
+      'Authorization': `Bearer ${getSecretKey()}`,
     },
     body: JSON.stringify(payload),
   });
@@ -187,7 +197,7 @@ export async function createFlutterwaveSubaccount(params: CreateSubaccountParams
 }
 
 export async function updateFlutterwaveSubaccount(subaccountId: string, params: Partial<CreateSubaccountParams>) {
-  if (!FLW_SECRET_KEY) {
+  if (!getSecretKey()) {
     throw new Error('Flutterwave Secret Key is not configured on server.');
   }
 
@@ -195,7 +205,7 @@ export async function updateFlutterwaveSubaccount(subaccountId: string, params: 
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${FLW_SECRET_KEY}`,
+      'Authorization': `Bearer ${getSecretKey()}`,
     },
     body: JSON.stringify(params),
   });
@@ -210,8 +220,8 @@ export async function updateFlutterwaveSubaccount(subaccountId: string, params: 
 }
 
 export async function initializePaymentCheckout(params: InitializePaymentParams) {
-  if (!FLW_SECRET_KEY) {
-    throw new Error('Flutterwave Secret Key (FLW_SECRET_KEY) is not configured in server environment.');
+  if (!getSecretKey()) {
+    throw new Error('Flutterwave Secret Key (getSecretKey()) is not configured in server environment.');
   }
 
   const payload: any = {
@@ -246,7 +256,7 @@ export async function initializePaymentCheckout(params: InitializePaymentParams)
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${FLW_SECRET_KEY}`,
+      'Authorization': `Bearer ${getSecretKey()}`,
     },
     body: JSON.stringify(payload),
   });
@@ -266,7 +276,7 @@ export async function initializePaymentCheckout(params: InitializePaymentParams)
 }
 
 export async function verifyFlutterwaveTransaction(transactionId: string) {
-  if (!FLW_SECRET_KEY) {
+  if (!getSecretKey()) {
     throw new Error('Flutterwave Secret Key is not configured.');
   }
 
@@ -274,7 +284,7 @@ export async function verifyFlutterwaveTransaction(transactionId: string) {
     method: 'GET',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${FLW_SECRET_KEY}`,
+      'Authorization': `Bearer ${getSecretKey()}`,
     },
   });
 
@@ -301,7 +311,7 @@ export async function verifyFlutterwaveTransaction(transactionId: string) {
 }
 
 export async function initiateFlutterwaveRefund(transactionId: string, amount?: number) {
-  if (!FLW_SECRET_KEY) {
+  if (!getSecretKey()) {
     throw new Error('Flutterwave Secret Key is not configured.');
   }
 
@@ -312,7 +322,7 @@ export async function initiateFlutterwaveRefund(transactionId: string, amount?: 
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${FLW_SECRET_KEY}`,
+      'Authorization': `Bearer ${getSecretKey()}`,
     },
     body: JSON.stringify(bodyPayload),
   });
@@ -332,6 +342,7 @@ export async function initiateFlutterwaveRefund(transactionId: string, amount?: 
 }
 
 export function verifyWebhookSignature(signatureHeader: string | null): boolean {
-  if (!signatureHeader || !FLW_SECRET_HASH) return false;
-  return signatureHeader === FLW_SECRET_HASH;
+  const secretHash = getSecretHash();
+  if (!signatureHeader || !secretHash) return false;
+  return signatureHeader === secretHash;
 }

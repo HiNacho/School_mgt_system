@@ -30,10 +30,20 @@ const NIGERIAN_BANKS = [
   { code: '232', name: 'Sterling Bank' },
   { code: '032', name: 'Union Bank of Nigeria' },
   { code: '215', name: 'Unity Bank' },
-  { code: '50211', name: 'Kuda Bank' },
+  { code: '221', name: 'Stanbic IBTC Bank' },
+  { code: '101', name: 'Providus Bank' },
+  { code: '076', name: 'Polaris Bank' },
+  { code: '082', name: 'Keystone Bank' },
+  { code: '100033', name: 'PalmPay' },
+  { code: '090405', name: 'PalmPay MFB' },
+  { code: '100004', name: 'OPay Digital Services' },
+  { code: '090325', name: 'OPay' },
   { code: '50515', name: 'Moniepoint MFB' },
-  { code: '999992', name: 'OPay Digital Services' },
-  { code: '999991', name: 'PalmPay' },
+  { code: '090129', name: 'Moniepoint Microfinance Bank' },
+  { code: '50211', name: 'Kuda Bank' },
+  { code: '090267', name: 'Kuda Microfinance Bank' },
+  { code: '566', name: 'VFD Microfinance Bank' },
+  { code: '090110', name: 'VFD MFB' },
 ];
 
 export default function PaymentSettingsPage() {
