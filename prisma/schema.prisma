@@ -26,7 +26,7 @@ model School {
   subscriptionStart   DateTime?
   subscriptionEnd     DateTime?
   gracePeriodEnd      DateTime?
-  maxStudents         Int       @default(700)
+  maxStudents         Int       @default(1000)
 
   // Multi-section school support
   sectionTypes        String?   // JSON array: ["NURSERY","PRIMARY","JUNIOR_SECONDARY","SENIOR_SECONDARY"]

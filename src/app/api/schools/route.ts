@@ -303,7 +303,7 @@ export async function PATCH(req: NextRequest) {
         subscriptionEnd: subscriptionEnd !== undefined ? (subscriptionEnd ? new Date(subscriptionEnd) : null) : undefined,
         gracePeriodEnd: gracePeriodEnd !== undefined ? (gracePeriodEnd ? new Date(gracePeriodEnd) : null) : undefined,
         enforceUniquePasswords: enforceUniquePasswords !== undefined ? enforceUniquePasswords : undefined,
-        maxStudents: maxStudents !== undefined ? (maxStudents === null ? 700 : parseInt(String(maxStudents), 10)) : undefined,
+        maxStudents: maxStudents !== undefined ? (maxStudents === null ? 1000 : parseInt(String(maxStudents), 10)) : undefined,
       }
     });
 

@@ -42,7 +42,7 @@ export async function POST(req: NextRequest) {
     const currentActiveCount = await prisma.student.count({
       where: { schoolId, status: 'ACTIVE' }
     });
-    const studentLimit = schoolObj?.maxStudents ?? 700;
+    const studentLimit = schoolObj?.maxStudents ?? 1000;
 
     // ── 3. Fetch all existing admission numbers & usernames in ONE query ───────
     const existingStudents = await prisma.student.findMany({
