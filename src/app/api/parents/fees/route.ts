@@ -131,8 +131,39 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    return NextResponse.json({ success: true, data: result });
+    const invoicesList: any[] = [];
+    const paymentsList: any[] = [];
 
+    for (const resItem of result) {
+      if (resItem.invoice && resItem.invoice.outstanding > 0) {
+        invoicesList.push({
+          ...resItem.invoice,
+          studentId: resItem.student.id,
+          studentName: `${resItem.student.firstName} ${resItem.student.lastName}`,
+          className: resItem.student.className,
+          armName: resItem.student.armName,
+          school: resItem.student.school,
+        });
+      }
+      if (resItem.paymentHistory && Array.isArray(resItem.paymentHistory)) {
+        resItem.paymentHistory.forEach((p: any) => {
+          paymentsList.push({
+            ...p,
+            studentName: `${resItem.student.firstName} ${resItem.student.lastName}`,
+          });
+        });
+      }
+    }
+
+    return NextResponse.json({
+      success: true,
+      data: {
+        invoices: invoicesList,
+        payments: paymentsList,
+        students: result.map((r) => r.student),
+        records: result,
+      },
+    });
   } catch (error: any) {
     console.error('Parent Fees GET Error:', error);
     return NextResponse.json({ error: error.message || 'Failed to fetch parent fee accounts' }, { status: 500 });
