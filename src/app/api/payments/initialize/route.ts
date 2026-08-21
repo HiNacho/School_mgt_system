@@ -20,10 +20,17 @@ export async function POST(req: NextRequest) {
 
     let parentObj = null;
     if (session.role === 'PARENT') {
+      const user = await prisma.user.findUnique({
+        where: { id: session.userId },
+        select: { id: true, email: true },
+      });
+
       parentObj = await prisma.parent.findFirst({
         where: {
-          id: (session as any).parentId || undefined,
-          email: (session as any).email,
+          OR: [
+            { user: { id: session.userId } },
+            { email: user?.email },
+          ],
         },
         include: { students: true },
       });
