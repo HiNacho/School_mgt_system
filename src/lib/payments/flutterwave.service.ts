@@ -1,11 +1,11 @@
 // Flutterwave API v3 Low-level Service Client
 import crypto from 'crypto';
 
-const FLW_PUBLIC_KEY = process.env.FLW_PUBLIC_KEY || process.env.NEXT_PUBLIC_FLUTTERWAVE_PUBLIC_KEY || '';
-const FLW_SECRET_KEY = process.env.FLW_SECRET_KEY || process.env.FLUTTERWAVE_SECRET_KEY || '';
-const FLW_SECRET_HASH = process.env.FLW_SECRET_HASH || process.env.FLUTTERWAVE_WEBHOOK_SECRET || 'OPERON_FLW_WEBHOOK_SECRET_KEY';
+const FLW_PUBLIC_KEY = (process.env.FLW_PUBLIC_KEY || process.env.NEXT_PUBLIC_FLUTTERWAVE_PUBLIC_KEY || '').trim();
+const FLW_SECRET_KEY = (process.env.FLW_SECRET_KEY || process.env.FLUTTERWAVE_SECRET_KEY || '').trim();
+const FLW_SECRET_HASH = (process.env.FLW_SECRET_HASH || process.env.FLUTTERWAVE_WEBHOOK_SECRET || 'OPERON_FLW_WEBHOOK_SECRET_KEY').trim();
 
-const FLW_BASE_URL = process.env.FLUTTERWAVE_BASE_URL || 'https://api.flutterwave.com/v3';
+const FLW_BASE_URL = (process.env.FLUTTERWAVE_BASE_URL || 'https://api.flutterwave.com/v3').trim();
 
 export interface InitializePaymentParams {
   tx_ref: string;
@@ -87,6 +87,9 @@ export async function resolveBankAccount(accountNumber: string, bankCode: string
     throw new Error('Flutterwave Secret Key is not configured on server.');
   }
 
+  const cleanAccountNumber = accountNumber.replace(/[^0-9]/g, '').trim();
+  const cleanBankCode = String(bankCode).trim();
+
   const response = await fetch(`${FLW_BASE_URL}/accounts/resolve`, {
     method: 'POST',
     headers: {
@@ -94,24 +97,32 @@ export async function resolveBankAccount(accountNumber: string, bankCode: string
       'Authorization': `Bearer ${FLW_SECRET_KEY}`,
     },
     body: JSON.stringify({
-      account_number: accountNumber,
-      account_bank: bankCode,
+      account_number: cleanAccountNumber,
+      account_bank: cleanBankCode,
     }),
   });
 
   const json = await response.json();
   if (!response.ok || json.status !== 'success') {
+    console.error('[Flutterwave Resolve Error]', {
+      cleanAccountNumber,
+      cleanBankCode,
+      httpStatus: response.status,
+      json,
+      keyPrefix: FLW_SECRET_KEY.slice(0, 12),
+    });
+
     const rawMsg = (json.message || '').toLowerCase();
     const isTestKey = FLW_SECRET_KEY.includes('TEST');
 
     if (rawMsg.includes('invalid account')) {
       if (isTestKey) {
         throw new Error(
-          'Flutterwave is currently in TEST MODE. Real live bank account numbers return "invalid account" in test mode. For test verification, use GTBank NUBAN 0690000032. For live school accounts, set FLW_SECRET_KEY to your Flutterwave Live Secret Key (FLWSECK-...).'
+          'Flutterwave is currently in TEST MODE (FLWSECK_TEST). Real live bank account numbers return "invalid account" in test mode. For test verification, use GTBank NUBAN 0690000032. For live school accounts, set FLW_SECRET_KEY to your Flutterwave Live Secret Key (FLWSECK-...).'
         );
       } else {
         throw new Error(
-          'Invalid account details. Please double-check the 10-digit account number and ensure the correct bank is selected.'
+          'Invalid account details. Flutterwave could not verify this 10-digit account number with the selected bank. Please double-check the account number or select the correct bank.'
         );
       }
     }
