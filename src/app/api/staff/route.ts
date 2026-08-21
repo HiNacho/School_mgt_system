@@ -170,7 +170,7 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { 
       schoolId, email, firstName, lastName, title, role, phone, passportPhoto,
-      classTeacherArmId, subjectAssignments 
+      classTeacherArmId, subjectAssignments, managedSectionIds
     } = body;
 
     if (!schoolId || !email || !firstName || !lastName || !role) {
@@ -178,6 +178,11 @@ export async function POST(req: NextRequest) {
     }
 
     requireSchoolScope(session, schoolId);
+
+    // Section-scoped admins can only create staff — not other admins
+    if (session.managedSectionIds && role === 'SCHOOL_ADMIN') {
+      return NextResponse.json({ error: 'Section admins cannot create other school admins.' }, { status: 403 });
+    }
 
     // Verify subscription access
     const subscriptionError = await verifySubscriptionAccess(schoolId, true);
@@ -200,6 +205,11 @@ export async function POST(req: NextRequest) {
     const passwordHash = await bcrypt.hash(tempPassword, salt);
     const username = await generateUniqueUsername(lastName);
 
+    // Build managedSectionIds JSON — only valid for SCHOOL_ADMIN role
+    const managedSectionIdsJson = (role === 'SCHOOL_ADMIN' && Array.isArray(managedSectionIds) && managedSectionIds.length > 0)
+      ? JSON.stringify(managedSectionIds)
+      : null;
+
     // Run in transaction to guarantee relational allocations succeed or rollback cleanly
     const result = await prisma.$transaction(async (tx) => {
       // 1. Create staff user
@@ -214,6 +224,7 @@ export async function POST(req: NextRequest) {
           role,
           phone: phone || null,
           passportPhoto: passportPhoto || null,
+          managedSectionIds: managedSectionIdsJson,
           status: 'ACTIVE',
           passwordHash,
           isFirstLogin: true

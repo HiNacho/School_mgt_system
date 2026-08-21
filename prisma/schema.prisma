@@ -134,6 +134,7 @@ model User {
   signature    String?
   dateOfBirth  String?
   status       String   @default("ACTIVE") // ACTIVE, INACTIVE
+  managedSectionIds String? // JSON array of sectionIds — null = full school access, set = section-scoped admin
   isActive     Boolean  @default(true)
   isFirstLogin Boolean  @default(true)
   lastLogin    DateTime?

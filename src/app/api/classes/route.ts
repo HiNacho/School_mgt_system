@@ -1,10 +1,12 @@
 // Classes & Arms API Endpoint
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/db';
+import { requireAuth, requireSchoolScope, buildSectionFilter } from '@/lib/auth-middleware';
 
 // 1. GET: Fetch all classes and arms with their student enrollment and teacher assignments
 export async function GET(req: NextRequest) {
   try {
+    const session = await requireAuth(req);
     const { searchParams } = new URL(req.url);
     const schoolId = searchParams.get('schoolId');
     const sectionId = searchParams.get('sectionId'); // optional filter by section
@@ -13,8 +15,14 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'School ID is required' }, { status: 400 });
     }
 
+    requireSchoolScope(session, schoolId);
+
     const classWhere: any = { schoolId };
     if (sectionId) classWhere.sectionId = sectionId;
+
+    // Section-scoped admin: only show classes in their sections
+    const sectionFilter = buildSectionFilter(session, null);
+    if (sectionFilter.sectionId) classWhere.sectionId = sectionFilter.sectionId;
 
     // Fetch classes for this school (with section info)
     const classes = await prisma.class.findMany({

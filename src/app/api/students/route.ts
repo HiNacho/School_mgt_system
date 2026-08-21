@@ -2,7 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/db';
 import bcrypt from 'bcryptjs';
-import { requireAuth, requireRole, requireSchoolScope } from '@/lib/auth-middleware';
+import { requireAuth, requireRole, requireSchoolScope, buildSectionFilter } from '@/lib/auth-middleware';
 import { generateUniqueUsername, generateTempPassword } from '@/lib/auth-utils';
 
 // 1. GET: Fetch list of students with filter options
@@ -94,7 +94,11 @@ export async function GET(req: NextRequest) {
 
     if (classId) whereClause.classId = classId;
     if (armId) whereClause.armId = armId;
-    
+
+    // Section-scoped admin: restrict to their managed sections only
+    const sectionFilter = buildSectionFilter(session, 'class');
+    if (sectionFilter.class) whereClause.class = sectionFilter.class;
+
     const feesPaidParam = searchParams.get('feesPaid');
     if (feesPaidParam !== null) {
       whereClause.feesPaid = feesPaidParam === 'true';

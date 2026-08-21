@@ -283,6 +283,9 @@ export default function TeachersDirectoryPage() {
 
   // Form Modal States
   const [showModal, setShowModal] = useState(false);
+  const [isAdminMode, setIsAdminMode] = useState(false); // true = creating section admin, false = creating teacher
+  const [newAdminSectionIds, setNewAdminSectionIds] = useState<string[]>([]); // sections for new admin
+  const [sections, setSections] = useState<any[]>([]); // school sections
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [title, setTitle] = useState('');
@@ -380,6 +383,7 @@ export default function TeachersDirectoryPage() {
       if (res.ok && json.data) {
         setArms(json.data.arms || []);
         setSubjects(json.data.subjects || []);
+        setSections(json.data.sections || []);
       }
     } catch (err) {
       console.error('Error fetching academic setup parameters:', err);
@@ -506,6 +510,50 @@ export default function TeachersDirectoryPage() {
     e.preventDefault();
     if (!firstName || !lastName || !email) {
       setErrorMsg('Mandatory fields (First Name, Last Name, Email) must be filled.');
+      return;
+    }
+
+    // ── Admin Mode: create a section-scoped SCHOOL_ADMIN ──────────────────────
+    if (isAdminMode) {
+      if (newAdminSectionIds.length === 0) {
+        setErrorMsg('Please assign at least one section to this admin.');
+        return;
+      }
+      setSubmitting(true);
+      setErrorMsg('');
+      setSuccessMsg('');
+      try {
+        const res = await fetch('/api/staff', {
+          method: 'POST',
+          headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
+          body: JSON.stringify({
+            schoolId: school.id,
+            title: title || undefined,
+            firstName,
+            lastName,
+            email,
+            role: 'SCHOOL_ADMIN',
+            phone,
+            managedSectionIds: newAdminSectionIds,
+          })
+        });
+        const json = await res.json();
+        if (!res.ok) throw new Error(json.error || 'Failed to create admin account.');
+        setSuccessMsg(
+          `Section Admin account created for ${title ? `${title} ` : ''}${lastName} ${firstName}!\n\n` +
+          `Login credentials:\n• Username: ${json.username}\n• Temporary Password: ${json.temporaryPassword}\n\n` +
+          `This admin can only access: ${sections.filter((s: any) => newAdminSectionIds.includes(s.id)).map((s: any) => s.name).join(', ')}`
+        );
+        setTitle(''); setFirstName(''); setLastName(''); setEmail(''); setPhone('');
+        setNewAdminSectionIds([]);
+        setIsAdminMode(false);
+        setShowModal(false);
+        await loadStaffRoster(school.id);
+      } catch (err: any) {
+        setErrorMsg(err.message || 'Failed to create admin.');
+      } finally {
+        setSubmitting(false);
+      }
       return;
     }
 
@@ -1440,16 +1488,33 @@ export default function TeachersDirectoryPage() {
           <div className="bg-white border border-slate-150 rounded-3xl w-full max-w-xl shadow-2xl overflow-hidden flex flex-col">
             <div className="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50">
               <h3 className="font-extrabold text-slate-850 text-sm flex items-center gap-1.5">
-                <Sparkles className="w-4 h-4 text-blue-500" /> Add Teaching Staff Account
+                <Sparkles className="w-4 h-4 text-blue-500" />
+                {isAdminMode ? 'Add Section Admin Account' : 'Add Teaching Staff Account'}
               </h3>
               <button 
                 type="button" 
-                onClick={() => setShowModal(false)}
+                onClick={() => { setShowModal(false); setIsAdminMode(false); setNewAdminSectionIds([]); }}
                 className="p-1.5 rounded-lg bg-white border border-slate-200 text-slate-400 hover:text-slate-600"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
+
+            {/* Staff type tabs — only show when school has multiple sections and user is full admin */}
+            {sections.length > 1 && !currentUser?.managedSectionIds && (
+              <div className="flex border-b border-slate-100 bg-slate-50">
+                <button type="button"
+                  onClick={() => { setIsAdminMode(false); setNewAdminSectionIds([]); }}
+                  className={`flex-1 py-2.5 text-xs font-extrabold transition-colors ${!isAdminMode ? 'text-blue-600 border-b-2 border-blue-500 bg-white' : 'text-slate-400 hover:text-slate-600'}`}>
+                  🎓 Teaching Staff
+                </button>
+                <button type="button"
+                  onClick={() => setIsAdminMode(true)}
+                  className={`flex-1 py-2.5 text-xs font-extrabold transition-colors ${isAdminMode ? 'text-purple-600 border-b-2 border-purple-500 bg-white' : 'text-slate-400 hover:text-slate-600'}`}>
+                  🛡️ Section Admin
+                </button>
+              </div>
+            )}
 
             <form onSubmit={handleRegisterTeacher} className="p-6 flex flex-col space-y-4 text-xs font-semibold overflow-hidden">
               <div className="space-y-4 overflow-y-auto max-h-[60vh] pr-1.5">
@@ -1464,7 +1529,7 @@ export default function TeachersDirectoryPage() {
                     )}
                   </div>
                   <div className="space-y-1">
-                    <label className="block text-[10px] font-black uppercase tracking-wider text-slate-500">Teacher Passport Photo</label>
+                    <label className="block text-[10px] font-black uppercase tracking-wider text-slate-500">{isAdminMode ? 'Admin' : 'Teacher'} Passport Photo</label>
                     <input 
                       type="file" 
                       accept="image/*"
@@ -1539,7 +1604,43 @@ export default function TeachersDirectoryPage() {
                   />
                 </div>
 
-                {/* Sub-Roles Panel */}
+                {/* ── Admin Mode: Section Scope Picker ──────────────────── */}
+                {isAdminMode && (
+                  <div className="p-4 rounded-2xl bg-purple-50 border border-purple-100 space-y-3">
+                    <div>
+                      <span className="block text-[10px] font-black uppercase tracking-wider text-purple-600">Section Access Scope</span>
+                      <p className="text-[10px] text-slate-400 mt-0.5">This admin will ONLY see data from the selected sections.</p>
+                    </div>
+                    <div className="grid gap-2">
+                      {sections.map((sec: any) => {
+                        const isChecked = newAdminSectionIds.includes(sec.id);
+                        return (
+                          <label key={sec.id} className={`flex items-center gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all ${
+                            isChecked ? 'border-purple-400 bg-white' : 'border-transparent bg-white/60 hover:border-purple-200'
+                          }`}>
+                            <input
+                              type="checkbox"
+                              checked={isChecked}
+                              onChange={() => setNewAdminSectionIds(prev =>
+                                isChecked ? prev.filter(id => id !== sec.id) : [...prev, sec.id]
+                              )}
+                              className="rounded border-slate-300 text-purple-600 focus:ring-0"
+                            />
+                            <span className="font-bold text-slate-800 text-xs">{sec.name}</span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                    {newAdminSectionIds.length > 0 && (
+                      <p className="text-[10px] text-purple-700 font-bold bg-purple-100 rounded-lg px-3 py-2">
+                        ✅ Admin will manage: {sections.filter((s: any) => newAdminSectionIds.includes(s.id)).map((s: any) => s.name).join(' + ')}
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                {/* Sub-Roles Panel — teachers only */}
+                {!isAdminMode && (
                 <div className="p-4 rounded-2xl bg-slate-50 border border-slate-150 space-y-4">
                   <span className="block text-[10px] font-black uppercase tracking-wider text-slate-500">Teacher Roles & Assignments</span>
                   
@@ -1682,13 +1783,14 @@ export default function TeachersDirectoryPage() {
                     </div>
                   )}
                 </div>
+                )} {/* end !isAdminMode Sub-Roles Panel */}
 
               </div>
 
               <div className="pt-4 border-t border-slate-100 flex justify-end gap-3 font-semibold">
                 <button
                   type="button"
-                  onClick={() => setShowModal(false)}
+                  onClick={() => { setShowModal(false); setIsAdminMode(false); setNewAdminSectionIds([]); }}
                   className="px-4 py-2.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-xs font-bold text-slate-500"
                 >
                   Cancel
@@ -1696,10 +1798,14 @@ export default function TeachersDirectoryPage() {
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-black bg-blue-600 hover:bg-blue-500 text-white shadow-md shadow-blue-600/10 transition-all disabled:opacity-50"
+                  className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-black text-white shadow-md transition-all disabled:opacity-50 ${
+                    isAdminMode
+                      ? 'bg-purple-600 hover:bg-purple-500 shadow-purple-600/10'
+                      : 'bg-blue-600 hover:bg-blue-500 shadow-blue-600/10'
+                  }`}
                 >
                   {submitting ? <RefreshCw className="w-4 h-4 animate-spin" /> : null}
-                  {submitting ? 'Creating...' : 'Deploy Credentials'}
+                  {submitting ? 'Creating...' : isAdminMode ? 'Create Section Admin' : 'Deploy Credentials'}
                 </button>
               </div>
             </form>

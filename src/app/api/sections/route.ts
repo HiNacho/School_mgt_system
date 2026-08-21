@@ -32,8 +32,14 @@ export async function GET(req: NextRequest) {
     if (!schoolId) return NextResponse.json({ error: 'schoolId is required' }, { status: 400 });
     requireSchoolScope(session, schoolId);
 
+    const sectionsWhere: any = { schoolId };
+
+    // Section-scoped admin: only show sections they manage
+    const scope = session.managedSectionIds;
+    if (scope && scope.length > 0) sectionsWhere.id = { in: scope };
+
     const sections = await prisma.schoolSection.findMany({
-      where: { schoolId },
+      where: sectionsWhere,
       orderBy: { displayOrder: 'asc' },
       include: {
         classes: includeClasses

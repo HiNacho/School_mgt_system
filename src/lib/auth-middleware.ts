@@ -6,6 +6,7 @@ export interface UserSession {
   userId: string;
   role: string;
   schoolId: string | null;
+  managedSectionIds?: string[] | null; // null = full access, array = section-scoped
 }
 
 export class AuthError extends Error {
@@ -42,15 +43,20 @@ export async function requireAuth(req: NextRequest): Promise<UserSession> {
   try {
     const session = await verifyJWT(token);
     
-    // Optionally check if the user is active in the database
+    // Fetch user to check active status AND load managedSectionIds
     const user = await prisma.user.findUnique({
       where: { id: session.userId },
-      select: { isActive: true }
+      select: { isActive: true, managedSectionIds: true }
     });
 
     if (!user || !user.isActive) {
       throw new AuthError('Your account has been suspended or deactivated. Contact your administrator.', 403);
     }
+
+    // Attach section scope to the session
+    (session as UserSession).managedSectionIds = user.managedSectionIds
+      ? JSON.parse(user.managedSectionIds)
+      : null;
 
     return session;
   } catch (error: any) {
@@ -82,6 +88,54 @@ export function requireSchoolScope(session: UserSession, requestedSchoolId: stri
     console.warn(`🚨 Security Violation: User ${session.userId} attempted cross-tenant access from School ${session.schoolId} to School ${requestedSchoolId}`);
     throw new AuthError('Access Denied: Strict data isolation boundary violated. You are not authorized to view this school tenant data.', 403);
   }
+}
+
+/**
+ * Returns the section IDs this user is scoped to, or null if they have full school access.
+ * null  → no restriction (full school admin / super admin)
+ * [...] → section-scoped admin, can only see data for these sections
+ */
+export function getSectionScope(session: UserSession): string[] | null {
+  if (session.role === 'SUPER_ADMIN') return null;
+  return session.managedSectionIds || null;
+}
+
+/**
+ * Builds a Prisma `where` clause fragment that restricts class queries to the
+ * user's managed sections. Returns {} if the user has full access.
+ *
+ * Usage in a student query:
+ *   const sectionFilter = buildSectionFilter(session);
+ *   prisma.student.findMany({ where: { schoolId, ...sectionFilter } })
+ *
+ * @param session     - The authenticated user session
+ * @param classPath   - Dot-path to the class relation from the model being queried.
+ *                      Defaults to 'class' (for Student, Score, Attendance etc.)
+ *                      Pass null to filter Class records directly.
+ */
+export function buildSectionFilter(
+  session: UserSession,
+  classPath: 'class' | 'arm.class' | null = 'class'
+): Record<string, any> {
+  const scope = getSectionScope(session);
+  if (!scope || scope.length === 0) return {}; // full access
+
+  const sectionCondition = { sectionId: { in: scope } };
+
+  if (classPath === null) {
+    // Filtering Class records directly
+    return sectionCondition;
+  }
+
+  if (classPath === 'class') {
+    return { class: sectionCondition };
+  }
+
+  if (classPath === 'arm.class') {
+    return { arm: { class: sectionCondition } };
+  }
+
+  return {};
 }
 
 /**
