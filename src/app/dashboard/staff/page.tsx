@@ -42,7 +42,9 @@ export default function StaffAccountsPage() {
   const [phone, setPhone] = useState('');
 
   // Enhanced Instructional Role Assignments States
-  const [staffCategory, setStaffCategory] = useState<'TEACHER' | 'HEAD_TEACHER' | 'SCHOOL_ADMIN' | 'BURSAR'>('TEACHER');
+  const [staffCategory, setStaffCategory] = useState<'TEACHER' | 'HEAD_TEACHER' | 'SCHOOL_ADMIN' | 'SECTION_ADMIN' | 'BURSAR'>('TEACHER');
+  const [newAdminSectionIds, setNewAdminSectionIds] = useState<string[]>([]); // for SECTION_ADMIN
+  const [sections, setSections] = useState<any[]>([]); // school sections
   const [isClassTeacher, setIsClassTeacher] = useState(false);
   const [isSubjectTeacher, setIsSubjectTeacher] = useState(true);
   const [classTeacherArmId, setClassTeacherArmId] = useState('');
@@ -198,6 +200,7 @@ export default function StaffAccountsPage() {
         setArms(json.data.arms || []);
         setSubjects(json.data.subjects || []);
         setClasses(json.data.classes || []);
+        setSections(json.data.sections || []);
       }
     } catch (err) {
       console.error('Error fetching academic setup parameters:', err);
@@ -435,8 +438,17 @@ export default function StaffAccountsPage() {
     }
 
     let determinedRole = 'SUBJECT_TEACHER';
+    let managedSectionIds: string[] | undefined = undefined;
+
     if (staffCategory === 'SCHOOL_ADMIN') {
       determinedRole = 'SCHOOL_ADMIN';
+    } else if (staffCategory === 'SECTION_ADMIN') {
+      if (newAdminSectionIds.length === 0) {
+        setErrorMsg('Please select at least one section for this Section Admin to manage.');
+        return;
+      }
+      determinedRole = 'SCHOOL_ADMIN';
+      managedSectionIds = newAdminSectionIds;
     } else if (staffCategory === 'HEAD_TEACHER') {
       determinedRole = 'HEAD_TEACHER';
     } else if (staffCategory === 'BURSAR') {
@@ -489,6 +501,7 @@ export default function StaffAccountsPage() {
           email,
           role: determinedRole,
           phone,
+          managedSectionIds,
           classTeacherArmId: (determinedRole === 'CLASS_TEACHER' && isClassTeacher) ? classTeacherArmId : undefined,
           subjectAssignments: isSubjectTeacher ? subjectAssignments : []
         })
@@ -497,7 +510,13 @@ export default function StaffAccountsPage() {
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || 'Failed to register staff account.');
 
-      setSuccessMsg(`Staff account successfully initialized for ${lastName} ${firstName}! Default login password set to "password".`);
+      const scopeNote = managedSectionIds
+        ? `\nSection Access: ${sections.filter((s: any) => managedSectionIds!.includes(s.id)).map((s: any) => s.name).join(', ')}`
+        : '';
+      setSuccessMsg(
+        `Staff account successfully initialized for ${lastName} ${firstName}!\n` +
+        `Username: ${json.username}\nTemporary Password: ${json.temporaryPassword}${scopeNote}`
+      );
       
       // Reset form states
       setTitle('');
@@ -506,6 +525,7 @@ export default function StaffAccountsPage() {
       setEmail('');
       setPhone('');
       setStaffCategory('TEACHER');
+      setNewAdminSectionIds([]);
       setIsClassTeacher(false);
       setIsSubjectTeacher(true);
       setClassTeacherArmId('');
@@ -1252,8 +1272,9 @@ export default function StaffAccountsPage() {
                   <select
                     value={staffCategory}
                     onChange={(e) => {
-                      const cat = e.target.value as 'TEACHER' | 'HEAD_TEACHER' | 'SCHOOL_ADMIN' | 'BURSAR';
+                      const cat = e.target.value as 'TEACHER' | 'HEAD_TEACHER' | 'SCHOOL_ADMIN' | 'SECTION_ADMIN' | 'BURSAR';
                       setStaffCategory(cat);
+                      setNewAdminSectionIds([]);
                       if (cat === 'TEACHER' && subjectAssignments.length === 0) {
                         setSubjectAssignments([{ subjectId: '', armId: '' }]);
                       }
@@ -1263,9 +1284,47 @@ export default function StaffAccountsPage() {
                     <option value="TEACHER">Teaching Staff (Class / Subject teacher roles)</option>
                     <option value="HEAD_TEACHER">Head Teacher / Dean (Curriculum coordinator/reviews)</option>
                     <option value="SCHOOL_ADMIN">School Admin / Principal (Full administrative security controls)</option>
+                    {sections.length > 1 && (
+                      <option value="SECTION_ADMIN">Section Admin (Manages specific sections only)</option>
+                    )}
                     <option value="BURSAR">Bursar (Financial management & operations center)</option>
                   </select>
                 </div>
+
+                {/* Section Admin — scope picker */}
+                {staffCategory === 'SECTION_ADMIN' && (
+                  <div className="p-4 rounded-2xl bg-purple-50 border border-purple-100 space-y-3 animate-in fade-in duration-200">
+                    <div>
+                      <span className="block text-[10px] font-bold uppercase tracking-wider text-purple-600">Section Access Scope</span>
+                      <p className="text-[10px] text-slate-400 mt-0.5">This admin will ONLY see data from the checked sections. No cross-section access.</p>
+                    </div>
+                    <div className="grid gap-2">
+                      {sections.map((sec: any) => {
+                        const isChecked = newAdminSectionIds.includes(sec.id);
+                        return (
+                          <label key={sec.id} className={`flex items-center gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all ${
+                            isChecked ? 'border-purple-400 bg-white' : 'border-transparent bg-white/60 hover:border-purple-200'
+                          }`}>
+                            <input
+                              type="checkbox"
+                              checked={isChecked}
+                              onChange={() => setNewAdminSectionIds(prev =>
+                                isChecked ? prev.filter(id => id !== sec.id) : [...prev, sec.id]
+                              )}
+                              className="rounded border-slate-300 text-purple-600 focus:ring-0"
+                            />
+                            <span className="font-bold text-slate-800 text-xs">{sec.name}</span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                    {newAdminSectionIds.length > 0 && (
+                      <p className="text-[10px] text-purple-700 font-bold bg-purple-100 rounded-lg px-3 py-2">
+                        ✅ Will manage: {sections.filter((s: any) => newAdminSectionIds.includes(s.id)).map((s: any) => s.name).join(' + ')}
+                      </p>
+                    )}
+                  </div>
+                )}
 
                 {/* Sub-Roles Panel for Teachers */}
                 {staffCategory === 'TEACHER' && (
