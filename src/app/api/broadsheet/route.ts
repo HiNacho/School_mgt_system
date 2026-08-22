@@ -51,17 +51,18 @@ export async function GET(req: NextRequest) {
     }
 
     // Role-based access control for Class Teachers
-    if (session.role === 'CLASS_TEACHER' || session.role === 'FORM_TEACHER') {
-      const isAssignedToThisArm = targetArm.classTeacherId === session.id || 
-        (targetArm as any).classTeacher?.email === session.email;
+      const teacherUserId = session.userId;
+      const teacherEmail = (session as any).email;
+      const isAssignedToThisArm = targetArm.classTeacherId === teacherUserId || 
+        (targetArm as any).classTeacher?.email === teacherEmail;
       if (!isAssignedToThisArm) {
         // Find if teacher has any assigned arm
         const assignedArm = await prisma.arm.findFirst({
           where: { 
             schoolId, 
             OR: [
-              { classTeacherId: session.id },
-              { classTeacher: { email: session.email } }
+              { classTeacherId: teacherUserId },
+              { classTeacher: { email: teacherEmail || undefined } }
             ]
           },
           include: { class: true }
@@ -73,7 +74,6 @@ export async function GET(req: NextRequest) {
           }, { status: 403 });
         }
       }
-    }
 
     const scoreMap: Record<string, any> = {};
 

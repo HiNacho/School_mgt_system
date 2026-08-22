@@ -254,7 +254,7 @@ export async function dispatchFeePaymentNotifications(paymentId: string) {
         studentId: student.id,
         title: 'Fee Payment Received',
         description: `Fee payment of ${amountStr} received via Flutterwave (Receipt #${payment.receiptNumber})`,
-        category: 'FINANCE',
+        eventType: 'NOTE',
       }
     }).catch(e => console.warn('Failed to record student timeline:', e));
 

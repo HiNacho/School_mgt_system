@@ -22,17 +22,24 @@ export async function GET(req: NextRequest) {
       requireSchoolScope(session, schoolId);
     }
 
-    // Query outstanding invoices
-    const invoices = await prisma.invoice.findMany({
-      where: {
-        schoolId,
-        status: { in: ['OUTSTANDING', 'PARTIALLY_PAID'] },
-        deletedAt: null,
+    const whereClause: any = {
+      schoolId,
+      status: { in: ['OUTSTANDING', 'PARTIALLY_PAID'] },
+      deletedAt: null,
+      sessionId: sessionId || undefined,
+      termId: termId || undefined,
+    };
+
+    if (classId || armId) {
+      whereClause.student = {
         classId: classId || undefined,
         armId: armId || undefined,
-        sessionId: sessionId || undefined,
-        termId: termId || undefined,
-      },
+      };
+    }
+
+    // Query outstanding invoices
+    const invoices = await prisma.invoice.findMany({
+      where: whereClause,
       include: {
         student: {
           include: {

@@ -141,7 +141,7 @@ export async function POST(req: NextRequest) {
           schoolId,
           userId: currentUserId,
           action: autoRenew ? 'AUTO_RENEW_ENABLED' : 'AUTO_RENEW_DISABLED',
-          details: `School Admin ${session.firstName || ''} ${session.lastName || ''} set auto-renewal to ${autoRenew ? 'ENABLED' : 'DISABLED'}`
+          details: `School Admin ${(session as any).firstName || ''} ${(session as any).lastName || ''} set auto-renewal to ${autoRenew ? 'ENABLED' : 'DISABLED'}`
         }
       });
 
